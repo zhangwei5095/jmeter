@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 
 import org.apache.commons.io.IOUtils;
@@ -101,8 +102,8 @@ public class HTMLAssertion extends AbstractTestElement implements Serializable, 
                 log.debug("xml mode: " + isXML());
             }
             tidy = new Tidy();
-            tidy.setInputEncoding("UTF8");
-            tidy.setOutputEncoding("UTF8");
+            tidy.setInputEncoding(StandardCharsets.UTF_8.name());
+            tidy.setOutputEncoding(StandardCharsets.UTF_8.name());
             tidy.setQuiet(false);
             tidy.setShowWarnings(true);
             tidy.setOnlyErrors(isErrorsOnly());
@@ -186,7 +187,7 @@ public class HTMLAssertion extends AbstractTestElement implements Serializable, 
     /**
      * Writes the output of tidy to file.
      * 
-     * @param inOutput
+     * @param inOutput The String to write to file
      */
     private void writeOutput(String inOutput) {
         String lFilename = getFilename();
@@ -221,7 +222,7 @@ public class HTMLAssertion extends AbstractTestElement implements Serializable, 
     /**
      * Gets the doctype
      * 
-     * @return the documemt type
+     * @return the document type
      */
     public String getDoctype() {
         return getPropertyAsString(DOCTYPE_KEY);
@@ -263,7 +264,7 @@ public class HTMLAssertion extends AbstractTestElement implements Serializable, 
      *            used
      */
     public void setDoctype(String inDoctype) {
-        if ((inDoctype == null) || (inDoctype.trim().equals(""))) {
+        if ((inDoctype == null) || (inDoctype.trim().isEmpty())) {
             setProperty(new StringProperty(DOCTYPE_KEY, DEFAULT_DOCTYPE));
         } else {
             setProperty(new StringProperty(DOCTYPE_KEY, inDoctype));

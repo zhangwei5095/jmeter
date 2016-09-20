@@ -18,26 +18,27 @@
 
 package org.apache.jmeter.control;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.junit.JMeterTestCase;
 import org.apache.jmeter.junit.stubs.TestSampler;
 import org.apache.jmeter.modifiers.CounterConfig;
 import org.apache.jmeter.sampler.DebugSampler;
-import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.samplers.Sampler;
 import org.apache.jmeter.threads.JMeterContext;
 import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jmeter.threads.JMeterVariables;
+import org.junit.Test;
 
 public class TestIfController extends JMeterTestCase {
-        public TestIfController(String name) {
-            super(name);
-        }
         
         /**
          * See Bug 56160
          * @throws Exception if something fails
          */
+        @Test
         public void testStackOverflow() throws Exception {
             LoopController controller = new LoopController();
             controller.setLoops(1);
@@ -76,6 +77,7 @@ public class TestIfController extends JMeterTestCase {
          * See Bug 53768
          * @throws Exception if something fails
          */
+        @Test
         public void testBug53768() throws Exception {
             LoopController controller = new LoopController();
             controller.setLoops(1);
@@ -129,10 +131,10 @@ public class TestIfController extends JMeterTestCase {
             try {
 
                 Sampler sampler = controller.next();
-                SampleResult sampleResult1 = sampler.sample(null);
+                sampler.sample(null);
                 assertEquals("0", vars.get("VAR1"));
                 sampler = controller.next();
-                SampleResult sampleResult2 = sampler.sample(null);
+                sampler.sample(null);
                 assertEquals("0", vars.get("VAR1"));
                 
 
@@ -141,6 +143,7 @@ public class TestIfController extends JMeterTestCase {
             }
         }
 
+        @Test
         public void testProcessing() throws Exception {
 
             GenericController controller = new GenericController();
@@ -187,6 +190,7 @@ public class TestIfController extends JMeterTestCase {
 //          }
         }
    
+        @Test
         public void testProcessingTrue() throws Exception {
             LoopController controller = new LoopController();
             controller.setLoops(2);
@@ -218,6 +222,7 @@ public class TestIfController extends JMeterTestCase {
          * Test false return on sample3 (sample4 doesn't execute)
          * @throws Exception if something fails
          */
+        @Test
         public void testEvaluateAllChildrenWithoutSubController() throws Exception {
             LoopController controller = new LoopController();
             controller.setLoops(2);
@@ -255,6 +260,7 @@ public class TestIfController extends JMeterTestCase {
          * test 2 loops with a sub generic controller (sample4 doesn't execute)
          * @throws Exception if something fails
          */
+        @Test
         public void testEvaluateAllChildrenWithSubController() throws Exception {
             LoopController controller = new LoopController();
             controller.setLoops(2);

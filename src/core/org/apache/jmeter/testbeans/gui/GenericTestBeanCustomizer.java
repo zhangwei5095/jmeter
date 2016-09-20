@@ -141,6 +141,9 @@ public class GenericTestBeanCustomizer extends JPanel implements SharedCustomize
     /** Default value, must be provided if {@link #NOT_UNDEFINED} is TRUE */
     public static final String DEFAULT = "default"; //$NON-NLS-1$
 
+    /** Default value is not saved; only non-defaults are saved */
+    public static final String DEFAULT_NOT_SAVED = "defaultNoSave"; //$NON-NLS-1$
+
     /** Pointer to the resource bundle, if any (will generally be null) */
     public static final String RESOURCE_BUNDLE = "resourceBundle"; //$NON-NLS-1$
 
@@ -150,7 +153,7 @@ public class GenericTestBeanCustomizer extends JPanel implements SharedCustomize
     /** TextEditor property */
     public static final String TEXT_LANGUAGE = "textLanguage"; //$NON-NLS-1$
 
-    public static final String ORDER(String group) {
+    public static String ORDER(String group) {
         return "group." + group + ".order";
     }
 
@@ -245,10 +248,7 @@ public class GenericTestBeanCustomizer extends JPanel implements SharedCustomize
                 if (editorClass != null) {
                     try {
                         propertyEditor = (PropertyEditor) editorClass.newInstance();
-                    } catch (InstantiationException e) {
-                        log.error("Can't create property editor.", e);
-                        throw new Error(e.toString());
-                    } catch (IllegalAccessException e) {
+                    } catch (InstantiationException | IllegalAccessException e) {
                         log.error("Can't create property editor.", e);
                         throw new Error(e.toString());
                     }
@@ -329,7 +329,10 @@ public class GenericTestBeanCustomizer extends JPanel implements SharedCustomize
         if (deflt == null) {
             if (notNull(pd)) {
                 log.warn(getDetails(pd) + " requires a value but does not provide a default.");
-            }            
+            }
+            if (noSaveDefault(pd)) {
+                log.warn(getDetails(pd) + " specifies DEFAULT_NO_SAVE but does not provide a default.");                
+            }
         } else {
             final Class<?> defltClass = deflt.getClass(); // the DEFAULT class
             // Convert int to Integer etc:
@@ -454,6 +457,17 @@ public class GenericTestBeanCustomizer extends JPanel implements SharedCustomize
     }
 
     /**
+     * Returns true if the property default value is not saved
+     * 
+     * @param descriptor the property descriptor
+     * @return true if the attribute {@link #DEFAULT_NOT_SAVED} is defined and equal to Boolean.TRUE;
+     *  otherwise the default is false
+     */
+    static boolean noSaveDefault(PropertyDescriptor descriptor) {
+        return Boolean.TRUE.equals(descriptor.getValue(DEFAULT_NOT_SAVED));
+    }
+
+    /**
      * Set the value of the i-th property, properly reporting a possible
      * failure.
      *
@@ -540,7 +554,7 @@ public class GenericTestBeanCustomizer extends JPanel implements SharedCustomize
     /**
      * Initialize the GUI.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new GridBagLayout());
 
         GridBagConstraints cl = new GridBagConstraints(); // for labels
@@ -636,8 +650,7 @@ public class GenericTestBeanCustomizer extends JPanel implements SharedCustomize
         // if the displayName is the empty string, leave it like that.
         JLabel label = new JLabel(text);
         label.setHorizontalAlignment(SwingConstants.TRAILING);
-        text = propertyToolTipMessage.format(new Object[] { desc.getName(), desc.getShortDescription() });
-        label.setToolTipText(text);
+        label.setToolTipText(propertyToolTipMessage.format(new Object[] { desc.getShortDescription() }));
 
         return label;
     }
@@ -648,8 +661,8 @@ public class GenericTestBeanCustomizer extends JPanel implements SharedCustomize
      * @param descriptor
      * @return the group String.
      */
-    private static String group(PropertyDescriptor d) {
-        String group = (String) d.getValue(GROUP);
+    private static String group(PropertyDescriptor descriptor) {
+        String group = (String) descriptor.getValue(GROUP);
         if (group == null){
             group = DEFAULT_GROUP;
         }
@@ -772,7 +785,7 @@ public class GenericTestBeanCustomizer extends JPanel implements SharedCustomize
                     ((ClearGui) propertyEditor).clearGui();
                 } else if (propertyEditor instanceof WrapperEditor){
                     WrapperEditor we = (WrapperEditor) propertyEditor;
-                    String tags[]=we.getTags();
+                    String[] tags = we.getTags();
                     if (tags != null && tags.length > 0) {
                         we.setAsText(tags[0]);
                     } else {

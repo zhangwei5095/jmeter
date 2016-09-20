@@ -57,7 +57,7 @@ public class LoopController extends GenericController implements Serializable {
     private transient Integer nbLoops;
 
     public LoopController() {
-        setContinueForever_private(true);
+        setContinueForeverPrivate(true);
     }
 
     public void setLoops(int loops) {
@@ -71,9 +71,9 @@ public class LoopController extends GenericController implements Serializable {
     public int getLoops() {
         // Evaluation occurs when nbLoops is not yet evaluated 
         // or when nbLoops is equal to special value INFINITE_LOOP_COUNT
-        if(nbLoops==null || // No evaluated yet
-                nbLoops.intValue()==0 || // Last iteration led to nbLoops == 0, 
-                                         // in this case as resetLoopCount will not be called, 
+        if (nbLoops==null || // No evaluated yet
+                nbLoops.intValue()==0 || // Last iteration led to nbLoops == 0,
+                                         // in this case as resetLoopCount will not be called,
                                          // it leads to no further evaluations if we don't evaluate, see BUG 56276
                 nbLoops.intValue()==INFINITE_LOOP_COUNT // Number of iteration is set to infinite
                 ) {
@@ -98,10 +98,10 @@ public class LoopController extends GenericController implements Serializable {
      *            true if the loop must be reset after ending a run
      */
     public void setContinueForever(boolean forever) {
-        setContinueForever_private(forever);
+        setContinueForeverPrivate(forever);
     }
 
-    private void setContinueForever_private(boolean forever) {
+    private void setContinueForeverPrivate(boolean forever) {
         setProperty(new BooleanProperty(CONTINUE_FOREVER, forever));
     }
 

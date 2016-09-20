@@ -36,21 +36,22 @@ class TextGraphiteMetricsSender extends AbstractGraphiteMetricsSender {
         
     private String prefix;
 
-    private List<MetricTuple> metrics = new ArrayList<MetricTuple>();
+    private List<MetricTuple> metrics = new ArrayList<>();
 
     private GenericKeyedObjectPool<SocketConnectionInfos, SocketOutputStream> socketOutputStreamPool;
 
     private SocketConnectionInfos socketConnectionInfos;
+
+
+    TextGraphiteMetricsSender() {
+        super();
+    }
 
     /**
      * @param graphiteHost Graphite Host
      * @param graphitePort Graphite Port
      * @param prefix Common Metrics prefix
      */
-    TextGraphiteMetricsSender() {
-        super();
-    }
-    
     @Override
     public void setup(String graphiteHost, int graphitePort, String prefix) {
         this.prefix = prefix;

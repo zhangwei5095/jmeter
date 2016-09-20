@@ -104,7 +104,7 @@ public class HttpMirrorServer extends Thread implements Stoppable {
         ServerSocket mainSocket = null;
         ThreadPoolExecutor threadPoolExecutor = null;
         if(maxThreadPoolSize>0) {
-            final ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(
+            final ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(
                     maxQueueSize);
             threadPoolExecutor = new ThreadPoolExecutor(
                     maxThreadPoolSize/2, 
@@ -159,7 +159,7 @@ public class HttpMirrorServer extends Thread implements Stoppable {
         return except;
     }
 
-    public static void main(String args[]){
+    public static void main(String[] args){
         int port = HttpMirrorControl.DEFAULT_PORT;
         if (args.length > 0){
             port = Integer.parseInt(args[0]);

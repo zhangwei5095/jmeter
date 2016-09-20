@@ -22,13 +22,10 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.jmeter.assertions.AssertionResult;
 import org.apache.jmeter.samplers.SampleEvent;
 import org.apache.jmeter.samplers.SampleResult;
@@ -171,10 +168,12 @@ public class SampleResultConverter extends AbstractCollectionConverter {
             try {
                 if (SampleResult.TEXT.equals(res.getDataType())){
                     writer.setValue(new String(res.getResponseData(), res.getDataEncodingWithDefault()));
+                } else {
+                    writer.setValue("Non-TEXT response data, cannot record: (" + res.getDataType() + ")");                    
                 }
                 // Otherwise don't save anything - no point
             } catch (UnsupportedEncodingException e) {
-                writer.setValue("Unsupported encoding in response data, can't record.");
+                writer.setValue("Unsupported encoding in response data, cannot record: " + e);
             }
             writer.endNode();
         }
@@ -240,9 +239,9 @@ public class SampleResultConverter extends AbstractCollectionConverter {
             SampleSaveConfiguration save) {
         if (save.saveSubresults()) {
             SampleResult[] subResults = res.getSubResults();
-            for (int i = 0; i < subResults.length; i++) {
-                subResults[i].setSaveConfig(save);
-                writeItem(subResults[i], context, writer);
+            for (SampleResult subResult : subResults) {
+                subResult.setSaveConfig(save);
+                writeItem(subResult, context, writer);
             }
         }
     }
@@ -263,8 +262,8 @@ public class SampleResultConverter extends AbstractCollectionConverter {
             SampleSaveConfiguration save) {
         if (save.saveAssertions()) {
             AssertionResult[] assertionResults = res.getAssertionResults();
-            for (int i = 0; i < assertionResults.length; i++) {
-                writeItem(assertionResults[i], context, writer);
+            for (AssertionResult assertionResult : assertionResults) {
+                writeItem(assertionResult, context, writer);
             }
         }
     }
@@ -454,26 +453,20 @@ public class SampleResultConverter extends AbstractCollectionConverter {
     }
 
     protected void readFile(String resultFileName, SampleResult res) {
-        File in = null;
-        InputStream fis = null;
-        try {
-            in = new File(resultFileName);
-            fis = new BufferedInputStream(new FileInputStream(in));
+        File in = new File(resultFileName);
+        try (FileInputStream fis = new FileInputStream(in);
+                BufferedInputStream bis = new BufferedInputStream(fis)){
             ByteArrayOutputStream outstream = new ByteArrayOutputStream(res.getBytes());
             byte[] buffer = new byte[4096];
             int len;
-            while ((len = fis.read(buffer)) > 0) {
+            while ((len = bis.read(buffer)) > 0) {
                 outstream.write(buffer, 0, len);
             }
             outstream.close();
             res.setResponseData(outstream.toByteArray());
-        } catch (FileNotFoundException e) {
-            log.warn(e.getLocalizedMessage());
         } catch (IOException e) {
             log.warn(e.getLocalizedMessage());
-        } finally {
-            IOUtils.closeQuietly(fis);
-        }
+        } 
     }
 
 

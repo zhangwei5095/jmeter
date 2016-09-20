@@ -33,7 +33,7 @@ public class TreeCloner implements HashTreeTraverser {
 
     private final ListedHashTree newTree;
 
-    private final LinkedList<Object> objects = new LinkedList<Object>();
+    private final LinkedList<Object> objects = new LinkedList<>();
 
     private final boolean honourNoThreadClone;
 
@@ -85,7 +85,7 @@ public class TreeCloner implements HashTreeTraverser {
      * add node to objects LinkedList
      * @param node Object
      */
-    private final void addLast(Object node) {
+    private void addLast(Object node) {
         objects.addLast(node);
     }
 

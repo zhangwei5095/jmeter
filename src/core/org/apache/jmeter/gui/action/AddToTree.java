@@ -26,7 +26,6 @@ import java.util.Set;
 import javax.swing.JComponent;
 import javax.swing.tree.TreePath;
 
-import org.apache.jmeter.exceptions.IllegalUserActionException;
 import org.apache.jmeter.gui.GuiPackage;
 import org.apache.jmeter.gui.tree.JMeterTreeNode;
 import org.apache.jmeter.testelement.TestElement;
@@ -40,7 +39,7 @@ public class AddToTree implements Command {
     private static final Set<String> commandSet;
 
     static {
-        HashSet<String> commands = new HashSet<String>();
+        Set<String> commands = new HashSet<>();
         commands.add(ActionNames.ADD);
         commandSet = Collections.unmodifiableSet(commands);
     }
@@ -70,16 +69,7 @@ public class AddToTree implements Command {
             JMeterTreeNode parentNode = guiPackage.getCurrentNode();
             JMeterTreeNode node = guiPackage.getTreeModel().addComponent(testElement, parentNode);
             guiPackage.getMainFrame().getTree().setSelectionPath(new TreePath(node.getPath()));
-        }
-        catch (IllegalUserActionException err) {
-            log.error("", err); // $NON-NLS-1$
-            String msg = err.getMessage();
-            if (msg == null) {
-                msg = err.toString();
-            }
-            JMeterUtils.reportErrorToUser(msg);
-        }
-        catch (Exception err) {
+        } catch (Exception err) {
             log.error("", err); // $NON-NLS-1$
             String msg = err.getMessage();
             if (msg == null) {

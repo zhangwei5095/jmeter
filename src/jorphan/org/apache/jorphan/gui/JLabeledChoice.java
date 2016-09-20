@@ -40,10 +40,11 @@ public class JLabeledChoice extends JPanel implements JLabeledField {
 
     private final JLabel mLabel = new JLabel();
 
-    private final JComboBox choiceList;
+    private final JComboBox<String> choiceList;
+    
+    private final boolean withButtons;
 
-    // Maybe move to vector if MT problems occur
-    private final ArrayList<ChangeListener> mChangeListeners = new ArrayList<ChangeListener>(3);
+    private final ArrayList<ChangeListener> mChangeListeners = new ArrayList<>(3);
 
     private JButton delete, add;
 
@@ -52,15 +53,17 @@ public class JLabeledChoice extends JPanel implements JLabeledField {
      */
     public JLabeledChoice() {
         super();
-        choiceList = new JComboBox();
+        choiceList = new JComboBox<>();
+        withButtons = false;
         init();
     }
 
     public JLabeledChoice(String pLabel, boolean editable) {
         super();
-        choiceList = new JComboBox();
+        choiceList = new JComboBox<>();
         mLabel.setText(pLabel);
         choiceList.setEditable(editable);
+        withButtons = false;
         init();
     }
 
@@ -83,10 +86,24 @@ public class JLabeledChoice extends JPanel implements JLabeledField {
      *
      */
     public JLabeledChoice(String pLabel, String[] items, boolean editable) {
+        this(pLabel, items, editable, editable);
+    }
+
+    /**
+     * Constructs a combo-box with the label displaying the passed text.
+     *
+     * @param pLabel - the text to display in the label.
+     * @param items - the items to display in the Combo box
+     * @param editable - the box is made editable
+     * @param withButtons - if true, then Add and Delete buttons are created.
+     *
+     */
+    public JLabeledChoice(String pLabel, String[] items, boolean editable, boolean withButtons) {
         super();
         mLabel.setText(pLabel);
-        choiceList = new JComboBox(items);
+        choiceList = new JComboBox<>(items);
         choiceList.setEditable(editable);
+        this.withButtons = withButtons;
         init();
     }
 
@@ -95,7 +112,7 @@ public class JLabeledChoice extends JPanel implements JLabeledField {
      */
     @Override
     public List<JComponent> getComponentList() {
-        List<JComponent> comps = new LinkedList<JComponent>();
+        List<JComponent> comps = new LinkedList<>();
         comps.add(mLabel);
         comps.add(choiceList);
         return comps;
@@ -111,19 +128,15 @@ public class JLabeledChoice extends JPanel implements JLabeledField {
 
     public void setValues(String[] items) {
         choiceList.removeAllItems();
-        for (int i = 0; i < items.length; i++) {
-            choiceList.addItem(items[i]);
+        for (String item : items) {
+            choiceList.addItem(item);
         }
     }
 
     /**
      * Initialises all of the components on this panel.
      */
-    private void init() {
-        /*
-         * if(choiceList.isEditable()) { choiceList.addActionListener(new
-         * ComboListener()); }
-         */
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         // Register the handler for focus listening. This handler will
         // only notify the registered when the text changes from when
         // the focus is gained to when it is lost.
@@ -146,7 +159,7 @@ public class JLabeledChoice extends JPanel implements JLabeledField {
         // Add the sub components
         this.add(mLabel);
         this.add(choiceList);
-        if (choiceList.isEditable()) {
+        if (withButtons) {
             add = new JButton("Add");
             add.setMargin(new Insets(1, 1, 1, 1));
             add.addActionListener(new AddListener());
@@ -210,7 +223,7 @@ public class JLabeledChoice extends JPanel implements JLabeledField {
     public String[] getItems() {
         String[] items = new String[choiceList.getItemCount()];
         for (int i = 0; i < items.length; i++) {
-            items[i] = (String) choiceList.getItemAt(i);
+            items[i] = choiceList.getItemAt(i);
         }
         return items;
     }
@@ -277,15 +290,15 @@ public String getToolTipText() {
      */
     private void notifyChangeListeners() {
         ChangeEvent ce = new ChangeEvent(this);
-        for (int index = 0; index < mChangeListeners.size(); index++) {
-            mChangeListeners.get(index).stateChanged(ce);
+        for (ChangeListener mChangeListener : mChangeListeners) {
+            mChangeListener.stateChanged(ce);
         }
     }
 
     private class AddListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            Object item = choiceList.getSelectedItem();
+            String item = (String) choiceList.getSelectedItem();
             int index = choiceList.getSelectedIndex();
             if (!item.equals(choiceList.getItemAt(index))) {
                 choiceList.addItem(item);

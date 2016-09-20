@@ -18,10 +18,15 @@
 
 <!DOCTYPE document
 [
-<!ENTITY sect-num '20'>
+<!ENTITY sect-num '22'>
+<!ENTITY ccedil   "&#x000E7;" >
+<!ENTITY eacute   "&#x000E9;" >
+<!ENTITY hellip   "&#x02026;" >
+<!ENTITY nbsp     "&#x000A0;" >
+<!ENTITY yen      "&#x000A5;" >
 ]>
 
-<document prev="component_reference.html" next="regular_expressions.html" id="$Id$">
+<document prev="properties_reference.html" next="regular_expressions.html" id="$Id$">
 
 <properties>
   <title>User's Manual: Functions and Variables</title>
@@ -57,14 +62,14 @@ Functions that require no parameters can leave off the parentheses, for example 
 <p>
 If a function parameter contains a comma, then be sure to escape this with "<code>\</code>", otherwise JMeter will treat it as a parameter delimiter.
 For example:
-<pre>
+<source>
 ${__time(EEE\, d MMM yyyy)}
-</pre>
+</source>
 If the comma is not escaped - e.g. <code>${__javaScript(Math.max(2,5))}</code> - you will get an error such as:
-<pre>
+<source>
 ERROR - jmeter.functions.JavaScript: Error processing Javascript: [Math.max(2]
     org.mozilla.javascript.EvaluatorException: missing ) after argument list (&lt;cmd&gt;#1)
- </pre>
+ </source>
  This is because the string "<code>Math.max(2,5)</code>" is treated as being two parameters to the __javascript function:<br/>
  <code>Math.max(2</code> and <code>5)</code><br/>
  Other error messages are possible. 
@@ -81,8 +86,8 @@ For example if <code>UNDEF</code> is not defined as a variable, then the value o
 </b>
 Variables, functions (and properties) are all case-sensitive.
 <b>
-Versions of JMeter after 2.3.1 trim spaces from variable names before use, so for example
-<code>${__Random(1,63, LOTTERY )}</code> will use the variable '<code>LOTTERY</code>' rather than '<code> LOTTERY </code>'.
+JMeter trims spaces from variable names before use, so for example
+<code>${__Random(1,63,&nbsp;LOTTERY&nbsp;)}</code> will use the variable '<code>LOTTERY</code>' rather than '<code>&nbsp;LOTTERY&nbsp;</code>'.
 </b>
 </p>
 <note>
@@ -117,11 +122,15 @@ Alternatively, just use <code>/</code> instead for the path separator - e.g. <co
         <tr><td>Calculation</td><td> <a href="#__intSum">intSum</a></td><td>add int numbers</td><td>1.8.1</td></tr>
         <tr><td>Calculation</td><td> <a href="#__longSum">longSum</a></td><td>add long numbers</td><td>2.3.2</td></tr>
         <tr><td>Calculation</td><td> <a href="#__Random">Random</a></td><td>generate a random number</td><td>1.9</td></tr>
+        <tr><td>Calculation</td><td> <a href="#__RandomFromMultipleVars">RandomFromMultipleVars</a></td><td>extracts an element from the values of a set of variables separated by <code>|</code></td><td>3.1</td></tr>
         <tr><td>Calculation</td><td> <a href="#__RandomString">RandomString</a></td><td>generate a random string</td><td>2.6</td></tr>
         <tr><td>Calculation</td><td> <a href="#__UUID">UUID</a></td><td>generate a random type 4 UUID</td><td>2.9</td></tr>
+        <tr><td>Scripting</td><td> <a href="#__groovy">groovy</a></td><td>run a Groovy script</td><td>3.1</td></tr>
         <tr><td>Scripting</td><td> <a href="#__BeanShell">BeanShell</a></td><td>run a BeanShell script</td><td>1.X</td></tr>
         <tr><td>Scripting</td><td> <a href="#__javaScript">javaScript</a></td><td>process JavaScript (Mozilla Rhino)</td><td>1.9</td></tr>
-        <tr><td>Scripting</td><td> <a href="#__jexl">jexl, jexl2</a></td><td>evaluate a Commons Jexl expression</td><td>jexl(2.2), jexl2(2.6)</td></tr>
+        <tr><td>Scripting</td><td> <a href="#__jexl">jexl</a></td><td>evaluate a Commons Jexl expression. This function is DEPRECATED as of JMeter 3.0, it will be removed in 3.1 version.</td><td>jexl1(1.1)</td></tr>
+        <tr><td>Scripting</td><td> <a href="#__jexl2">jexl2</a></td><td>evaluate a Commons Jexl2 expression</td><td>jexl2(2.1.1)</td></tr>
+        <tr><td>Scripting</td><td> <a href="#__jexl3">jexl3</a></td><td>evaluate a Commons Jexl3 expression</td><td>jexl3 (3.0)</td></tr>
         <tr><td>Properties</td><td> <a href="#__property">property</a> </td><td>read a property</td><td>2.0</td></tr>
         <tr><td>Properties</td><td> <a href="#__P">P</a></td><td>read a property (shorthand method)</td><td>2.0</td></tr>
         <tr><td>Properties</td><td> <a href="#__setProperty">setProperty</a></td><td>set a JMeter property</td><td>2.1</td></tr>
@@ -148,9 +157,9 @@ run.  This could be used to replace the DOMAIN field of all HTTP requests, for e
 matter to change a test to target a different server with the same test.
 </p>
 <p>
-Note that variables cannot currently be nested; i.e <code>${Var${N}}</code> does not work.
-The <code>__V</code> (variable) function (versions after 2.2) can be used to do this: <code>${__V(Var${N})}</code>.
-In earlier JMeter versions one can use <code>${__BeanShell(vars.get("Var${N}")}</code>.
+Note that variables cannot currently be nested; i.e. <code>${Var${N}}</code> does not work.
+The <code>__V</code> (variable) function can be used to do this: <code>${__V(Var${N})}</code>.
+You can also use <code>${__BeanShell(vars.get("Var${N}")}</code>.
 </p>
 <p>This type of replacement is possible without functions, but was less convenient and less intuitive.
 It required users to create default config elements that would fill in blank values of Samplers.
@@ -195,7 +204,7 @@ Configuration elements are processed by a separate thread.
 Therefore functions such as <code>__threadNum</code> do not work properly in elements such as User Defined Variables.
 Also note that variables defined in a UDV element are not available until the element has been processed.
 </p>
-<note>When using variable/function references in SQL code (etc),
+<note>When using variable/function references in SQL code (etc.),
 remember to include any necessary quotes for text strings,
 i.e. use
 <source>
@@ -254,8 +263,8 @@ Backslashes before '<code>$</code>' or '<code>,</code>' or '<code>\</code>' are 
 The <code>__logn()</code> function reference can be used anywhere in the test plan after the variable has been defined.
 Alternatively, the Java Request sampler can be used to create a sample containing variable references;
 the output will be shown in the appropriate Listener.
-For versions of JMeter later than 2.3, there is a <complink name="Debug Sampler"/> 
-that can be used to display the values of variables etc in the Tree View Listener.
+Note there is a <complink name="Debug Sampler"/> 
+that can be used to display the values of variables etc. in the Tree View Listener.
 </p>
 <note><sup>*</sup>If you define a user-defined static variable with the same name as a built-in function, your static
 variable will override the built-in function.</note>
@@ -290,7 +299,7 @@ replacement string") parsed by this function</li>
 <li><code>${refName_g#}</code> to refer to the n<sup>th</sup> group parsed by this function.</li>
 <li><code>${refName_matchNr}</code> to refer to the number of groups found by this function.</li>
 </ul>
-<note>If using distributed testing, ensure you switch mode (see jmeter.properties) so that it's not a stripping one, see <bugzilla>56376</bugzilla></note>
+<note>If using distributed testing, ensure you switch mode (see <code>jmeter.properties</code>) so that it's not a stripping one, see <bugzilla>56376</bugzilla></note>
 </p>
 </description>
 
@@ -298,24 +307,24 @@ replacement string") parsed by this function</li>
         <property name="First argument" required="Yes">The first argument is the regular expression
         to be applied to the response data.  It will grab all matches.  Any parts of this expression
         that you wish to use in your template string, be sure to surround in parentheses.  Example:
-        <code>&amp;lt;a href="(.*)"&amp;gt;</code>.  This will grab the value of the link and store it as the first group (there is
-        only 1 group).  Another example: <code>&amp;lt;input type="hidden" name="(.*)" value="(.*)"&amp;gt;</code>.  This will
+        <code>&lt;a href="(.*)"&gt;</code>.  This will grab the value of the link and store it as the first group (there is
+        only 1 group).  Another example: <code>&lt;input type="hidden" name="(.*)" value="(.*)"&gt;</code>.  This will
         grab the name as the first group, and the value as the second group.  These values can be used
         in your template string</property>
         <property name="Second argument" required="Yes">This is the template string that will replace
         the function at run-time.  To refer to a group captured in the regular expression, use the syntax:
-        <code>$[group_number]$</code>.  Ie: <code>$1$</code>, or <code>$2$</code>.  Your template can be any string.</property>
+        <code>$[group_number]$</code>.  I.e.: <code>$1$</code>, or <code>$2$</code>.  Your template can be any string.</property>
         <property name="Third argument" required="No, default=1">The third argument tells JMeter which match
         to use.  Your regular expression might find numerous matches.  You have four choices:
                 <ul><li>An integer - Tells JMeter to use that match.  '<code>1</code>' for the first found match, '<code>2</code>' for the
                 second, and so on</li>
-                <li>RAND - Tells JMeter to choose a match at random.</li>
-                <li>ALL - Tells JMeter to use all matches, and create a template string for each one and then
+                <li><code>RAND</code> - Tells JMeter to choose a match at random.</li>
+                <li><code>ALL</code> - Tells JMeter to use all matches, and create a template string for each one and then
                 append them all together.  This option is little used.</li>
-                <li>A float number between 0 and 1 - tells JMeter to find the Xth match using the formula:
+                <li>A float number between 0 and 1 - tells JMeter to find the X<sup>th</sup> match using the formula:
                 (number_of_matches_found * float_number) rounded to nearest integer.</li>
                 </ul></property>
-        <property name="Fourth argument" required="No">If 'ALL' was selected for the above argument
+        <property name="Fourth argument" required="No">If '<code>ALL</code>' was selected for the above argument
         value, then this argument will be inserted between each appended copy of the template value.</property>
         <property name="Fifth argument" required="No">Default value returned if no match is found</property>
         <property name="Sixth argument" required="No">A reference name for reusing the values parsed by this function.<br></br>
@@ -335,9 +344,7 @@ that is like counting the number of iterations through the test plan.  A global 
 counting how many times that request was run.
 </p>
 <p>The counter uses an integer variable to hold the count, which therefore has a maximum of 2,147,483,647.</p>
-<p>The counter function instances are now completely independent. 
-[JMeter 2.1.1 and earlier used a fixed thread variable to keep track of the per-user count, 
-so multiple counter functions operated on the same value.] 
+<p>The counter function instances are completely independent.  
 The global counter - "<code>FALSE</code>" - is separately maintained by each counter instance.
 </p>
 <p>
@@ -354,7 +361,7 @@ If you want to have a count that increments for each sample, use the function in
 
 <property name="Second argument" required="No">A reference name for reusing the value created by this function.<br></br>
                 Stored values are of the form <code>${refName}</code>.  This allows you to keep one counter and refer to its value in
-                multiple places. [For JMeter 2.1.1 and earlier this parameter was required.]</property>
+                multiple places.</property>
 </properties>
 </component>
 
@@ -364,6 +371,9 @@ being executed.  These numbers are independent of ThreadGroup, meaning thread #1
 is indistinguishable from thread #1 in another threadgroup, from the point of view of this function.</p>
 
 <p>There are no arguments for this function.</p>
+<p>Usage Example:
+<source>${__threadNum}</source> returns a number between 1 and the max number of running threads configured in the containing Thread Group
+</p>
 </description>
 <note>
 This function does not work in any Configuration elements (e.g. User Defined Variables) as these are run from a separate thread.
@@ -377,35 +387,47 @@ Nor does it make sense to use it on the Test Plan.
 The intSum function can be used to compute the sum of two or more integer values.
 </p>
 <note>
-JMeter Versions 2.3.1 and earlier required the reference name to be present.
-The reference name is now optional, but it must not be a valid integer.
+The reference name is optional, but it must not be a valid integer.
 </note>
 </description>
 
 <properties>
         <property name="First argument" required="Yes">The first int value.</property>
         <property name="Second argument" required="Yes">The second int value.</property>
-        <property name="nth argument" required="No">The nth int value.</property>
+        <property name="nth argument" required="No">The n<sup>th</sup> int value.</property>
         <property name="last argument" required="No">A reference name for reusing the value computed by this function. 
                 If specified, the reference name must contain at least one non-numeric character otherwise it will
                 be treated as another int value to be added.
         </property>
 </properties>
+
+<p>Examples:
+<source>${__intSum(2,5,MYVAR)}</source> will return 7 (2+5) and store the result in MYVAR variable. So <code>${MYVAR}</code> will be equal to 7. <br/>
+<source>${__intSum(2,5,7)}</source> will return 14 (2+5+7) and store the result in MYVAR variable. <br/>
+<source>${__intSum(1,2,5,${MYVAR})}</source> will return 16 if MYVAR value is equal to 8, 1+2+5+${MYVAR})<br/>
+</p>
 </component>
 
 <component index="&sect-num;.5.4b" name="__longSum">
-<description><p>The longSum function can be used to compute the sum of two or more long values.
+<description><p>The longSum function can be used to compute the sum of two or more long values, use this instead of __intSum whenever you know your values will not 
+be in the interval -2147483648 to 2147483647.
 </p></description>
 
 <properties>
         <property name="First argument" required="Yes">The first long value.</property>
         <property name="Second argument" required="Yes">The second long value.</property>
-        <property name="nth argument" required="No">The nth long value.</property>
+        <property name="nth argument" required="No">The n<sup>th</sup> long value.</property>
         <property name="last argument" required="No">A reference name for reusing the value computed by this function. 
                 If specified, the reference name must contain at least one non-numeric character otherwise it will
                 be treated as another long value to be added.
         </property>
 </properties>
+
+<p>Examples:
+<source>${__longSum(2,5,MYVAR)}</source> will return 7 (2+5) and store the result in MYVAR variable. So <code>${MYVAR}</code> will be equal to 7. <br/>
+<source>${__longSum(2,5,7)}</source> will return 14 (2+5+7) and store the result in MYVAR variable. <br/>
+<source>${__longSum(1,2,5,${MYVAR})}</source> will return 16 if MYVAR value is equal to 8, 1+2+5+${MYVAR})<br/>
+</p>
 </component>
 
 <!-- Alternate spelling -->
@@ -435,7 +457,7 @@ The reference name is now optional, but it must not be a valid integer.
     </p>
     <note>
     Function instances are shared between threads, and the file is (re-)opened by whatever thread
-    happens to need the next line of input, so using the threadNumber as part of the file name
+    happens to need the next line of input, so using the <code>threadNumber</code> as part of the file name
     will result in unpredictable behaviour.
     </note>
     <p>If an error occurs opening or reading the file, then the function returns the string "<code>**ERR**</code>"</p>
@@ -452,40 +474,46 @@ A reference name - <code>refName</code> - for reusing the value created by this 
 Defaults to "<code>StringFromFile_</code>".
         </property>
         <property name="Start sequence number" required="No">Initial Sequence number (if omitted, the End sequence number is treated as a loop count)</property>
-        <property name="End   sequence number" required="No">Final sequence number (if omitted, seqence numbers can increase without limit)</property>
+        <property name="End   sequence number" required="No">Final sequence number (if omitted, sequence numbers can increase without limit)</property>
 </properties>
 <p>The file name parameter is resolved when the file is opened or re-opened.</p>
 <p>The reference name parameter (if supplied) is resolved every time the function is executed.</p>
 <p><b>Using sequence numbers:</b></p>
-<p>When using the optional sequence numbers, the path name is used as the format string for java.text.DecimalFormat.
+<p>When using the optional sequence numbers, the path name is used as the format string for <code>java.text.DecimalFormat</code>.
     The current sequence number is passed in as the only parameter.
     If the optional start number is not specified, the path name is used as is.
     Useful formatting sequences are:
     </p>
-<source>
-# - insert the number, with no leading zeros or spaces
-000 - insert the number packed out to 3 digits with leading zeros if necessary
-</source>
-Examples:<br></br>
-<source>
- pin#'.'dat -> pin1.dat, ... pin9.dat, pin10.dat, ... pin9999.dat
- pin000'.'dat -> pin001.dat ... pin099.dat ... pin999.dat ... pin9999.dat
- pin'.'dat# -> pin.dat1, ... pin.dat9 ... pin.dat999
-</source>
+<dl>
+<dt><code>#</code></dt><dd>insert the number, with no leading zeros or spaces</dd>
+<dt><code>000</code></dt><dd>insert the number packed out to three digits with leading zeros if necessary</dd>
+</dl>
+<example title="Usage of format strings" anchor="string-from-file-format-examples">
+Here are a few format strings and the corresponding sequences they will generate.
+<dl>
+  <dt><code>pin#'.'dat</code></dt><dd>Will generate the digits without leading zeros and treat the dot literally like<br />
+    <code>pin1.dat</code>, &hellip;, <code>pin9.dat</code>, <code>pin10.dat</code>, &hellip;, <code>pin9999.dat</code></dd>
+  <dt><code>pin000'.'dat</code></dt><dd>Will generate leading zeros while keeping the dot. When the numbers start having more digits
+    then those three digits that this format suggests, the sequence will use more digits as can be seen in<br />
+    <code>pin001.dat</code>, &hellip; <code>pin099.dat</code>, &hellip;, <code>pin999.dat</code>, &hellip;, <code>pin9999.dat</code></dd>
+  <dt><code>pin'.'dat#</code></dt><dd>Will append digits without leading zeros while keeping the dot and generate<br />
+    <code>pin.dat1</code>, &hellip;, <code>pin.dat9</code>, &hellip;, <code>pin.dat999</code></dd>
+</dl>
+</example>
 <p>
     If more digits are required than there are formatting characters, the number will be
     expanded as necessary.<br></br>
     <b>To prevent a formatting character from being interpreted,
     enclose it in single quotes. Note that "<code>.</code>" is a formatting character,
     and must be enclosed in single quotes</b>
-    (though <code>#</code>. and <code>000</code>. work as expected in locales where the decimal point is also "<code>.</code>")
+    (though <code>#.</code> and <code>000.</code> work as expected in locales where the decimal point is also "<code>.</code>")
     <br></br>
-    In other locales (e.g. fr), the decimal point is "<code>,</code>" - which means that "<code>#.</code>"
+    In other locales (e.g. <code>fr</code>), the decimal point is "<code>,</code>" - which means that "<code>#.</code>"
     becomes "<code>nnn,</code>".<br></br>
-    See the documentation for DecimalFormat for full details.<br></br>
+    See the documentation for <code>DecimalFormat</code> for full details.<br></br>
     If the path name does not contain any special formatting characters,
     the current sequence number will be appended to the name, otherwise
-    the number will be inserted aaccording to the fomatting instructions.<br></br>
+    the number will be inserted according to the formatting instructions.<br></br>
     If the start sequence number is omitted, and the end sequence number is specified,
     the sequence number is interpreted as a loop count, and the file will be used at most "<code>end</code>" times.
     In this case the filename is not formatted.
@@ -498,21 +526,30 @@ Examples:<br></br>
 </component>
 
 <component index="&sect-num;.5.6a" name="__machineName">
-<description><p>The machineName function returns the local host name</p></description>
+<description><p>The machineName function returns the local host name. This uses the Java method <code>InetAddress.getLocalHost()</code> and passes it to <code>getHostName()</code></p></description>
 
 <properties>
         <property name="Variable Name" required="No">A reference name for reusing the value
                 computed by this function.</property>
 </properties>
+<p>Examples:
+<source>${__machineName()}</source> will return the host name of the machine<br/>
+<source>${__machineName}</source> will return the host name of the machine<br/>
+</p>
 </component>
 
 <component index="&sect-num;.5.6b" name="__machineIP">
-<description><p>The machineIP function returns the local IP address</p></description>
+<description><p>The machineIP function returns the local IP address. This uses the Java method <code>InetAddress.getLocalHost()</code> and passes it to <code>getHostAddress()</code></p></description>
 
 <properties>
         <property name="Variable Name" required="No">A reference name for reusing the value
                 computed by this function.</property>
 </properties>
+
+<p>Examples:
+<source>${__machineIP()}</source> will return the IP address of the machine<br/>
+<source>${__machineIP}</source> will return the IP address of the machine<br/>
+</p>
 </component>
 
 <component index="&sect-num;.5.7" name="__javaScript">
@@ -530,13 +567,13 @@ For details of the language, please see <a href="http://www.mozilla.org/rhino/ov
 The following variables are made available to the script:
 </p>
 <ul>
-<li>log - the logger for the function</li>
-<li>ctx - JMeterContext object</li>
-<li>vars - JMeterVariables object</li>
-<li>threadName - String containing the current thread name (in 2.3.2 it was misspelt as "<code>theadName</code>")</li>
-<li>sampler - current Sampler object (if any)</li>
-<li>sampleResult - previous SampleResult object (if any)</li>
-<li>props - JMeter Properties object</li>
+<li><code>log</code> - the logger for the function</li>
+<li><code>ctx</code> - JMeterContext object</li>
+<li><code>vars</code> - JMeterVariables object</li>
+<li><code>threadName</code> - String containing the current thread name</li>
+<li><code>sampler</code> - current Sampler object (if any)</li>
+<li><code>sampleResult</code> - previous SampleResult object (if any)</li>
+<li><code>props</code> - JMeter Properties object</li>
 </ul>
 <p>
 Rhinoscript allows access to static methods via its Packages object.
@@ -569,6 +606,15 @@ the expression has commas, please make sure to escape them. For example in:
 ${__javaScript('${sp}'.slice(7\,99999))}
 </source>
 the comma after <code>7</code> is escaped.</note>
+
+<p>Examples:
+<source>${__javaScript(new Date())}</source> will return <code>Sat Jan 09 2016 16:22:15 GMT+0100 (CET)</code><br/>
+<source>${__javaScript(new Date(),MYDATE)}</source> will return <code>Sat Jan 09 2016 16:22:15 GMT+0100 (CET)</code> and store it under variable <code>MYDATE</code><br/> 
+<source>${__javaScript(Math.floor(Math.random()*(${maxRandom}+1)),MYRESULT)}</source> will use maxRandom variable, return a random value between 0 and maxRandom and store it in MYRESULT  
+<source>${__javaScript(${minRandom}+Math.floor(Math.random()*(${maxRandom}-${minRandom}+1)),MYRESULT)}</source> will use <code>maxRandom</code> and <code>minRandom</code> variables, return a random value between <code>maxRandom</code> and <code>minRandom</code> and store it under variable <code>MYRESULT</code>
+<source>${__javaScript("${VAR}"=="abcd",MYRESULT)}</source> will compare the value of <code>VAR</code> variable with <code>abcd</code>, return <code>true</code> or <code>false</code> and store the result in MYRESULT
+</p>
+
 </component>
 
 <component index="&sect-num;.5.8" name="__Random">
@@ -580,6 +626,11 @@ the comma after <code>7</code> is escaped.</note>
         <property name="Variable Name" required="No">A reference name for reusing the value
                 computed by this function.</property>
 </properties>
+
+<p>Examples:
+<source>${__Random(0,10)}</source> will return a random number between 0 and 10<br/>
+<source>${__Random(0,10, MYVAR)}</source> will return a random number between 0 and 10 and store it in <code>MYVAR</code>. <code>${MYVAR}</code> will contain the random number<br/>
+</p>
 </component>
 
 <component index="&sect-num;.5.8" name="__RandomString">
@@ -591,7 +642,41 @@ the comma after <code>7</code> is escaped.</note>
         <property name="Variable Name" required="No">A reference name for reusing the value
                 computed by this function.</property>
 </properties>
+<p>Examples:
+<source>${__RandomString(5)}</source> will return a random string of 5 characters which can be readable or not<br/>
+<source>${__RandomString(10,abcdefg)}</source> will return a random string of 10 characters picked from <code>abcdefg</code> set, like <code>cdbgdbeebd</code> or <code>adbfeggfad</code>, &hellip;<br/>
+<source>${__RandomString(6,a12zeczclk, MYVAR)}</source> will return a random string of 6 characters picked from <code>a12zeczclk</code> set and store the result in <code>MYVAR</code>, <code>MYVAR</code> will contain
+string like <code>2z22ak</code> or <code>z11kce</code>, &hellip;<br/>
+</p>
 </component>
+
+<component index="&sect-num;.5.8" name="__RandomFromMultipleVars">
+<description><p>The RandomFromMultipleVars function returns a random value based on the variable values provided by <code>Source Variables</code>.</p>
+The variables can be simple or multi-valued as they can be generated by the following extractors:
+<ul>
+    <li><a href="component_reference.html#Regular_Expression_Extractor">Regular Expression Extractor</a></li>
+    <li><a href="component_reference.html#CSS/JQuery_Extractor">CSS/JQuery Extractor</a></li>
+    <li><a href="component_reference.html#JSON_Path_PostProcessor">JSON Path PostProcessor</a></li>
+    <li><a href="component_reference.html#XPath_Assertion">XPath Assertion</a></li>
+</ul>
+
+Multi-value vars are the ones that are extracted when you set <code>-1</code> for <code>Match Numbers</code>. 
+This leads to creation of match number variable called <code>varName_matchNr</code> and for each value to the creation of variable <code>varName_n</code> where n = 1, 2, 3 etc.
+
+</description>
+
+<properties>
+        <property name="Source Variables" required="Yes">Variable names separated by <code>|</code> that contain the values that will be used as input for random computation</property>
+        <property name="Variable Name" required="No">A reference name for reusing the value
+                computed by this function.</property>
+</properties>
+<p>Examples:
+<source>${__RandomFromMultipleVars(val)}</source> will return a random string based on content of variable val taking into account wether they are multi-value or not<br/>
+<source>${__RandomFromMultipleVars(val1|val2)}</source> will return a random string based on content of variables val1 and val2 taking into account wether they are multi-value or not<br/>
+<source>${__RandomFromMultipleVars(val1|val2, MYVAR)}</source> will return a random string based on content of variables val1 and val2 taking into account wether they are multi-value or not and store the result in <code>MYVAR</code><br/>
+</p>
+</component>
+
 
 <component index="&sect-num;.5.8" name="__UUID">
 <description>
@@ -599,12 +684,14 @@ the comma after <code>7</code> is escaped.</note>
 </description>
 <properties>
 </properties>
+<p>Examples:
+<source>${UUID()}</source> will return UUIDs with this format : <code>c69e0dd1-ac6b-4f2b-8d59-5d4e8743eecd</code> <br/>
+</p>
 </component>
 
 <component index="&sect-num;.5.8" name="__CSVRead">
 <description><p>The CSVRead function returns a string from a CSV file (c.f. <a href="#_StringFromFile">StringFromFile</a>)</p>
-    <p>NOTE: versions up to 1.9.1 only supported a single file. 
-        JMeter versions since 1.9.1 support multiple file names.
+    <p>NOTE: JMeter supports multiple file names.
     </p>
     <p><b>In most cases, the newer 
     <a href="component_reference.html#CSV_Data_Set_Config">CSV Data Set Config element</a>
@@ -612,7 +699,7 @@ the comma after <code>7</code> is escaped.</note>
     <p>
     When a filename is first encountered, the file is opened and read into an internal
     array. If a blank line is detected, this is treated as end of file - this allows
-    trailing comments to be used (N.B. this feature was introduced in versions after 1.9.1)
+    trailing comments to be used.
     </p>
     <p>All subsequent references to the same file name use the same internal array.
     N.B. the filename case is significant to the function, even if the OS doesn't care,
@@ -739,9 +826,9 @@ the second would return <code>1</code> and the last would return <code>www.dummy
 </p>
 For example:
 <dl>
-  <dt><code>${__log(Message)}</code></dt><dd>written to the log file as   "<code>...thread Name : Message</code>"</dd>
+  <dt><code>${__log(Message)}</code></dt><dd>written to the log file as   "<code> &hellip; thread Name : Message</code>"</dd>
   <dt><code>${__log(Message,OUT)}</code></dt><dd>written to console window</dd>
-  <dt><code>${__log(${VAR},,,VAR=)}</code></dt><dd>written to log file as "<code>...thread Name VAR=value</code>"</dd>
+  <dt><code>${__log(${VAR},,,VAR=)}</code></dt><dd>written to log file as "<code> &hellip; thread Name VAR=value</code>"</dd>
 </dl>
 </component>
 
@@ -776,7 +863,7 @@ For example:
 </b>
 </p>
 <note>
-Note that a different Interpreter is used for each independent occurence of the function
+Note that a different Interpreter is used for each independent occurrence of the function
 in a test script, but the same Interpreter is used for subsequent invocations.
 This means that variables persist across calls to the function.
 </note>
@@ -787,18 +874,18 @@ However the function <code>execute()</code> method is synchronised.
 <p>
 If the property "<code>beanshell.function.init</code>" is defined, it is passed to the Interpreter
 as the name of a sourced file. This can be used to define common methods and variables. There is a
-sample init file in the bin directory: BeanShellFunction.bshrc.
+sample init file in the bin directory: <code>BeanShellFunction.bshrc</code>.
 </p>
 <p>
 The following variables are set before the script is executed:
 <ul>
-<li>log - the logger for the BeanShell function (*)</li>
-<li>ctx - the current JMeter context variable</li>
-<li>vars - the current JMeter variables</li>
-<li>props - JMeter Properties object</li>
-<li>threadName - the threadName (String)</li>
-<li>Sampler the current Sampler, if any</li>
-<li>SampleResult - the current SampleResult, if any</li>
+<li><code>log</code> - the logger for the BeanShell function (*)</li>
+<li><code>ctx</code> - the current JMeter context variable</li>
+<li><code>vars</code> - the current JMeter variables</li>
+<li><code>props</code> - JMeter Properties object</li>
+<li><code>threadName</code> - the threadName (String)</li>
+<li><code>Sampler</code> - the current Sampler, if any</li>
+<li><code>SampleResult</code> - the current SampleResult, if any</li>
 </ul>
 (*) means that this is set before the init file, if any, is processed. 
 Other variables vary from invocation to invocation.
@@ -823,6 +910,56 @@ Remember to include any necessary quotes for text strings and JMeter variables t
 </note>
 </component>
 
+<component index="&sect-num;.5.13" name="__groovy">
+<description>
+    <p>
+    The g function evaluates <a href="http://groovy-lang.org/" >Apache Groovy</a> scripts passed to it, and returns the result.
+</p>
+<p>
+If the property "<code>groovy.utilities</code>" is defined, it will be loaded by the ScriptEngine. 
+This can be used to define common methods and variables. There is a
+sample init file in the bin directory: <code>utility.groovy</code>.
+</p>
+<p>
+The following variables are set before the script is executed:
+<ul>
+<li><code>log</code> - the logger for the BeanShell function (*)</li>
+<li><code>ctx</code> - the current JMeter context variable</li>
+<li><code>vars</code> - the current JMeter variables</li>
+<li><code>props</code> - JMeter Properties object</li>
+<li><code>threadName</code> - the threadName (String)</li>
+<li><code>sampler</code> - the current Sampler, if any</li>
+<li><code>prev</code> - the previous SampleResult, if any</li>
+<li><code>OUT</code> - System.out</li>
+</ul>
+(*) means that this is set before the init file, if any, is processed. 
+Other variables vary from invocation to invocation.
+</p>
+</description>
+
+<properties>
+        <property name="Expression to evaluate" required="Yes">A groovy script (not a file name)
+        <note>Argument values that themselves contain commas should be escaped as necessary. 
+        If you need to include a comma in your parameter value, escape it like this: '<code>\,</code>'</note>
+        </property>
+        <property name="Name of variable" required="No">A reference name for reusing the value
+               computed by this function.</property>
+        
+</properties>
+<p>
+Example:
+<dl>
+<dt><code>${__groovy(123*456)}</code></dt><dd>returns <code>56088</code></dd>
+<dt><code>${__groovy("${var}".substring(0\,2))}</code></dt><dd>If var's value is <code>JMeter</code>, it will return <code>JM</code> as it runs <code>String.substring(0,2)</code>. Note
+that <code>,</code> has been escaped to <code>\,</code> </dd>
+</dl>
+</p>
+<note>
+Remember to include any necessary quotes for text strings and JMeter variables that represent text strings.
+</note>
+</component>
+
+
 <component index="&sect-num;.5.14" name="__split">
 <description>
     <p>
@@ -830,7 +967,7 @@ Remember to include any necessary quotes for text strings and JMeter variables t
     and returns the original string. If any delimiters are adjacent, "<code>?</code>" is returned as the value.
     The split strings are returned in the variables <code>${VAR_1}</code>, <code>${VAR_2}</code> etc. 
     The count of variables is returned in <code>${VAR_n}</code>. 
-    From JMeter 2.1.2 onwards, a trailing delimiter is treated as a missing variable, and "<code>?</code>" is returned.
+    A trailing delimiter is treated as a missing variable, and "<code>?</code>" is returned.
     Also, to allow it to work better with the ForEach controller, 
     <code>__split</code> now deletes the first unused variable in case it was set by a previous split.
     </p>
@@ -843,7 +980,7 @@ Remember to include any necessary quotes for text strings and JMeter variables t
     <br></br>
     This will return the contents of <code>VAR</code>, i.e. "<code>a||c|</code>" and set the following variables:
     <br></br>
-        <code>VAR_n</code>=<code>4</code> (<code>3</code> in JMeter 2.1.1 and earlier)
+        <code>VAR_n</code>=<code>4</code>
     <br></br>
         <code>VAR_1</code>=<code>a</code>
     <br></br>
@@ -851,9 +988,9 @@ Remember to include any necessary quotes for text strings and JMeter variables t
     <br></br>
         <code>VAR_3</code>=<code>c</code>
     <br></br>
-        <code>VAR_4</code>=<code>?</code> (<code>null</code> in JMeter 2.1.1 and earlier)
+        <code>VAR_4</code>=<code>?</code>
     <br></br>
-        <code>VAR_5</code>=<code>null</code> (in JMeter 2.1.2 and later)
+        <code>VAR_5</code>=<code>null</code>
 </description>
 
 <properties>
@@ -879,7 +1016,7 @@ If omitted, <code>,</code> is used. Note that <code>,</code> would need to be sp
     <p/>
     Example:
     <source>${__XPath(/path/to/build.xml, //target/@name)}</source>
-    This will match all targets in build.xml and return the contents of the next name attribute
+    This will match all targets in <code>build.xml</code> and return the contents of the next name attribute
 </description>
 
 <properties>
@@ -893,7 +1030,7 @@ If omitted, <code>,</code> is used. Note that <code>,</code> would need to be sp
     <p>The setProperty function sets the value of a JMeter property. 
         The default return value from the function is the empty string,
         so the function call can be used anywhere functions are valid.</p>
-        <p>The original value can be returned by setting the optional 3rd parameter to "<code>true</code>".</p>
+        <p>The original value can be returned by setting the optional 3<sup>rd</sup> parameter to "<code>true</code>".</p>
     <p>Properties are global to JMeter,
         so can be used to communicate between threads and thread groups</p>
     </description>
@@ -915,12 +1052,12 @@ If omitted, <code>,</code> is used. Note that <code>,</code> would need to be sp
         <property name="Format" required="No">
         The format to be passed to SimpleDateFormat.
         The function supports various shorthand aliases, see below.
-        If ommitted, the function returns the current time in milliseconds since the epoch.
+        If omitted, the function returns the current time in milliseconds since the epoch.
         </property>
         <property name="Name of variable" required="No">The name of the variable to set.</property>
 </properties>
 <p>If the format string is omitted, then the function returns the current time in milliseconds since the epoch.
-In versions of JMeter after 2.7, if the format matches "<code>/ddd</code>" (where <code>ddd</code> are decimal digits),
+If the format matches "<code>/ddd</code>" (where <code>ddd</code> are decimal digits),
 then the function returns the current time in milliseconds divided by the value of <code>ddd</code>.
 For example, "<code>/1000</code>" returns the current time in seconds since the epoch.
 Otherwise, the current time is passed to SimpleDateFormat.
@@ -938,17 +1075,18 @@ The following shorthand aliases are provided:
 </p>
 </component>
 
-<component index="&sect-num;.5.18" name="__jexl" tag="__jexl2">
+<component index="&sect-num;.5.18" name="__jexl">
 <description>
     <p>The jexl function returns the result of evaluating a 
     <a href="http://commons.apache.org/jexl">Commons JEXL expression</a>. 
     See links below for more information on JEXL expressions.
     </p>
-    <p>The <code>__jexl</code> function uses Commons JEXL 1, and the <code>__jexl2</code> function uses Commons JEXL 2</p>
+    <p>The <code>__jexl</code> function uses Commons JEXL</p>
     <ul>
-    <li><a href="http://commons.apache.org/jexl/reference/syntax.html">JEXL syntax description</a></li>
-    <li><a href="http://commons.apache.org/jexl/reference/examples.html#Example_Expressions">JEXL examples</a></li>
+    <li><a href="http://commons.apache.org/proper/commons-jexl/reference/syntax.html">JEXL syntax description</a></li>
+    <li><a href="http://commons.apache.org/proper/commons-jexl/reference/examples.html#Example_Expressions">JEXL examples</a></li>
     </ul>
+    <note>THIS FUNCTION IS DEPRECATED and should not be used, it will be dropped in next JMeter version</note>
     </description>
 
 <properties>
@@ -961,14 +1099,14 @@ The following shorthand aliases are provided:
 The following variables are made available to the script:
 </p>
 <ul>
-<li>log - the logger for the function</li>
-<li>ctx - JMeterContext object</li>
-<li>vars - JMeterVariables object</li>
-<li>props - JMeter Properties object</li>
-<li>threadName - String containing the current thread name (in 2.3.2 it was misspelt as "<code>theadName</code>")</li>
-<li>sampler - current Sampler object (if any)</li>
-<li>sampleResult - previous SampleResult object (if any)</li>
-<li>OUT - System.out - e.g. <code>OUT.println("message")</code></li>
+<li><code>log</code> - the logger for the function</li>
+<li><code>ctx</code> - JMeterContext object</li>
+<li><code>vars</code> - JMeterVariables object</li>
+<li><code>props</code> - JMeter Properties object</li>
+<li><code>threadName</code> - String containing the current thread name</li>
+<li><code>sampler</code> - current Sampler object (if any)</li>
+<li><code>sampleResult</code> - previous SampleResult object (if any)</li>
+<li><code>OUT</code> - System.out - e.g. <code>OUT.println("message")</code></li>
 </ul>
     <p>
     Jexl can also create classes and call methods on them, for example:
@@ -986,12 +1124,112 @@ i= 5 / 2;
 i.intValue(); // or use i.longValue()
 </source>
     </p>
-    <note>Versions of JMeter after 2.3.2 allow the expression to contain multiple statements.
-    JMeter 2.3.2 and earlier only processed the first statement (if there were multiple statements a warning was logged).
-    </note>
+    <note>JMeter allows the expression to contain multiple statements.</note>
 </component>
 
-<component index="&sect-num;.5.19" name="__V">
+<component index="&sect-num;.5.18" name="__jexl2">
+<description>
+    <p>The jexl function returns the result of evaluating a 
+    <a href="http://commons.apache.org/jexl">Commons JEXL expression</a>. 
+    See links below for more information on JEXL expressions.
+    </p>
+    <p>The <code>__jexl2</code> function uses Commons JEXL 2</p>
+    <ul>
+    <li><a href="http://commons.apache.org/proper/commons-jexl/reference/syntax.html">JEXL syntax description</a></li>
+    <li><a href="http://commons.apache.org/proper/commons-jexl/reference/examples.html#Example_Expressions">JEXL examples</a></li>
+    </ul>
+    </description>
+
+<properties>
+        <property name="Expression" required="Yes">
+        The expression to be evaluated. For example, <code>6*(5+2)</code>
+        </property>
+        <property name="Name of variable" required="No">The name of the variable to set.</property>
+</properties>
+<p>
+The following variables are made available to the script:
+</p>
+<ul>
+<li><code>log</code> - the logger for the function</li>
+<li><code>ctx</code> - JMeterContext object</li>
+<li><code>vars</code> - JMeterVariables object</li>
+<li><code>props</code> - JMeter Properties object</li>
+<li><code>threadName</code> - String containing the current thread name</li>
+<li><code>sampler</code> - current Sampler object (if any)</li>
+<li><code>sampleResult</code> - previous SampleResult object (if any)</li>
+<li><code>OUT</code> - System.out - e.g. <code>OUT.println("message")</code></li>
+</ul>
+    <p>
+    Jexl can also create classes and call methods on them, for example:
+    </p>
+    <p>
+    <source>
+Systemclass=log.class.forName("java.lang.System");
+now=Systemclass.currentTimeMillis();
+</source>
+    Note that the Jexl documentation on the web-site wrongly suggests that "<code>div</code>" does integer division.
+    In fact "<code>div</code>" and "<code>/</code>" both perform normal division. One can get the same effect
+    as follows:
+    <source>
+i= 5 / 2;
+i.intValue(); // or use i.longValue()
+</source>
+    </p>
+    <note>JMeter allows the expression to contain multiple statements.</note>
+</component>
+
+<component index="&sect-num;.5.19" name="__jexl3" >
+<description>
+    <p>The jexl function returns the result of evaluating a 
+    <a href="http://commons.apache.org/proper/commons-jexl/">Commons JEXL expression</a>. 
+    See links below for more information on JEXL expressions.
+    </p>
+    <p>The <code>__jexl3</code> function uses Commons JEXL 3</p>
+    <ul>
+    <li><a href="http://commons.apache.org/proper/commons-jexl/reference/syntax.html">JEXL syntax description</a></li>
+    <li><a href="http://commons.apache.org/proper/commons-jexl/reference/examples.html#Example_Expressions">JEXL examples</a></li>
+    </ul>
+    </description>
+
+<properties>
+        <property name="Expression" required="Yes">
+        The expression to be evaluated. For example, <code>6*(5+2)</code>
+        </property>
+        <property name="Name of variable" required="No">The name of the variable to set.</property>
+</properties>
+<p>
+The following variables are made available to the script:
+</p>
+<ul>
+<li><code>log</code> - the logger for the function</li>
+<li><code>ctx</code> - JMeterContext object</li>
+<li><code>vars</code> - JMeterVariables object</li>
+<li><code>props</code> - JMeter Properties object</li>
+<li><code>threadName</code> - String containing the current thread name</li>
+<li><code>sampler</code> - current Sampler object (if any)</li>
+<li><code>sampleResult</code> - previous SampleResult object (if any)</li>
+<li><code>OUT</code> - System.out - e.g. <code>OUT.println("message")</code></li>
+</ul>
+    <p>
+    Jexl can also create classes and call methods on them, for example:
+    </p>
+    <p>
+    <source>
+Systemclass=log.class.forName("java.lang.System");
+now=Systemclass.currentTimeMillis();
+</source>
+    Note that the Jexl documentation on the web-site wrongly suggests that "<code>div</code>" does integer division.
+    In fact "<code>div</code>" and "<code>/</code>" both perform normal division. One can get the same effect
+    as follows:
+    <source>
+i= 5 / 2;
+i.intValue(); // or use i.longValue()
+</source>
+    </p>
+    <note>JMeter allows the expression to contain multiple statements.</note>
+</component>
+
+<component index="&sect-num;.5.20" name="__V">
 <description>
     <p>The V (variable) function returns the result of evaluating a variable name expression.
     This can be used to evaluate nested variable references (which are not currently supported).
@@ -1011,9 +1249,9 @@ i.intValue(); // or use i.longValue()
 </properties>
 </component>
 
-<component index="&sect-num;.5.20" name="__evalVar">
+<component index="&sect-num;.5.21" name="__evalVar">
 <description>
-    <p>The eval function returns the result of evaluating an expression stored in a variable.
+    <p>The evalVar function returns the result of evaluating an expression stored in a variable.
     </p>
     <p>
     This allows one to read a string from a file, and process any variable references in it.
@@ -1029,7 +1267,7 @@ i.intValue(); // or use i.longValue()
         </property>
 </properties>
 </component>
-<component index="&sect-num;.5.21" name="__eval">
+<component index="&sect-num;.5.22" name="__eval">
 <description>
     <p>The eval function returns the result of evaluating a string expression.
     </p>
@@ -1058,7 +1296,7 @@ i.intValue(); // or use i.longValue()
 </properties>
 </component>
 
-<component index="&sect-num;.5.22" name="__char">
+<component index="&sect-num;.5.23" name="__char">
 <description>
     <p>
     The char function returns the result of evaluating a list of numbers as Unicode characters.
@@ -1078,11 +1316,11 @@ i.intValue(); // or use i.longValue()
 <br/>
 <code>${__char(13,10)}</code> = <code>${__char(0xD,0xA)}</code> = <code>${__char(015,012)}</code> = <code>CRLF</code>
 <br/>
-<code>${__char(165)}</code> = <code>&amp;#165;</code> (yen)
+<code>${__char(165)}</code> = <code>&yen;</code> (yen)
  </p>
 </component>
 
-<component index="&sect-num;.5.23" name="__unescape">
+<component index="&sect-num;.5.24" name="__unescape">
 <description>
     <p>
     The unescape function returns the result of evaluating a Java-escaped string. See also <code>__char()</code> above.
@@ -1099,13 +1337,13 @@ i.intValue(); // or use i.longValue()
 </properties>
 <p>Examples:
 <br/>
-<code>${__unescape(\r\n)}</code> = CRLF
+<code>${__unescape(\r\n)}</code> = <code>CRLF</code>
 <br/>
-<code>${__unescape(1\t2)}</code> = 1[tab]2
+<code>${__unescape(1\t2)}</code> = <code>1</code>[tab]<code>2</code>
  </p>
 </component>
 
-<component index="&sect-num;.5.24" name="__unescapeHtml">
+<component index="&sect-num;.5.25" name="__unescapeHtml">
 <description>
     <p>
 Function to unescape a string containing HTML entity escapes
@@ -1113,15 +1351,15 @@ to a string containing the actual Unicode characters corresponding to the escape
 Supports HTML 4.0 entities.
 </p>
 <p>
-For example, the string <code>"&amp;#38;lt;Fran&amp;#38;ccedil;ais&amp;#38;gt;"</code>
-will become <code>"&amp;lt;Fran&amp;ccedil;ais&amp;gt;"</code>.
+For example, the string <code>"&#38;lt;Fran&#38;ccedil;ais&#38;gt;"</code>
+will become <code>"&lt;Fran&ccedil;ais&gt;"</code>.
 </p>
 <p>
 If an entity is unrecognized, it is left alone, and inserted verbatim into the result string.
-e.g. <code>"&amp;gt;&amp;zzzz;x"</code> will become <code>">&amp;zzzz;x"</code>.
+e.g. <code>"&amp;gt;&amp;zzzz;x"</code> will become <code>"&gt;&amp;zzzz;x"</code>.
 </p>
     <p>
-    Uses StringEscapeUtils#unescapeHtml(String) from Commons Lang.
+    Uses <code>StringEscapeUtils#unescapeHtml(String)</code> from Commons Lang.
     </p>
     </description>
 
@@ -1132,19 +1370,19 @@ e.g. <code>"&amp;gt;&amp;zzzz;x"</code> will become <code>">&amp;zzzz;x"</code>.
 </properties>
 </component>
 
-<component index="&sect-num;.5.25" name="__escapeHtml">
+<component index="&sect-num;.5.26" name="__escapeHtml">
 <description>
     <p>
 Function which escapes the characters in a String using HTML entities.
 Supports HTML 4.0 entities.
 </p>
 <p>
-For example,<code>&amp;quot;bread&amp;quot; &amp;amp; &amp;quot;butter&amp;quot;</code>
+For example,<code>&quot;bread&quot; &amp; &quot;butter&quot;</code>
 becomes:
-<code>&amp;#38;quot;bread&amp;#38;quot; &amp;#38;amp; &amp;#38;quot;butter&amp;#38;quot;</code>.
+<code>&#38;quot;bread&#38;quot; &#38;amp; &#38;quot;butter&#38;quot;</code>.
 </p>
     <p>
-    Uses StringEscapeUtils#escapeHtml(String) from Commons Lang.
+    Uses <code>StringEscapeUtils#escapeHtml(String)</code> from Commons Lang.
     </p>
     </description>
 
@@ -1155,18 +1393,18 @@ becomes:
 </properties>
 </component>
 
-<component index="&sect-num;.5.26" name="__urldecode">
+<component index="&sect-num;.5.27" name="__urldecode">
 <description>
     <p>
-Function to decode a application/x-www-form-urlencoded string.
+Function to decode a <code>application/x-www-form-urlencoded</code> string.
 Note: use UTF-8 as the encoding scheme.
 </p>
 <p>
 For example, the string <code>Word+%22school%22+is+%22%C3%A9cole%22+in+french</code> would get converted to
- <code>Word &quot;school&quot; is &quot;&amp;eacute;cole&quot; in french</code>.
+ <code>Word &quot;school&quot; is &quot;&eacute;cole&quot; in french</code>.
 </p>
     <p>
-    Uses Java class <a href="http://docs.oracle.com/javase/6/docs/api/java/net/URLDecoder.html">URLDecoder</a>.
+    Uses Java class <a href="http://docs.oracle.com/javase/7/docs/api/java/net/URLDecoder.html">URLDecoder</a>.
     </p>
     </description>
 
@@ -1177,17 +1415,17 @@ For example, the string <code>Word+%22school%22+is+%22%C3%A9cole%22+in+french</c
 </properties>
 </component>
 
-<component index="&sect-num;.5.27" name="__urlencode">
+<component index="&sect-num;.5.28" name="__urlencode">
 <description>
     <p>
-Function to encode a string to a application/x-www-form-urlencoded string.
+Function to encode a string to a <code>application/x-www-form-urlencoded</code> string.
 </p>
 <p>
-For example, the string <code>Word &quot;school&quot; is &quot;&amp;eacute;cole&quot; in french</code> would get converted to
+For example, the string <code>Word &quot;school&quot; is &quot;&eacute;cole&quot; in french</code> would get converted to
  <code>Word+%22school%22+is+%22%C3%A9cole%22+in+french</code>.
 </p>
     <p>
-    Uses Java class <a href="http://docs.oracle.com/javase/6/docs/api/java/net/URLEncoder.html">URLEncoder</a>.
+    Uses Java class <a href="http://docs.oracle.com/javase/7/docs/api/java/net/URLEncoder.html">URLEncoder</a>.
     </p>
     </description>
 
@@ -1198,7 +1436,7 @@ For example, the string <code>Word &quot;school&quot; is &quot;&amp;eacute;cole&
 </properties>
 </component>
 
-<component index="&sect-num;.5.28" name="__FileToString">
+<component index="&sect-num;.5.29" name="__FileToString">
 
 <description>
     <p>
@@ -1222,7 +1460,7 @@ A reference name - <code>refName</code> - for reusing the value created by this 
 <p>The file name, encoding and reference name parameters are resolved every time the function is executed.</p>
 </component>
 
-<component index="&sect-num;.5.29" name="__samplerName">
+<component index="&sect-num;.5.30" name="__samplerName">
 
 <description>
     <p>
@@ -1245,16 +1483,20 @@ A reference name - <code>refName</code> - for reusing the value created by this 
 </properties>
 </component>
 
-<component index="&sect-num;.5.30" name="__TestPlanName">
+<component index="&sect-num;.5.31" name="__TestPlanName">
 
 <description>
     <p>
     The TestPlanName function returns the name of the current test plan (can be used in Including Plans to know the name of the calling test plan).
     </p>
 </description>
+
+<p>Example:
+<source>${__TestPlanName}</source> will return the file name of your test plan, for example if plan is in a file named Demo.jmx, it will return "<code>Demo.jmx</code><br/>
+</p>
 </component>
 
-<component index="&sect-num;.5.31" name="__escapeOroRegexpChars">
+<component index="&sect-num;.5.32" name="__escapeOroRegexpChars">
 <description>
     <p>
 Function which escapes the ORO Regexp meta characters, it is the equivalent of <code>\Q</code> <code>\E</code> in Java Regexp Engine.
@@ -1292,17 +1534,17 @@ However some variables are defined internally by JMeter. These are listed below.
 <li><code>JMeterThread.last_sample_ok</code> - whether or not the last sample was OK - <code>true</code>/<code>false</code>.
 Note: this is updated after PostProcessors and Assertions have been run.
 </li>
-<li>START variables (see next section)</li>
+<li><code>START</code> variables (see next section)</li>
 </ul>
 </subsection>
 <subsection name="&sect-num;.6 Pre-defined Properties" anchor="predefinedprops">
 <p>
 The set of JMeter properties is initialised from the system properties defined when JMeter starts;
-additional JMeter properties are defined in jmeter.properties, user.properties or on the command line.
+additional JMeter properties are defined in <code>jmeter.properties</code>, <code>user.properties</code> or on the command line.
 </p>
 <p>
 Some built-in properties are defined by JMeter. These are listed below.
-For convenience, the START properties are also copied to variables with the same names.
+For convenience, the <code>START</code> properties are also copied to variables with the same names.
 </p>
 <ul>
 <li><code>START.MS</code> - JMeter start time in milliseconds</li>
@@ -1311,7 +1553,7 @@ For convenience, the START properties are also copied to variables with the same
 <li><code>TESTSTART.MS</code> - test start time in milliseconds</li>
 </ul>
 <p>
-Please note that the START variables / properties represent JMeter startup time, not the test start time.
+Please note that the <code>START</code> variables / properties represent JMeter startup time, not the test start time.
 They are mainly intended for use in file names etc.
 </p>
 </subsection>

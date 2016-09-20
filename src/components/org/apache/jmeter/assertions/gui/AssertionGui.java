@@ -20,26 +20,32 @@ package org.apache.jmeter.assertions.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 
 import org.apache.jmeter.assertions.ResponseAssertion;
+import org.apache.jmeter.gui.GuiPackage;
 import org.apache.jmeter.gui.util.HeaderAsPropertyRenderer;
 import org.apache.jmeter.gui.util.PowerTableModel;
 import org.apache.jmeter.gui.util.TextAreaCellRenderer;
 import org.apache.jmeter.gui.util.TextAreaTableCellEditor;
 import org.apache.jmeter.testelement.TestElement;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.gui.GuiUtils;
 
@@ -250,9 +256,8 @@ public class AssertionGui extends AbstractAssertionGui {
         assumeSuccess.setSelected(model.getAssumeSuccess());
 
         tableModel.clearData();
-        PropertyIterator tests = model.getTestStrings().iterator();
-        while (tests.hasNext()) {
-            tableModel.addRow(new Object[] { tests.next().getStringValue() });
+        for (JMeterProperty jMeterProperty : model.getTestStrings()) {
+            tableModel.addRow(new Object[] { jMeterProperty.getStringValue() });
         }
 
         if (model.getTestStrings().size() == 0) {
@@ -267,7 +272,7 @@ public class AssertionGui extends AbstractAssertionGui {
     /**
      * Initialize the GUI components and layout.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout());
         Box box = Box.createVerticalBox();
         setBorder(makeBorder());
@@ -365,6 +370,9 @@ public class AssertionGui extends AbstractAssertionGui {
         tableModel = new PowerTableModel(new String[] { COL_RESOURCE_NAME }, new Class[] { String.class });
         stringTable = new JTable(tableModel);
         stringTable.getTableHeader().setDefaultRenderer(new HeaderAsPropertyRenderer());
+        stringTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        JMeterUtils.applyHiDPI(stringTable);
+
 
         TextAreaCellRenderer renderer = new TextAreaCellRenderer();
         stringTable.setRowHeight(renderer.getPreferredHeight());
@@ -390,6 +398,9 @@ public class AssertionGui extends AbstractAssertionGui {
     private JPanel createButtonPanel() {
         JButton addPattern = new JButton(JMeterUtils.getResString("add")); //$NON-NLS-1$
         addPattern.addActionListener(new AddPatternListener());
+        
+        JButton addFromClipboardPattern = new JButton(JMeterUtils.getResString("add_from_clipboard")); //$NON-NLS-1$
+        addFromClipboardPattern.addActionListener(new AddFromClipboardListener());
 
         deletePattern = new JButton(JMeterUtils.getResString("delete")); //$NON-NLS-1$
         deletePattern.addActionListener(new ClearPatternsListener());
@@ -397,6 +408,7 @@ public class AssertionGui extends AbstractAssertionGui {
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(addPattern);
+        buttonPanel.add(addFromClipboardPattern);
         buttonPanel.add(deletePattern);
         return buttonPanel;
     }
@@ -408,12 +420,17 @@ public class AssertionGui extends AbstractAssertionGui {
     private class ClearPatternsListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            int index = stringTable.getSelectedRow();
-            if (index > -1) {
-                stringTable.getCellEditor(index, stringTable.getSelectedColumn()).cancelCellEditing();
-                tableModel.removeRow(index);
+            GuiUtils.cancelEditing(stringTable);
+            
+            int[] rowsSelected = stringTable.getSelectedRows();
+            stringTable.clearSelection();
+            if (rowsSelected.length > 0) {
+                for (int i = rowsSelected.length - 1; i >= 0; i--) {
+                    tableModel.removeRow(rowsSelected[i]);
+                }
                 tableModel.fireTableDataChanged();
             }
+
             if (stringTable.getModel().getRowCount() == 0) {
                 deletePattern.setEnabled(false);
             }
@@ -422,14 +439,62 @@ public class AssertionGui extends AbstractAssertionGui {
 
     /**
      * An ActionListener for adding a pattern.
-     *
      */
     private class AddPatternListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
+            GuiUtils.stopTableEditing(stringTable);
             tableModel.addNewRow();
-            deletePattern.setEnabled(true);
+            checkButtonsStatus();
             tableModel.fireTableDataChanged();
+        }
+    }
+    
+    /**
+     * An ActionListener for pasting from clipboard
+     */
+    private class AddFromClipboardListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            deletePattern.setEnabled(true);
+            GuiUtils.stopTableEditing(stringTable);
+            int rowCount = stringTable.getRowCount();
+            try {
+                String clipboardContent = GuiUtils.getPastedText();
+                if(clipboardContent == null) {
+                    return;
+                }
+                String[] clipboardLines = clipboardContent.split("\n");
+                for (String clipboardLine : clipboardLines) {
+                    tableModel.addRow(new Object[] { clipboardLine.trim() });
+                }
+                if (stringTable.getRowCount() > rowCount) {
+                    checkButtonsStatus();
+
+                    // Highlight (select) and scroll to the appropriate rows.
+                    int rowToSelect = tableModel.getRowCount() - 1;
+                    stringTable.setRowSelectionInterval(rowCount, rowToSelect);
+                    stringTable.scrollRectToVisible(stringTable.getCellRect(rowCount, 0, true));
+                }
+            } catch (IOException ioe) {
+                JOptionPane.showMessageDialog(GuiPackage.getInstance().getMainFrame(),
+                        "Could not add data from clipboard:\n" + ioe.getLocalizedMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            } catch (UnsupportedFlavorException ufe) {
+                JOptionPane.showMessageDialog(GuiPackage.getInstance().getMainFrame(),
+                        "Could not add retrieve " + DataFlavor.stringFlavor.getHumanPresentableName()
+                                + " from clipboard" + ufe.getLocalizedMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            tableModel.fireTableDataChanged();
+        }
+    }
+    
+    protected void checkButtonsStatus() {
+        // Disable DELETE if there are no rows in the table to delete.
+        if (tableModel.getRowCount() == 0) {
+            deletePattern.setEnabled(false);
+        } else {
+            deletePattern.setEnabled(true);
         }
     }
 }

@@ -16,8 +16,6 @@
  *
  */
 
-// For unit tests @see TestCookieManager
-
 package org.apache.jmeter.protocol.http.control;
 
 import java.io.Serializable;
@@ -35,8 +33,7 @@ import org.apache.commons.httpclient.URIException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.impl.cookie.DateParseException;
-import org.apache.http.impl.cookie.DateUtils;
+import org.apache.http.client.utils.DateUtils;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.engine.event.LoopIterationEvent;
 import org.apache.jmeter.protocol.http.sampler.HTTPSampleResult;
@@ -78,12 +75,22 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
     private static final int DEFAULT_MAX_SIZE = 5000;
 
     private static final long ONE_YEAR_MS = 365*24*60*60*1000L;
+    
+    /** used to share the cache between 2 cache managers
+     * @see CacheManager#createCacheManagerProxy() 
+     * @since 3.0 */
+    private transient Map<String, CacheEntry> localCache;
 
     public CacheManager() {
         setProperty(new BooleanProperty(CLEAR, false));
         setProperty(new BooleanProperty(USE_EXPIRES, false));
         clearCache();
         useExpires = false;
+    }
+    
+    CacheManager(Map<String, CacheEntry> localCache, boolean useExpires) {
+        this.localCache = localCache;
+        this.useExpires = useExpires;
     }
 
     /*
@@ -122,7 +129,7 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
      * @param res result
      */
     public void saveDetails(URLConnection conn, HTTPSampleResult res){
-        if (isCacheable(res)){
+        if (isCacheable(res) && !hasVaryHeader(conn)){
             String lastModified = conn.getHeaderField(HTTPConstants.LAST_MODIFIED);
             String expires = conn.getHeaderField(HTTPConstants.EXPIRES);
             String etag = conn.getHeaderField(HTTPConstants.ETAG);
@@ -131,6 +138,10 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
             String date = conn.getHeaderField(HTTPConstants.DATE);
             setCache(lastModified, cacheControl, expires, etag, url, date);
         }
+    }
+
+    private boolean hasVaryHeader(URLConnection conn) {
+        return conn.getHeaderField(HTTPConstants.VARY) != null;
     }
 
     /**
@@ -143,9 +154,11 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
      *            result to decide if result is cacheable
      * @throws URIException
      *             if extraction of the the uri from <code>method</code> fails
+     * @deprecated HC3.1 will be dropped in upcoming version
      */
+    @Deprecated
     public void saveDetails(HttpMethod method, HTTPSampleResult res) throws URIException{
-        if (isCacheable(res)){
+        if (isCacheable(res) && !hasVaryHeader(method)){
             String lastModified = getHeader(method ,HTTPConstants.LAST_MODIFIED);
             String expires = getHeader(method ,HTTPConstants.EXPIRES);
             String etag = getHeader(method ,HTTPConstants.ETAG);
@@ -154,6 +167,14 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
             String date = getHeader(method, HTTPConstants.DATE);
             setCache(lastModified, cacheControl, expires, etag, url, date);
         }
+    }
+
+    /**
+     * @deprecated HC3.1 will be dropped in upcoming version
+     */
+    @Deprecated
+    private boolean hasVaryHeader(HttpMethod method) {
+        return getHeader(method, HTTPConstants.VARY) != null;
     }
 
     /**
@@ -166,7 +187,7 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
      *            result to decide if result is cacheable
      */
     public void saveDetails(HttpResponse method, HTTPSampleResult res) {
-        if (isCacheable(res)){
+        if (isCacheable(res) && !hasVaryHeader(method)){
             String lastModified = getHeader(method ,HTTPConstants.LAST_MODIFIED);
             String expires = getHeader(method ,HTTPConstants.EXPIRES);
             String etag = getHeader(method ,HTTPConstants.ETAG);
@@ -174,6 +195,10 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
             String date = getHeader(method, HTTPConstants.DATE);
             setCache(lastModified, cacheControl, expires, etag, res.getUrlAsString(), date); // TODO correct URL?
         }
+    }
+
+    private boolean hasVaryHeader(HttpResponse method) {
+        return getHeader(method, HTTPConstants.VARY) != null;
     }
 
     // helper method to save the cache entry
@@ -199,8 +224,8 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
             }
             if (expires != null) {
                 try {
-                    expiresDate = DateUtils.parseDate(expires);
-                } catch (org.apache.http.impl.cookie.DateParseException e) {
+                    expiresDate = org.apache.http.client.utils.DateUtils.parseDate(expires);
+                } catch (IllegalArgumentException e) {
                     if (log.isDebugEnabled()){
                         log.debug("Unable to parse Expires: '"+expires+"' "+e);
                     }
@@ -208,7 +233,7 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
                 }
             }
             // if no-cache is present, ensure that expiresDate remains null, which forces revalidation
-            if(cacheControl != null && !cacheControl.contains("no-cache")) {    
+            if(cacheControl != null && !cacheControl.contains("no-cache")) {
                 // the max-age directive overrides the Expires header,
                 if(cacheControl.contains(MAX_AGE)) {
                     long maxAgeInSecs = Long.parseLong(
@@ -226,7 +251,7 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
                             // see http://www.ietf.org/rfc/rfc2616.txt#13.2.4 
                             expiresDate=new Date(System.currentTimeMillis()
                                     +Math.round((responseDate.getTime()-lastModifiedAsDate.getTime())*0.1));
-                        } catch(DateParseException e) {
+                        } catch(IllegalArgumentException e) {
                             // date or lastModified may be null or in bad format
                             if(log.isWarnEnabled()) {
                                 log.warn("Failed computing expiration date with following info:"
@@ -238,11 +263,11 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
                                     + date);
                             }
                             // TODO Can't see anything in SPEC
-                            expiresDate = new Date(System.currentTimeMillis()+ONE_YEAR_MS);                      
+                            expiresDate = new Date(System.currentTimeMillis()+ONE_YEAR_MS);
                         }
                     } else {
                         // TODO Can't see anything in SPEC
-                        expiresDate = new Date(System.currentTimeMillis()+ONE_YEAR_MS);                      
+                        expiresDate = new Date(System.currentTimeMillis()+ONE_YEAR_MS);
                     }
                 }  
                 // else expiresDate computed in (expires!=null) condition is used
@@ -251,7 +276,14 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
         getCache().put(url, new CacheEntry(lastModified, expiresDate, etag));
     }
 
-    // Helper method to deal with missing headers - Commons HttpClient
+    /**
+     * Helper method to deal with missing headers - Commons HttpClient
+     * @param method Http method
+     * @param name Header name
+     * @return Header value
+     * @deprecated HC3.1 will be dropped in upcoming version
+     */
+    @Deprecated
     private String getHeader(HttpMethod method, String name){
         org.apache.commons.httpclient.Header hdr = method.getResponseHeader(name);
         return hdr != null ? hdr.getValue() : null;
@@ -265,13 +297,14 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
 
     /*
      * Is the sample result OK to cache?
-     * i.e is it in the 2xx range, and is it a cacheable method?
+     * i.e is it in the 2xx range or equal to 304, and is it a cacheable method?
      */
     private boolean isCacheable(HTTPSampleResult res){
         final String responseCode = res.getResponseCode();
-        return isCacheableMethod(res)
-            && "200".compareTo(responseCode) <= 0  // $NON-NLS-1$
-            && "299".compareTo(responseCode) >= 0;  // $NON-NLS-1$
+        return isCacheableMethod(res) 
+                && (("200".compareTo(responseCode) <= 0  // $NON-NLS-1$
+                    && "299".compareTo(responseCode) >= 0)  // $NON-NLS-1$
+                    || "304".equals(responseCode));  // $NON-NLS-1$
     }
 
     private boolean isCacheableMethod(HTTPSampleResult res) {
@@ -293,7 +326,9 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
      * Commons HttpClient version
      * @param url URL to look up in cache
      * @param method where to set the headers
+     * @deprecated HC3.1 will be dropped in upcoming version
      */
+    @Deprecated
     public void setHeaders(URL url, HttpMethod method) {
         CacheEntry entry = getCache().get(url.toString());
         if (log.isDebugEnabled()){
@@ -392,8 +427,8 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
         return false;
     }
 
-    private Map<String, CacheEntry> getCache(){
-        return threadCache.get();
+    private Map<String, CacheEntry> getCache() {
+        return localCache != null?localCache:threadCache.get();
     }
 
     public boolean getClearEachIteration() {
@@ -446,6 +481,16 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
         };
     }
 
+    /**
+     * create a cache manager that share the underlying cache of the current one
+     * it allows to use the same cache in different threads which does not inherit from each other
+     * @return a cache manager that share the underlying cache of the current one
+     * @since 3.0
+     */
+    public CacheManager createCacheManagerProxy() {
+        return new CacheManager(getCache(), this.useExpires);
+    }
+
     @Override
     public void testStarted() {
     }
@@ -467,7 +512,7 @@ public class CacheManager extends ConfigTestElement implements TestStateListener
         if (getClearEachIteration()) {
             clearCache();
         }
-        useExpires=getUseExpires(); // cache the value
+        useExpires = getUseExpires(); // cache the value
     }
 
 }

@@ -25,7 +25,6 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -57,12 +56,14 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.table.TableCellRenderer;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jmeter.gui.action.ActionNames;
 import org.apache.jmeter.gui.action.ActionRouter;
 import org.apache.jmeter.gui.action.SaveGraphics;
@@ -144,7 +145,9 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
     private final String TOTAL_ROW_LABEL =
         JMeterUtils.getResString("aggregate_report_total_label");       //$NON-NLS-1$
 
-    private Font FONT_SMALL = new Font("SansSerif", Font.PLAIN, 10); // $NON-NLS-1$
+    private static final Font FONT_DEFAULT = UIManager.getDefaults().getFont("TextField.font"); //$NON-NLS-1$
+
+    private static final Font FONT_SMALL = new Font("SansSerif", Font.PLAIN, (int) Math.round(FONT_DEFAULT.getSize() * 0.8)); //$NON-NLS-1$
 
     private JTable myJTable;
 
@@ -157,8 +160,7 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
      */
     private final transient Object lock = new Object();
     
-    private final Map<String, SamplingStatCalculator> tableRows =
-        new ConcurrentHashMap<String, SamplingStatCalculator>();
+    private final Map<String, SamplingStatCalculator> tableRows = new ConcurrentHashMap<>();
 
     private AxisGraph graphPanel = null;
 
@@ -217,9 +219,9 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
 
     private int defaultHeight = 300;
 
-    private JComboBox columnsList = new JComboBox(GRAPH_COLUMNS);
+    private JComboBox<String> columnsList = new JComboBox<>(GRAPH_COLUMNS);
 
-    private List<BarGraph> eltList = new ArrayList<BarGraph>();
+    private List<BarGraph> eltList = new ArrayList<>();
 
     private JCheckBox columnSelection = new JCheckBox(JMeterUtils.getResString("aggregate_graph_column_selection"), false); //$NON-NLS-1$
 
@@ -231,25 +233,25 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
 
     private JCheckBox regexpChkBox = new JCheckBox(JMeterUtils.getResString("search_text_chkbox_regexp"), true); // $NON-NLS-1$
 
-    private JComboBox titleFontNameList = new JComboBox(StatGraphProperties.getFontNameMap().keySet().toArray());
+    private JComboBox<String> titleFontNameList = new JComboBox<>(StatGraphProperties.getFontNameMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private JComboBox titleFontSizeList = new JComboBox(StatGraphProperties.fontSize);
+    private JComboBox<String> titleFontSizeList = new JComboBox<>(StatGraphProperties.fontSize);
 
-    private JComboBox titleFontStyleList = new JComboBox(StatGraphProperties.getFontStyleMap().keySet().toArray());
+    private JComboBox<String> titleFontStyleList = new JComboBox<>(StatGraphProperties.getFontStyleMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private JComboBox valueFontNameList = new JComboBox(StatGraphProperties.getFontNameMap().keySet().toArray());
+    private JComboBox<String> valueFontNameList = new JComboBox<>(StatGraphProperties.getFontNameMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private JComboBox valueFontSizeList = new JComboBox(StatGraphProperties.fontSize);
+    private JComboBox<String> valueFontSizeList = new JComboBox<>(StatGraphProperties.fontSize);
 
-    private JComboBox valueFontStyleList = new JComboBox(StatGraphProperties.getFontStyleMap().keySet().toArray());
+    private JComboBox<String> valueFontStyleList = new JComboBox<>(StatGraphProperties.getFontStyleMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private JComboBox fontNameList = new JComboBox(StatGraphProperties.getFontNameMap().keySet().toArray());
+    private JComboBox<String> fontNameList = new JComboBox<>(StatGraphProperties.getFontNameMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private JComboBox fontSizeList = new JComboBox(StatGraphProperties.fontSize);
+    private JComboBox<String> fontSizeList = new JComboBox<>(StatGraphProperties.fontSize);
 
-    private JComboBox fontStyleList = new JComboBox(StatGraphProperties.getFontStyleMap().keySet().toArray());
+    private JComboBox<String> fontStyleList = new JComboBox<>(StatGraphProperties.getFontStyleMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private JComboBox legendPlacementList = new JComboBox(StatGraphProperties.getPlacementNameMap().keySet().toArray());
+    private JComboBox<String> legendPlacementList = new JComboBox<>(StatGraphProperties.getPlacementNameMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
     private JCheckBox drawOutlinesBar = new JCheckBox(JMeterUtils.getResString("aggregate_graph_draw_outlines"), true); // Default checked // $NON-NLS-1$
 
@@ -362,7 +364,7 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
             matcher = pattern.matcher(sampleLabel);
         }
         if ((matcher == null) || (matcher.find())) {
-            JMeterUtils.runSafe(new Runnable() {
+            JMeterUtils.runSafe(false, new Runnable() {
                 @Override
                 public void run() {
                     SamplingStatCalculator row = null;
@@ -398,7 +400,7 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
     /**
      * Main visualizer setup.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         this.setLayout(new BorderLayout());
 
         // MAIN PANEL
@@ -411,6 +413,7 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
         mainPanel.add(makeTitlePanel());
 
         myJTable = new JTable(model);
+        JMeterUtils.applyHiDPI(myJTable);
         // Fix centering of titles
         myJTable.getTableHeader().setDefaultRenderer(new HeaderAsPropertyRenderer(COLUMNS_MSG_PARAMETERS));
         myJTable.setPreferredScrollableViewportSize(new Dimension(500, 70));
@@ -527,7 +530,7 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
             int cpt = 0;
             for (BarGraph bar : eltList) {
                 if (bar.getChkBox().isSelected()) {
-                    int col = model.findColumn((String) columnsList.getItemAt(cpt));
+                    int col = model.findColumn(columnsList.getItemAt(cpt));
                     for (int idx=0; idx < count; idx++) {
                         data[s][idx] = ((Number)model.getValueAt(idx,col)).doubleValue();
                     }
@@ -597,11 +600,11 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
      * @return the data from the model
      */
     public static List<List<Object>> getAllTableData(ObjectTableModel model, Format[] formats) {
-        List<List<Object>> data = new ArrayList<List<Object>>();
+        List<List<Object>> data = new ArrayList<>();
         if (model.getRowCount() > 0) {
             for (int rw=0; rw < model.getRowCount(); rw++) {
                 int cols = model.getColumnCount();
-                List<Object> column = new ArrayList<Object>();
+                List<Object> column = new ArrayList<>();
                 data.add(column);
                 for (int idx=0; idx < cols; idx++) {
                     Object val = model.getValueAt(rw,idx);
@@ -640,8 +643,6 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
             try {
                 writer = new FileWriter(chooser.getSelectedFile()); // TODO Charset ?
                 CSVSaveService.saveCSVStats(getAllTableData(model, FORMATS),writer,saveHeaders.isSelected() ? getLabels(COLUMNS) : null);
-            } catch (FileNotFoundException e) {
-                JMeterUtils.reportErrorToUser(e.getMessage(), "Error saving data");
             } catch (IOException e) {
                 JMeterUtils.reportErrorToUser(e.getMessage(), "Error saving data");
             } finally {
@@ -737,8 +738,13 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
     }
     @Override
     public JComponent getPrintableComponent() {
-        if (saveGraphToFile == true) {
+        if (saveGraphToFile) {
             saveGraphToFile = false;
+            
+            // (re)draw the graph first to take settings into account (Bug 58329)
+            if (model.getRowCount() > 1) {
+                makeGraph();
+            }
             graphPanel.setBounds(graphPanel.getLocation().x,graphPanel.getLocation().y,
                     graphPanel.width,graphPanel.height);
             return graphPanel;
@@ -813,7 +819,6 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
     }
 
     private JPanel createGraphSelectionSubPane() {
-        Font font = new Font("SansSerif", Font.PLAIN, 10);
         // Search field
         JPanel searchPanel = new JPanel();
         searchPanel.setLayout(new BoxLayout(searchPanel, BoxLayout.X_AXIS));
@@ -830,14 +835,14 @@ public class StatGraphVisualizer extends AbstractVisualizer implements Clearable
         searchPanel.add(Box.createRigidArea(new Dimension(5,0)));
 
         // Button
-        applyFilterBtn.setFont(font);
+        applyFilterBtn.setFont(FONT_SMALL);
         applyFilterBtn.addActionListener(this);
         searchPanel.add(applyFilterBtn);
 
         // checkboxes
-        caseChkBox.setFont(font);
+        caseChkBox.setFont(FONT_SMALL);
         searchPanel.add(caseChkBox);
-        regexpChkBox.setFont(font);
+        regexpChkBox.setFont(FONT_SMALL);
         searchPanel.add(regexpChkBox);
 
         return searchPanel;

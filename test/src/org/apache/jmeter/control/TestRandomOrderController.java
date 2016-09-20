@@ -16,19 +16,22 @@
  */
 package org.apache.jmeter.control;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jmeter.junit.JMeterTestCase;
 import org.apache.jmeter.junit.stubs.TestSampler;
 import org.apache.jmeter.testelement.TestElement;
+import org.junit.Test;
 
 public class TestRandomOrderController extends JMeterTestCase {
 
-        public TestRandomOrderController(String name) {
-            super(name);
-        }
 
+        @Test
         public void testRandomOrder() {
             testLog.debug("Testing RandomOrderController");
             RandomOrderController roc = new RandomOrderController();
@@ -37,7 +40,7 @@ public class TestRandomOrderController extends JMeterTestCase {
             roc.addTestElement(new TestSampler("two"));
             roc.addTestElement(new TestSampler("three"));
             TestElement sampler = null;
-            List<String> usedSamplers = new ArrayList<String>();
+            List<String> usedSamplers = new ArrayList<>();
             roc.initialize();
             while ((sampler = roc.next()) != null) {
                 String samplerName = sampler.getName();
@@ -49,17 +52,19 @@ public class TestRandomOrderController extends JMeterTestCase {
             assertEquals("All samplers were returned", 4, usedSamplers.size());
         }
 
+        @Test
         public void testRandomOrderNoElements() {
             RandomOrderController roc = new RandomOrderController();
             roc.initialize();
             assertNull(roc.next());
         }
 
+        @Test
         public void testRandomOrderOneElement() {
             RandomOrderController roc = new RandomOrderController();
             roc.addTestElement(new TestSampler("zero"));
             TestElement sampler = null;
-            List<String> usedSamplers = new ArrayList<String>();
+            List<String> usedSamplers = new ArrayList<>();
             roc.initialize();
             while ((sampler = roc.next()) != null) {
                 String samplerName = sampler.getName();

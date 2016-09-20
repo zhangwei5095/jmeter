@@ -43,7 +43,7 @@ import org.apache.log.Logger;
 public class Copy extends AbstractAction {
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private static final HashSet<String> commands = new HashSet<String>();
+    private static final HashSet<String> commands = new HashSet<>();
 
     static {
         commands.add(ActionNames.COPY);
@@ -94,7 +94,7 @@ public class Copy extends AbstractAction {
      * @return JMeterTreeNode[]
      */
     static JMeterTreeNode[] keepOnlyAncestors(JMeterTreeNode[] currentNodes) {
-        List<JMeterTreeNode> nodes = new ArrayList<JMeterTreeNode>();
+        List<JMeterTreeNode> nodes = new ArrayList<>();
         for (int i = 0; i < currentNodes.length; i++) {
             boolean exclude = false;
             for (int j = 0; j < currentNodes.length; j++) {
@@ -112,7 +112,7 @@ public class Copy extends AbstractAction {
         return nodes.toArray(new JMeterTreeNode[nodes.size()]);
     }
 
-    public static void setCopiedNodes(JMeterTreeNode nodes[]) {
+    public static void setCopiedNodes(JMeterTreeNode[] nodes) {
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         try {
             JMeterTreeNodeTransferable transferable = new JMeterTreeNodeTransferable();
@@ -126,8 +126,8 @@ public class Copy extends AbstractAction {
         }
     }
 
-    public static JMeterTreeNode[] cloneTreeNodes(JMeterTreeNode nodes[]) {
-        JMeterTreeNode treeNodes[] = new JMeterTreeNode[nodes.length];
+    public static JMeterTreeNode[] cloneTreeNodes(JMeterTreeNode[] nodes) {
+        JMeterTreeNode[] treeNodes = new JMeterTreeNode[nodes.length];
         for (int i = 0; i < nodes.length; i++) {
             treeNodes[i] = cloneTreeNode(nodes[i]);
         }

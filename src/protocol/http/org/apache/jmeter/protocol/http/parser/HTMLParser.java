@@ -23,21 +23,18 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
 
 /**
- * HtmlParsers can parse HTML content to obtain URLs.
+ * {@link HTMLParser} subclasses can parse HTML content to obtain URLs.
  *
  */
-public abstract class HTMLParser {
+public abstract class HTMLParser extends BaseParser {
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
@@ -69,9 +66,6 @@ public abstract class HTMLParser {
     protected static final Pattern IE_UA_PATTERN    = Pattern.compile(IE_UA);
     private   static final float IE_10                = 10.0f;
 
-    // Cache of parsers - parsers must be re-usable
-    private static final Map<String, HTMLParser> parsers = new ConcurrentHashMap<String, HTMLParser>(4);
-
     public static final String PARSER_CLASSNAME = "htmlParser.className"; // $NON-NLS-1$
 
     public static final String DEFAULT_PARSER =
@@ -82,41 +76,6 @@ public abstract class HTMLParser {
      * subclasses.
      */
     protected HTMLParser() {
-    }
-
-    public static final HTMLParser getParser() {
-        return getParser(JMeterUtils.getPropDefault(PARSER_CLASSNAME, DEFAULT_PARSER));
-    }
-
-    public static final HTMLParser getParser(String htmlParserClassName) {
-
-        // Is there a cached parser?
-        HTMLParser pars = parsers.get(htmlParserClassName);
-        if (pars != null) {
-            log.debug("Fetched " + htmlParserClassName);
-            return pars;
-        }
-
-        try {
-            Object clazz = Class.forName(htmlParserClassName).newInstance();
-            if (clazz instanceof HTMLParser) {
-                pars = (HTMLParser) clazz;
-            } else {
-                throw new HTMLParseError(new ClassCastException(htmlParserClassName));
-            }
-        } catch (InstantiationException e) {
-            throw new HTMLParseError(e);
-        } catch (IllegalAccessException e) {
-            throw new HTMLParseError(e);
-        } catch (ClassNotFoundException e) {
-            throw new HTMLParseError(e);
-        }
-        log.info("Created " + htmlParserClassName);
-        if (pars.isReusable()) {
-            parsers.put(htmlParserClassName, pars);// cache the parser
-        }
-
-        return pars;
     }
 
     /**
@@ -140,14 +99,16 @@ public abstract class HTMLParser {
      * @return an Iterator for the resource URLs
      * @throws HTMLParseException when parsing the <code>html</code> fails
      */
-    public Iterator<URL> getEmbeddedResourceURLs(String userAgent, byte[] html, URL baseUrl, String encoding) throws HTMLParseException {
+    @Override
+    public Iterator<URL> getEmbeddedResourceURLs(
+            String userAgent, byte[] html, URL baseUrl, String encoding) throws HTMLParseException {
         // The Set is used to ignore duplicated binary files.
         // Using a LinkedHashSet to avoid unnecessary overhead in iterating
         // the elements in the set later on. As a side-effect, this will keep
         // them roughly in order, which should be a better model of browser
         // behaviour.
 
-        Collection<URLString> col = new LinkedHashSet<URLString>();
+        Collection<URLString> col = new LinkedHashSet<>();
         return getEmbeddedResourceURLs(userAgent, html, baseUrl, new URLCollection(col),encoding);
 
         // An additional note on using HashSets to store URLs: I just
@@ -190,7 +151,8 @@ public abstract class HTMLParser {
      * @return an Iterator for the resource URLs
      * @throws HTMLParseException when parsing the <code>html</code> fails
      */
-    public abstract Iterator<URL> getEmbeddedResourceURLs(String userAgent, byte[] html, URL baseUrl, URLCollection coll, String encoding)
+    public abstract Iterator<URL> getEmbeddedResourceURLs(
+            String userAgent, byte[] html, URL baseUrl, URLCollection coll, String encoding)
             throws HTMLParseException;
 
     /**
@@ -213,18 +175,10 @@ public abstract class HTMLParser {
      * @return an Iterator for the resource URLs
      * @throws HTMLParseException when parsing the <code>html</code> fails
      */
-    public Iterator<URL> getEmbeddedResourceURLs(String userAgent, byte[] html, URL baseUrl, Collection<URLString> coll, String encoding) throws HTMLParseException {
+    public Iterator<URL> getEmbeddedResourceURLs(
+            String userAgent, byte[] html, URL baseUrl, Collection<URLString> coll, String encoding) 
+                    throws HTMLParseException {
         return getEmbeddedResourceURLs(userAgent, html, baseUrl, new URLCollection(coll), encoding);
-    }
-
-    /**
-     * Parsers should over-ride this method if the parser class is re-usable, in
-     * which case the class will be cached for the next getParser() call.
-     *
-     * @return true if the Parser is reusable
-     */
-    protected boolean isReusable() {
-        return false;
     }
     
     /**
@@ -233,12 +187,9 @@ public abstract class HTMLParser {
      * @return true if IE version &lt; IE v10
      */
     protected final boolean isEnableConditionalComments(Float ieVersion) {
-        if(ieVersion == null) {
-            return false;
-        }
-        // Conditionnal comment have been dropped in IE10
+        // Conditional comment have been dropped in IE10
         // http://msdn.microsoft.com/en-us/library/ie/hh801214%28v=vs.85%29.aspx
-        return ieVersion.floatValue() < IE_10;
+        return ieVersion != null && ieVersion.floatValue() < IE_10;
     }
     
     /**
@@ -247,21 +198,20 @@ public abstract class HTMLParser {
      * @return version null if not IE or the version after MSIE
      */
     protected Float extractIEVersion(String userAgent) {
-        if(StringUtils.isEmpty(userAgent)) {
+        if (StringUtils.isEmpty(userAgent)) {
             log.info("userAgent is null");
             return null;
         }
         Matcher matcher = IE_UA_PATTERN.matcher(userAgent);
         String ieVersion = null;
-        while (matcher.find()) {
+        if (matcher.find()) {
             if (matcher.groupCount() > 0) {
                 ieVersion = matcher.group(1);
             } else {
                 ieVersion = matcher.group();
             }
-            break;
         }
-        if(ieVersion != null) {
+        if (ieVersion != null) {
             return Float.valueOf(ieVersion);
         } else {
             return null;

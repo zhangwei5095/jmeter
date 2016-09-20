@@ -33,12 +33,13 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jmeter.config.Argument;
 import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.config.gui.ArgumentsPanel;
 import org.apache.jmeter.gui.util.HorizontalPanel;
 import org.apache.jmeter.testelement.TestElement;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jmeter.visualizers.gui.AbstractListenerGui;
 import org.apache.jorphan.logging.LoggingManager;
@@ -61,7 +62,7 @@ public class BackendListenerGui extends AbstractListenerGui implements ActionLis
     private static final Logger LOGGER = LoggingManager.getLoggerForClass();
 
     /** A combo box allowing the user to choose a backend class. */
-    private JComboBox classnameCombo;
+    private JComboBox<String> classnameCombo;
     
     /**
      * A field allowing the user to specify the size of Queue
@@ -109,7 +110,7 @@ public class BackendListenerGui extends AbstractListenerGui implements ActionLis
      * @return a panel containing the relevant components
      */
     private JPanel createClassnamePanel() {
-        List<String> possibleClasses = new ArrayList<String>();
+        List<String> possibleClasses = new ArrayList<>();
 
         try {
             // Find all the classes which implement the BackendListenerClient
@@ -127,7 +128,7 @@ public class BackendListenerGui extends AbstractListenerGui implements ActionLis
 
         JLabel label = new JLabel(JMeterUtils.getResString("backend_listener_classname")); // $NON-NLS-1$
 
-        classnameCombo = new JComboBox(possibleClasses.toArray());
+        classnameCombo = new JComboBox<>(possibleClasses.toArray(ArrayUtils.EMPTY_STRING_ARRAY));
         classnameCombo.addActionListener(this);
         classnameCombo.setEditable(false);
         label.setLabelFor(classnameCombo);
@@ -180,9 +181,8 @@ public class BackendListenerGui extends AbstractListenerGui implements ActionLis
                 }
 
                 if (testParams != null) {
-                    PropertyIterator i = testParams.getArguments().iterator();
-                    while (i.hasNext()) {
-                        Argument arg = (Argument) i.next().getObjectValue();
+                    for (JMeterProperty jMeterProperty : testParams.getArguments()) {
+                        Argument arg = (Argument) jMeterProperty.getObjectValue();
                         String name = arg.getName();
                         String value = arg.getValue();
 
@@ -241,9 +241,10 @@ public class BackendListenerGui extends AbstractListenerGui implements ActionLis
      * @param className String class name
      * @return boolean true if model contains className
      */
-    private static final boolean checkContainsClassName(ComboBoxModel model, String className) {
+    private static boolean checkContainsClassName(
+            ComboBoxModel<?> model, String className) {
         int size = model.getSize();
-        Set<String> set = new HashSet<String>(size);
+        Set<String> set = new HashSet<>(size);
         for (int i = 0; i < size; i++) {
             set.add((String)model.getElementAt(i));
         }

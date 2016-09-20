@@ -24,7 +24,6 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -42,6 +41,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JRootPane;
 import javax.swing.JTree;
+import javax.swing.UIManager;
 import javax.swing.tree.TreePath;
 
 import org.apache.commons.lang3.StringUtils;
@@ -63,6 +63,10 @@ public class SearchTreeDialog extends JDialog implements ActionListener {
     private static final long serialVersionUID = -4436834972710248247L;
 
     private static final Logger logger = LoggingManager.getLoggerForClass();
+
+    private static final Font FONT_DEFAULT = UIManager.getDefaults().getFont("TextField.font");
+
+    private static final Font FONT_SMALL = new Font("SansSerif", Font.PLAIN, (int) Math.round(FONT_DEFAULT.getSize() * 0.8));
 
     private JButton searchButton;
 
@@ -119,7 +123,7 @@ public class SearchTreeDialog extends JDialog implements ActionListener {
         return rootPane;
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         this.getContentPane().setLayout(new BorderLayout(10,10));
 
         searchTF = new JLabeledTextField(JMeterUtils.getResString("search_text_field"), 20); //$NON-NLS-1$
@@ -128,9 +132,9 @@ public class SearchTreeDialog extends JDialog implements ActionListener {
         }
         isRegexpCB = new JCheckBox(JMeterUtils.getResString("search_text_chkbox_regexp"), false); //$NON-NLS-1$
         isCaseSensitiveCB = new JCheckBox(JMeterUtils.getResString("search_text_chkbox_case"), false); //$NON-NLS-1$
-        Font font = new Font("SansSerif", Font.PLAIN, 10); // reduce font
-        isRegexpCB.setFont(font);
-        isCaseSensitiveCB.setFont(font);
+        
+        isRegexpCB.setFont(FONT_SMALL);
+        isCaseSensitiveCB.setFont(FONT_SMALL);
 
         JPanel searchCriterionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         searchCriterionPanel.add(isCaseSensitiveCB);
@@ -197,7 +201,7 @@ public class SearchTreeDialog extends JDialog implements ActionListener {
         }
         GuiPackage guiPackage = GuiPackage.getInstance();
         JMeterTreeModel jMeterTreeModel = guiPackage.getTreeModel();
-        Set<JMeterTreeNode> nodes = new HashSet<JMeterTreeNode>();
+        Set<JMeterTreeNode> nodes = new HashSet<>();
         for (JMeterTreeNode jMeterTreeNode : jMeterTreeModel.getNodesOfType(Searchable.class)) {
             try {
                 if (jMeterTreeNode.getUserObject() instanceof Searchable){
@@ -216,8 +220,7 @@ public class SearchTreeDialog extends JDialog implements ActionListener {
         GuiPackage guiInstance = GuiPackage.getInstance();
         JTree jTree = guiInstance.getMainFrame().getTree();
 
-        for (Iterator<JMeterTreeNode> iterator = nodes.iterator(); iterator.hasNext();) {
-            JMeterTreeNode jMeterTreeNode = iterator.next();
+        for (JMeterTreeNode jMeterTreeNode : nodes) {
             jMeterTreeNode.setMarkedBySearch(true);
             if (expand) {
                 jTree.expandPath(new TreePath(jMeterTreeNode.getPath()));

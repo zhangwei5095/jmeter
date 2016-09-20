@@ -31,10 +31,10 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.avalon.framework.configuration.ConfigurationException;
 import org.apache.jmeter.engine.util.NoThreadClone;
 import org.apache.jmeter.gui.GuiPackage;
 import org.apache.jmeter.samplers.Clearable;
@@ -44,7 +44,6 @@ import org.apache.jmeter.samplers.SampleListener;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.samplers.SampleSaveConfiguration;
 import org.apache.jmeter.save.CSVSaveService;
-import org.apache.jmeter.save.OldSaveService;
 import org.apache.jmeter.save.SaveService;
 import org.apache.jmeter.services.FileServer;
 import org.apache.jmeter.testelement.TestElement;
@@ -57,9 +56,6 @@ import org.apache.jorphan.logging.LoggingManager;
 import org.apache.jorphan.util.JMeterError;
 import org.apache.jorphan.util.JOrphanUtils;
 import org.apache.log.Logger;
-import org.xml.sax.SAXException;
-
-import com.thoughtworks.xstream.converters.ConversionException;
 
 /**
  * This class handles all saving of samples.
@@ -83,6 +79,7 @@ public class ResultCollector extends AbstractListenerElement implements SampleLi
 
     private static final String TESTRESULTS_END = "</testResults>"; // $NON-NLS-1$
 
+    // we have to use version 1.0, see bug 59973
     private static final String XML_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"; // $NON-NLS-1$
 
     private static final int MIN_XML_FILE_LEN = XML_HEADER.length() + TESTRESULTS_START.length()
@@ -105,7 +102,7 @@ public class ResultCollector extends AbstractListenerElement implements SampleLi
     private static final Object LOCK = new Object();
 
     //@GuardedBy("LOCK")
-    private static final Map<String, FileEntry> files = new HashMap<String, FileEntry>();
+    private static final Map<String, FileEntry> files = new HashMap<>();
 
     /**
      * Shutdown Hook that ensures PrintWriter is flushed is CTRL+C or kill is called during a test
@@ -356,7 +353,6 @@ public class ResultCollector extends AbstractListenerElement implements SampleLi
      * This can be one of:
      * <ul>
      *   <li>XStream format</li>
-     *   <li>Avalon format</li>
      *   <li>CSV format</li>
      * </ul>
      *
@@ -390,32 +386,14 @@ public class ResultCollector extends AbstractListenerElement implements SampleLi
                             SaveService.loadTestResults(bufferedInputStream,
                                     new ResultCollectorHelper(this, visualizer));
                             parsedOK = true;
-                        } catch (ConversionException e) {
-                            final String message = e.getShortMessage();
-                            if (message.startsWith("sampleResult")) { // probably Avalon format
-                                log.info("Failed to load "+filename+" using XStream. Assuming Avalon format, as message was: "+message);
-                                OldSaveService.processSamples(filename, visualizer, this);
-                                parsedOK = true;
-                            } else {
-                                log.warn("Failed to load "+filename+" using XStream. Error was: "+e);
-                            }
                         } catch (Exception e) {
-                            log.warn("Failed to load "+filename+" using XStream. Error was: "+e);
+                            log.warn("Failed to load " + filename + " using XStream. Error was: " + e);
                         }
                     }
                 }
-            } catch (IOException e) {
-                log.warn("Problem reading JTL file: "+file);
-            } catch (JMeterError e){
-                log.warn("Problem reading JTL file: "+file);
-            } catch (RuntimeException e){ // e.g. NullPointerException
-                log.warn("Problem reading JTL file: "+file,e);
-            } catch (OutOfMemoryError e) {
-                log.warn("Problem reading JTL file: "+file,e);
-            } catch (ConfigurationException e) { // Avalon only
-                log.warn("Problem reading Avalon JTL file: "+file,e);
-            } catch (SAXException e) { // Avalon only
-                log.warn("Problem reading Avalon JTL file: "+file,e);
+            } catch (IOException | JMeterError | RuntimeException | OutOfMemoryError e) {
+                // FIXME Why do we catch OOM ?
+                log.warn("Problem reading JTL file: " + file);
             } finally {
                 JOrphanUtils.closeQuietly(dataReader);
                 JOrphanUtils.closeQuietly(bufferedInputStream);
@@ -490,7 +468,7 @@ public class ResultCollector extends AbstractListenerElement implements SampleLi
                 }
             }
             writer = new PrintWriter(new OutputStreamWriter(new BufferedOutputStream(new FileOutputStream(filename,
-                    trimmed)), SaveService.getFileEncoding("UTF-8")), SAVING_AUTOFLUSH); // $NON-NLS-1$
+                    trimmed)), SaveService.getFileEncoding(StandardCharsets.UTF_8.name())), SAVING_AUTOFLUSH);
             log.debug("Opened file: "+filename);
             files.put(filename, new FileEntry(writer, saveConfig));
         } else {
@@ -636,9 +614,9 @@ public class ResultCollector extends AbstractListenerElement implements SampleLi
     /**
      * Flush PrintWriter to synchronize file contents
      */
-    protected void flushFile() {
+    public void flushFile() {
         if (out != null) {
-            log.info("forced flush through ResultCollecto#flushFile");
+            log.info("forced flush through ResultCollector#flushFile");
             out.flush();
         }
     }

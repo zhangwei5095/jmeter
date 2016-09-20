@@ -51,7 +51,7 @@ import org.apache.jmeter.util.JMeterUtils;
  */
 public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
 
-    private static final long serialVersionUID = 240L;
+    private static final long serialVersionUID = 241L;
 
     private JTextField rootdn = new JTextField(20);
 
@@ -69,7 +69,7 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
 
     private JTextField port = new JTextField(20);
 
-    private JCheckBox user_Defined = new JCheckBox(JMeterUtils.getResString("user_defined_test")); // $NON-NLS-1$
+    private JCheckBox userDefined = new JCheckBox(JMeterUtils.getResString("user_defined_test")); // $NON-NLS-1$
 
     private JRadioButton addTest = new JRadioButton(JMeterUtils.getResString("add_test")); // $NON-NLS-1$
 
@@ -94,6 +94,16 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
      */
     public LdapConfigGui() {
         this(true);
+    }
+
+    /**
+     * Constructor which sets the displayName.
+     *
+     * @param displayName flag, whether to display the name of the component
+     */
+    public LdapConfigGui(boolean displayName) {
+        this.displayName = displayName;
+        init();
     }
 
     @Override
@@ -140,9 +150,9 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
         }
 
         if (element.getPropertyAsBoolean(LDAPSampler.USER_DEFINED)) {
-            user_Defined.setSelected(true);
+            userDefined.setSelected(true);
         } else {
-            user_Defined.setSelected(false);
+            userDefined.setSelected(false);
             cl.show(cards, ""); // $NON-NLS-1$
         }
     }
@@ -167,7 +177,7 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
         element.setProperty(LDAPSampler.SERVERNAME, servername.getText());
         element.setProperty(LDAPSampler.PORT, port.getText());
         element.setProperty(LDAPSampler.ROOTDN, rootdn.getText());
-        element.setProperty(new BooleanProperty(LDAPSampler.USER_DEFINED, user_Defined.isSelected()));
+        element.setProperty(new BooleanProperty(LDAPSampler.USER_DEFINED, userDefined.isSelected()));
 
         if (addTest.isSelected()) {
             element.setProperty(new StringProperty(LDAPSampler.TEST, LDAPSampler.ADD));
@@ -208,7 +218,7 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
         modify.setText(""); //$NON-NLS-1$
         servername.setText(""); //$NON-NLS-1$
         port.setText(""); //$NON-NLS-1$
-        user_Defined.setSelected(false);
+        userDefined.setSelected(false);
         addTest.setSelected(true);
         modifyTest.setSelected(false);
         deleteTest.setSelected(false);
@@ -216,13 +226,13 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
     }
 
     /**
-     * This itemStateChanged listener for changing the card layout for based on\
+     * This itemStateChanged listener for changing the card layout for based on
      * the test selected in the User defined test case.
      */
     @Override
     public void itemStateChanged(ItemEvent ie) {
         CardLayout cl = (CardLayout) (cards.getLayout());
-        if (user_Defined.isSelected()) {
+        if (userDefined.isSelected()) {
             if (addTest.isSelected()) {
                 cl.show(cards, "Add");
                 tableModifyPanel.clear();
@@ -253,66 +263,43 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
                 searchfilter.setText(""); // $NON-NLS-1$
                 delete.setText("");
             } else {
-                cl.show(cards, ""); // $NON-NLS-1$
-                tableAddPanel.clear();
-                add.setText(""); // $NON-NLS-1$
-                tableModifyPanel.clear();
-                modify.setText(""); // $NON-NLS-1$
-                searchbase.setText(""); // $NON-NLS-1$
-                searchfilter.setText(""); // $NON-NLS-1$
-                delete.setText(""); // $NON-NLS-1$
+                resetCardLayout(cl);
             }
         } else {
-            cl.show(cards, ""); // $NON-NLS-1$
-            tableAddPanel.clear();
-            add.setText(""); // $NON-NLS-1$
-            tableModifyPanel.clear();
-            modify.setText(""); // $NON-NLS-1$
-            searchbase.setText(""); // $NON-NLS-1$
-            searchfilter.setText(""); // $NON-NLS-1$
-            delete.setText(""); // $NON-NLS-1$
+            resetCardLayout(cl);
         }
     }
 
-    public LdapConfigGui(boolean displayName) {
-        this.displayName = displayName;
-        init();
+    private void resetCardLayout(CardLayout cl) {
+        cl.show(cards, ""); // $NON-NLS-1$
+        tableAddPanel.clear();
+        add.setText(""); // $NON-NLS-1$
+        tableModifyPanel.clear();
+        modify.setText(""); // $NON-NLS-1$
+        searchbase.setText(""); // $NON-NLS-1$
+        searchfilter.setText(""); // $NON-NLS-1$
+        delete.setText(""); // $NON-NLS-1$
     }
 
     /**
      * This will create the servername panel in the LdapConfigGui.
      */
     private JPanel createServernamePanel() {
-        JPanel serverPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("servername")); // $NON-NLS-1$
-        label.setLabelFor(servername);
-        serverPanel.add(label, BorderLayout.WEST);
-        serverPanel.add(servername, BorderLayout.CENTER);
-        return serverPanel;
+        return createLabelPanel("servername", servername);
     }
 
     /**
      * This will create the port panel in the LdapConfigGui.
      */
     private JPanel createPortPanel() {
-        JPanel portPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("port")); // $NON-NLS-1$
-        label.setLabelFor(port);
-        portPanel.add(label, BorderLayout.WEST);
-        portPanel.add(port, BorderLayout.CENTER);
-        return portPanel;
+        return createLabelPanel("port", port);
     }
 
     /**
      * This will create the Root distinguised name panel in the LdapConfigGui.
      */
     private JPanel createRootdnPanel() {
-        JPanel rootdnPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("dn")); // $NON-NLS-1$
-        label.setLabelFor(rootdn);
-        rootdnPanel.add(label, BorderLayout.WEST);
-        rootdnPanel.add(rootdn, BorderLayout.CENTER);
-        return rootdnPanel;
+        return createLabelPanel("dn", rootdn);
     }
 
     /**
@@ -320,18 +307,8 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
      */
     private JPanel createSearchPanel() {
         VerticalPanel searchPanel = new VerticalPanel();
-        JPanel searchBPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("search_base")); // $NON-NLS-1$
-        label.setLabelFor(searchbase);
-        searchBPanel.add(label, BorderLayout.WEST);
-        searchBPanel.add(searchbase, BorderLayout.CENTER);
-        JPanel searchFPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label2 = new JLabel(JMeterUtils.getResString("search_filter")); // $NON-NLS-1$
-        label2.setLabelFor(searchfilter);
-        searchFPanel.add(label2, BorderLayout.WEST);
-        searchFPanel.add(searchfilter, BorderLayout.CENTER);
-        searchPanel.add(searchBPanel);
-        searchPanel.add(searchFPanel);
+        searchPanel.add(createLabelPanel("search_base", searchbase));
+        searchPanel.add(createLabelPanel("search_filter", searchfilter));
         return searchPanel;
     }
 
@@ -340,12 +317,7 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
      */
     private JPanel createDeletePanel() {
         VerticalPanel panel = new VerticalPanel();
-        JPanel deletePanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("delete")); // $NON-NLS-1$
-        label.setLabelFor(delete);
-        deletePanel.add(label, BorderLayout.WEST);
-        deletePanel.add(delete, BorderLayout.CENTER);
-        panel.add(deletePanel);
+        panel.add(createLabelPanel("delete", delete));
         return panel;
     }
 
@@ -354,14 +326,28 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
      */
     private JPanel createAddPanel() {
         JPanel addPanel = new JPanel(new BorderLayout(5, 0));
-        JPanel addInnerPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("entry_dn")); // $NON-NLS-1$
-        label.setLabelFor(add);
-        addInnerPanel.add(label, BorderLayout.WEST);
-        addInnerPanel.add(add, BorderLayout.CENTER);
-        addPanel.add(addInnerPanel, BorderLayout.NORTH);
+        addPanel.add(createLabelPanel("entry_dn", add), BorderLayout.NORTH);
         addPanel.add(tableAddPanel, BorderLayout.CENTER);
         return addPanel;
+    }
+
+    /**
+     * Create a panel with the text field and a label
+     * 
+     * @param key
+     *            to look up the label by using
+     *            {@link JMeterUtils#getResString(String)}
+     * @param field
+     *            text field to display
+     * @return newly created panel
+     */
+    private JPanel createLabelPanel(String key, JTextField field) {
+        JPanel addInnerPanel = new JPanel(new BorderLayout(5, 0));
+        JLabel label = new JLabel(JMeterUtils.getResString(key)); // $NON-NLS-1$
+        label.setLabelFor(field);
+        addInnerPanel.add(label, BorderLayout.WEST);
+        addInnerPanel.add(field, BorderLayout.CENTER);
+        return addInnerPanel;
     }
 
     /**
@@ -369,12 +355,7 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
      */
     private JPanel createModifyPanel() {
         JPanel modifyPanel = new JPanel(new BorderLayout(5, 0));
-        JPanel modifyInnerPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("entry_dn")); // $NON-NLS-1$
-        label.setLabelFor(modify);
-        modifyInnerPanel.add(label, BorderLayout.WEST);
-        modifyInnerPanel.add(modify, BorderLayout.CENTER);
-        modifyPanel.add(modifyInnerPanel, BorderLayout.NORTH);
+        modifyPanel.add(createLabelPanel("entry_dn", modify), BorderLayout.NORTH);
         modifyPanel.add(tableModifyPanel, BorderLayout.CENTER);
         return modifyPanel;
     }
@@ -413,14 +394,14 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
         rowPanel.add(modifyTest);
         bGroup.add(modifyTest);
         testPanel.add(rowPanel, BorderLayout.NORTH);
-        testPanel.add(user_Defined, BorderLayout.CENTER);
+        testPanel.add(userDefined, BorderLayout.CENTER);
         return testPanel;
     }
 
     /**
      * This will initialise all the panel in the LdapConfigGui.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout(0, 5));
 
         if (displayName) {
@@ -435,7 +416,7 @@ public class LdapConfigGui extends AbstractConfigGui implements ItemListener {
         mainPanel.add(testPanel());
         add(mainPanel, BorderLayout.CENTER);
 
-        user_Defined.addItemListener(this);
+        userDefined.addItemListener(this);
         addTest.addItemListener(this);
         modifyTest.addItemListener(this);
         deleteTest.addItemListener(this);

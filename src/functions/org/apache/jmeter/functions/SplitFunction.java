@@ -57,7 +57,7 @@ import org.apache.log.Logger;
 public class SplitFunction extends AbstractFunction {
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private static final List<String> desc = new LinkedList<String>();
+    private static final List<String> desc = new LinkedList<>();
 
     private static final String KEY = "__split";// $NON-NLS-1$
 
@@ -92,7 +92,7 @@ public class SplitFunction extends AbstractFunction {
         if (log.isDebugEnabled()){
             log.debug("Split "+stringToSplit+ " using "+ splitString+ " into "+varNamePrefix);
         }
-        String parts[] = JOrphanUtils.split(stringToSplit, splitString, "?");// $NON-NLS-1$
+        String[] parts = JOrphanUtils.split(stringToSplit, splitString, "?");// $NON-NLS-1$
 
         vars.put(varNamePrefix, stringToSplit);
         vars.put(varNamePrefix + "_n", Integer.toString(parts.length));// $NON-NLS-1$ 

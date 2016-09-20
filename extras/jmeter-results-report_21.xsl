@@ -156,7 +156,6 @@
 		</tr>
 	</table>
 </xsl:template>
-
 <xsl:template name="pagelist">
 	<h2>Pages</h2>
 	<table align="center" class="details" border="0" cellpadding="5" cellspacing="2" width="95%">

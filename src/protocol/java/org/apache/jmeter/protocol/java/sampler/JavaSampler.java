@@ -20,13 +20,16 @@ package org.apache.jmeter.protocol.java.sampler;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.samplers.AbstractSampler;
 import org.apache.jmeter.samplers.Entry;
+import org.apache.jmeter.samplers.Interruptible;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.testelement.TestStateListener;
@@ -40,22 +43,24 @@ import org.apache.log.Logger;
  * information on writing Java code to be executed by this sampler.
  *
  */
-public class JavaSampler extends AbstractSampler implements TestStateListener {
+public class JavaSampler extends AbstractSampler implements TestStateListener, Interruptible {
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
     private static final long serialVersionUID = 232L; // Remember to change this when the class changes ...
 
-    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<String>(
-            Arrays.asList(new String[]{
+    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<>(
+            Arrays.asList(
                     "org.apache.jmeter.protocol.java.config.gui.JavaConfigGui",
-                    "org.apache.jmeter.config.gui.SimpleConfigGui"}));
+                    "org.apache.jmeter.config.gui.SimpleConfigGui"
+            ));
 
     /**
      * Set used to register instances which implement tearDownTest.
      * This is used so that the JavaSamplerClient can be notified when the test ends.
      */
-    private static final Set<JavaSampler> TEAR_DOWN_SET = new HashSet<JavaSampler>();
+    private static final Set<JavaSampler> TEAR_DOWN_SET = 
+            Collections.newSetFromMap(new ConcurrentHashMap<JavaSampler,Boolean>());
 
     /**
      * Property key representing the classname of the JavaSamplerClient to user.
@@ -329,5 +334,14 @@ public class JavaSampler extends AbstractSampler implements TestStateListener {
     public boolean applies(ConfigTestElement configElement) {
         String guiClass = configElement.getProperty(TestElement.GUI_CLASS).getStringValue();
         return APPLIABLE_CONFIG_CLASSES.contains(guiClass);
+    }
+
+    @Override
+    public boolean interrupt() {
+        if (javaClient instanceof Interruptible) {
+            return ((Interruptible) javaClient).interrupt();
+            
+        }
+        return false;
     }
 }

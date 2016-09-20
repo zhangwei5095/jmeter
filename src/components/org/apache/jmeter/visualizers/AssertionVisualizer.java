@@ -57,7 +57,7 @@ public class AssertionVisualizer extends AbstractVisualizer implements Clearable
         sb.append(sample.getSampleLabel());
         sb.append(getAssertionResult(sample));
         sb.append("\n"); // $NON-NLS-1$
-        JMeterUtils.runSafe(new Runnable() {
+        JMeterUtils.runSafe(false, new Runnable() {
             @Override
             public void run() {
                 synchronized (textArea) {
@@ -76,7 +76,7 @@ public class AssertionVisualizer extends AbstractVisualizer implements Clearable
     private String getAssertionResult(SampleResult res) {
         if (res != null) {
             StringBuilder display = new StringBuilder();
-            AssertionResult assertionResults[] = res.getAssertionResults();
+            AssertionResult[] assertionResults = res.getAssertionResults();
             for (AssertionResult item : assertionResults) {
                 if (item.isFailure() || item.isError()) {
                     display.append("\n\t"); // $NON-NLS-1$
@@ -89,7 +89,7 @@ public class AssertionVisualizer extends AbstractVisualizer implements Clearable
         return "";
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         this.setLayout(new BorderLayout());
 
         // MAIN PANEL

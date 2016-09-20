@@ -25,6 +25,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -65,32 +66,32 @@ public final class CSVSaveService {
     // XML RESULT FILE CONSTANTS AND FIELD NAME CONSTANTS
     // ---------------------------------------------------------------------
 
-    private static final String DATA_TYPE = "dataType"; // $NON-NLS-1$
-    private static final String FAILURE_MESSAGE = "failureMessage"; // $NON-NLS-1$
-    private static final String LABEL = "label"; // $NON-NLS-1$
-    private static final String RESPONSE_CODE = "responseCode"; // $NON-NLS-1$
-    private static final String RESPONSE_MESSAGE = "responseMessage"; // $NON-NLS-1$
-    private static final String SUCCESSFUL = "success"; // $NON-NLS-1$
-    private static final String THREAD_NAME = "threadName"; // $NON-NLS-1$
-    private static final String TIME_STAMP = "timeStamp"; // $NON-NLS-1$
+    public static final String DATA_TYPE = "dataType"; // $NON-NLS-1$
+    public static final String FAILURE_MESSAGE = "failureMessage"; // $NON-NLS-1$
+    public static final String LABEL = "label"; // $NON-NLS-1$
+    public static final String RESPONSE_CODE = "responseCode"; // $NON-NLS-1$
+    public static final String RESPONSE_MESSAGE = "responseMessage"; // $NON-NLS-1$
+    public static final String SUCCESSFUL = "success"; // $NON-NLS-1$
+    public static final String THREAD_NAME = "threadName"; // $NON-NLS-1$
+    public static final String TIME_STAMP = "timeStamp"; // $NON-NLS-1$
 
     // ---------------------------------------------------------------------
     // ADDITIONAL CSV RESULT FILE CONSTANTS AND FIELD NAME CONSTANTS
     // ---------------------------------------------------------------------
 
-    private static final String CSV_ELAPSED = "elapsed"; // $NON-NLS-1$
-    private static final String CSV_BYTES = "bytes"; // $NON-NLS-1$
-    private static final String CSV_THREAD_COUNT1 = "grpThreads"; // $NON-NLS-1$
-    private static final String CSV_THREAD_COUNT2 = "allThreads"; // $NON-NLS-1$
-    private static final String CSV_SAMPLE_COUNT = "SampleCount"; // $NON-NLS-1$
-    private static final String CSV_ERROR_COUNT = "ErrorCount"; // $NON-NLS-1$
-    private static final String CSV_URL = "URL"; // $NON-NLS-1$
-    private static final String CSV_FILENAME = "Filename"; // $NON-NLS-1$
-    private static final String CSV_LATENCY = "Latency"; // $NON-NLS-1$
-    private static final String CSV_CONNECT_TIME = "Connect"; // $NON-NLS-1$
-    private static final String CSV_ENCODING = "Encoding"; // $NON-NLS-1$
-    private static final String CSV_HOSTNAME = "Hostname"; // $NON-NLS-1$
-    private static final String CSV_IDLETIME = "IdleTime"; // $NON-NLS-1$
+    public static final String CSV_ELAPSED = "elapsed"; // $NON-NLS-1$
+    public static final String CSV_BYTES = "bytes"; // $NON-NLS-1$
+    public static final String CSV_THREAD_COUNT1 = "grpThreads"; // $NON-NLS-1$
+    public static final String CSV_THREAD_COUNT2 = "allThreads"; // $NON-NLS-1$
+    public static final String CSV_SAMPLE_COUNT = "SampleCount"; // $NON-NLS-1$
+    public static final String CSV_ERROR_COUNT = "ErrorCount"; // $NON-NLS-1$
+    public static final String CSV_URL = "URL"; // $NON-NLS-1$
+    public static final String CSV_FILENAME = "Filename"; // $NON-NLS-1$
+    public static final String CSV_LATENCY = "Latency"; // $NON-NLS-1$
+    public static final String CSV_CONNECT_TIME = "Connect"; // $NON-NLS-1$
+    public static final String CSV_ENCODING = "Encoding"; // $NON-NLS-1$
+    public static final String CSV_HOSTNAME = "Hostname"; // $NON-NLS-1$
+    public static final String CSV_IDLETIME = "IdleTime"; // $NON-NLS-1$
 
     // Used to enclose variable name labels, to distinguish from any of the
     // above labels
@@ -101,7 +102,7 @@ public final class CSVSaveService {
             .staticConfig();
 
     // Date formats to try if the time format does not parse as milliseconds
-    private static final String DATE_FORMAT_STRINGS[] = {
+    private static final String[] DATE_FORMAT_STRINGS = {
         "yyyy/MM/dd HH:mm:ss.SSS",  // $NON-NLS-1$
         "yyyy/MM/dd HH:mm:ss",  // $NON-NLS-1$
         "yyyy-MM-dd HH:mm:ss.SSS",  // $NON-NLS-1$
@@ -138,7 +139,7 @@ public final class CSVSaveService {
         final boolean successOnly = resultCollector.isSuccessOnlyLogging();
         try {
             dataReader = new BufferedReader(new InputStreamReader(
-                    new FileInputStream(filename), SaveService.getFileEncoding("UTF-8"))); 
+                    new FileInputStream(filename), SaveService.getFileEncoding(StandardCharsets.UTF_8.name())));
             dataReader.mark(400);// Enough to read the header column names
             // Get the first line, and see if it is the header
             String line = dataReader.readLine();
@@ -363,11 +364,7 @@ public final class CSVSaveService {
                         + ". Extra fields have been ignored.");
             }
 
-        } catch (NumberFormatException e) {
-            log.warn("Error parsing field '" + field + "' at line "
-                    + lineNumber + " " + e);
-            throw new JMeterError(e);
-        } catch (ParseException e) {
+        } catch (NumberFormatException | ParseException e) {
             log.warn("Error parsing field '" + field + "' at line "
                     + lineNumber + " " + e);
             throw new JMeterError(e);
@@ -599,13 +596,12 @@ public final class CSVSaveService {
         SampleSaveConfiguration saveConfig = new SampleSaveConfiguration(false);
 
         int varCount = 0;
-        for (int i = 0; i < parts.length; i++) {
-            String label = parts[i];
+        for (String label : parts) {
             if (isVariableName(label)) {
                 varCount++;
             } else {
                 Functor set = (Functor) headerLabelMethods.get(label);
-                set.invoke(saveConfig, new Boolean[] { Boolean.TRUE });
+                set.invoke(saveConfig, new Boolean[]{Boolean.TRUE});
             }
         }
 
@@ -622,7 +618,7 @@ public final class CSVSaveService {
     }
 
     private static String[] splitHeader(String headerLine, String delim) {
-        String parts[] = headerLine.split("\\Q" + delim);// $NON-NLS-1$
+        String[] parts = headerLine.split("\\Q" + delim);// $NON-NLS-1$
         int previous = -1;
         // Check if the line is a header
         for (int i = 0; i < parts.length; i++) {
@@ -634,6 +630,7 @@ public final class CSVSaveService {
             }
             int current = headerLabelMethods.indexOf(label);
             if (current == -1) {
+                log.warn("Unknown column name " + label);
                 return null; // unknown column name
             }
             if (current <= previous) {
@@ -693,9 +690,9 @@ public final class CSVSaveService {
      *             when writing to <code>writer</code> fails
      */
     public static void saveCSVStats(List<?> data, FileWriter writer,
-            String headers[]) throws IOException {
+            String[] headers) throws IOException {
         final char DELIM = ',';
-        final char SPECIALS[] = new char[] { DELIM, QUOTING_CHAR };
+        final char[] SPECIALS = new char[] { DELIM, QUOTING_CHAR };
         if (headers != null) {
             for (int i = 0; i < headers.length; i++) {
                 if (i > 0) {
@@ -705,8 +702,8 @@ public final class CSVSaveService {
             }
             writer.write(LINE_SEP);
         }
-        for (int idx = 0; idx < data.size(); idx++) {
-            List<?> row = (List<?>) data.get(idx);
+        for (Object o : data) {
+            List<?> row = (List<?>) o;
             for (int idy = 0; idy < row.size(); idy++) {
                 if (idy > 0) {
                     writer.write(DELIM);
@@ -752,7 +749,7 @@ public final class CSVSaveService {
     public static void saveCSVStats(DefaultTableModel model, FileWriter writer,
             boolean saveHeaders) throws IOException {
         final char DELIM = ',';
-        final char SPECIALS[] = new char[] { DELIM, QUOTING_CHAR };
+        final char[] SPECIALS = new char[] { DELIM, QUOTING_CHAR };
         final int columns = model.getColumnCount();
         final int rows = model.getRowCount();
         if (saveHeaders) {
@@ -909,8 +906,8 @@ public final class CSVSaveService {
 
             if (results != null) {
                 // Find the first non-null message
-                for (int i = 0; i < results.length; i++) {
-                    message = results[i].getFailureMessage();
+                for (AssertionResult result : results) {
+                    message = result.getFailureMessage();
                     if (message != null) {
                         break;
                     }
@@ -982,7 +979,7 @@ public final class CSVSaveService {
      * Commons-Lang/Io...
      */
 
-    /*
+    /**
      * <p> Returns a <code>String</code> value for a character-delimited column
      * value enclosed in the quote character, if required. </p>
      * 
@@ -1006,7 +1003,7 @@ public final class CSVSaveService {
      * @return the input String, enclosed in quote characters if the value
      * contains a special character, <code>null</code> for null string input
      */
-    private static String quoteDelimiters(String input, char[] specialChars) {
+    public static String quoteDelimiters(String input, char[] specialChars) {
         if (StringUtils.containsNone(input, specialChars)) {
             return input;
         }
@@ -1049,7 +1046,7 @@ public final class CSVSaveService {
             throws IOException {
         int ch;
         ParserState state = ParserState.INITIAL;
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
         CharArrayWriter baos = new CharArrayWriter(200);
         boolean push = false;
         while (-1 != (ch = infile.read())) {
@@ -1099,6 +1096,8 @@ public final class CSVSaveService {
                                     + baos.toString() + "]");
                 }
                 break;
+            default:
+                throw new IllegalStateException("Unexpected state " + state);
             } // switch(state)
             if (push) {
                 if (ch == '\r') {// Remove following \n if present

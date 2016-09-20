@@ -27,6 +27,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
@@ -75,8 +76,9 @@ import org.apache.jmeter.protocol.http.util.HTTPConstants;
 import org.apache.jmeter.protocol.http.util.HTTPFileArg;
 import org.apache.jmeter.protocol.http.util.LoopbackHttpClientSocketFactory;
 import org.apache.jmeter.protocol.http.util.SlowHttpClientSocketFactory;
+import org.apache.jmeter.services.FileServer;
 import org.apache.jmeter.testelement.property.CollectionProperty;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jmeter.util.JsseSSLManager;
 import org.apache.jmeter.util.SSLManager;
@@ -86,7 +88,9 @@ import org.apache.log.Logger;
 
 /**
  * HTTP sampler using Apache (Jakarta) Commons HttpClient 3.1.
+ * @deprecated since 3.0, will be removed in next version
  */
+@Deprecated
 public class HTTPHC3Impl extends HTTPHCAbstractImpl {
 
     private static final Logger log = LoggingManager.getLoggerForClass();
@@ -102,7 +106,7 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
         new ThreadLocal<Map<HostConfiguration, HttpClient>>(){
         @Override
         protected Map<HostConfiguration, HttpClient> initialValue() {
-            return new HashMap<HostConfiguration, HttpClient>();
+            return new HashMap<>();
         }
     };
 
@@ -131,7 +135,7 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
 
         // Set default parameters as needed
         HttpParams params = DefaultHttpParams.getDefaultParams();
-
+        params.setIntParameter("http.protocol.max-redirects", HTTPSamplerBase.MAX_REDIRECTS); //$NON-NLS-1$
         // Process Commons HttpClient parameters file
         String file=JMeterUtils.getProperty("httpclient.parameters.file"); // $NON-NLS-1$
         if (file != null) {
@@ -210,6 +214,8 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
             // May generate IllegalArgumentException
             if (method.equals(HTTPConstants.POST)) {
                 httpMethod = new PostMethod(urlStr);
+            } else if (method.equals(HTTPConstants.GET)){
+                httpMethod = new GetMethod(urlStr);
             } else if (method.equals(HTTPConstants.PUT)){
                 httpMethod = new PutMethod(urlStr);
             } else if (method.equals(HTTPConstants.HEAD)){
@@ -225,8 +231,6 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
                         return HTTPConstants.DELETE;
                     }
                 };
-            } else if (method.equals(HTTPConstants.GET)){
-                httpMethod = new GetMethod(urlStr);
             } else if (method.equals(HTTPConstants.PATCH)){
                 httpMethod = new EntityEnclosingMethod(urlStr) {
                     @Override
@@ -350,21 +354,14 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
 
             log.debug("End : sample");
             return res;
-        } catch (IllegalArgumentException e) { // e.g. some kinds of invalid URL
+        } catch (IllegalArgumentException // e.g. some kinds of invalid URL
+                | IOException e) { 
             res.sampleEnd();
             // pick up headers if failed to execute the request
             // httpMethod can be null if method is unexpected
             if(httpMethod != null) {
                 res.setRequestHeaders(getConnectionHeaders(httpMethod));
             }
-            errorResult(e, res);
-            return res;
-        } catch (IOException e) {
-            res.sampleEnd();
-            // pick up headers if failed to execute the request
-            // httpMethod cannot be null here, otherwise 
-            // it would have been caught in the previous catch block
-            res.setRequestHeaders(getConnectionHeaders(httpMethod));
             errorResult(e, res);
             return res;
         } finally {
@@ -383,8 +380,8 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
     private static int calculateHeadersSize(HttpMethodBase httpMethod) {
         int headerSize = httpMethod.getStatusLine().toString().length()+2; // add a \r\n
         Header[] rh = httpMethod.getResponseHeaders();
-        for (int i = 0; i < rh.length; i++) {
-            headerSize += rh[i].toString().length(); // already include the \r\n
+        for (Header responseHeader : rh) {
+            headerSize += responseHeader.toString().length(); // already include the \r\n
         }
         headerSize += 2; // last \r\n before response data
         return headerSize;
@@ -568,15 +565,15 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
      */
     protected String getResponseHeaders(HttpMethod method) {
         StringBuilder headerBuf = new StringBuilder();
-        org.apache.commons.httpclient.Header rh[] = method.getResponseHeaders();
+        org.apache.commons.httpclient.Header[] rh = method.getResponseHeaders();
         headerBuf.append(method.getStatusLine());// header[0] is not the status line...
         headerBuf.append("\n"); // $NON-NLS-1$
 
-        for (int i = 0; i < rh.length; i++) {
-            String key = rh[i].getName();
+        for (Header responseHeader : rh) {
+            String key = responseHeader.getName();
             headerBuf.append(key);
             headerBuf.append(": "); // $NON-NLS-1$
-            headerBuf.append(rh[i].getValue());
+            headerBuf.append(responseHeader.getValue());
             headerBuf.append("\n"); // $NON-NLS-1$
         }
         return headerBuf.toString();
@@ -621,11 +618,10 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
         if (headerManager != null) {
             CollectionProperty headers = headerManager.getHeaders();
             if (headers != null) {
-                PropertyIterator i = headers.iterator();
-                while (i.hasNext()) {
+                for (JMeterProperty jMeterProperty : headers) {
                     org.apache.jmeter.protocol.http.control.Header header
                     = (org.apache.jmeter.protocol.http.control.Header)
-                       i.next().getObjectValue();
+                            jMeterProperty.getObjectValue();
                     String n = header.getName();
                     // Don't allow override of Content-Length
                     // This helps with SoapSampler hack too
@@ -658,12 +654,12 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
         // Get all the request headers
         StringBuilder hdrs = new StringBuilder(100);
         Header[] requestHeaders = method.getRequestHeaders();
-        for(int i = 0; i < requestHeaders.length; i++) {
+        for (Header requestHeader : requestHeaders) {
             // Exclude the COOKIE header, since cookie is reported separately in the sample
-            if(!HTTPConstants.HEADER_COOKIE.equalsIgnoreCase(requestHeaders[i].getName())) {
-                hdrs.append(requestHeaders[i].getName());
+            if (!HTTPConstants.HEADER_COOKIE.equalsIgnoreCase(requestHeader.getName())) {
+                hdrs.append(requestHeader.getName());
                 hdrs.append(": "); // $NON-NLS-1$
-                hdrs.append(requestHeaders[i].getValue());
+                hdrs.append(requestHeader.getValue());
                 hdrs.append("\n"); // $NON-NLS-1$
             }
         }
@@ -736,7 +732,7 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
     private String sendPostData(PostMethod post) throws IOException {
         // Buffer to hold the post body, except file content
         StringBuilder postedBody = new StringBuilder(1000);
-        HTTPFileArg files[] = getHTTPFiles();
+        HTTPFileArg[] files = getHTTPFiles();
         // Check if we should do a multipart/form-data or an
         // application/x-www-form-urlencoded post request
         if(getUseMultipartForPost()) {
@@ -749,14 +745,13 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
 
             final boolean browserCompatible = getDoBrowserCompatibleMultipart();
             // We don't know how many entries will be skipped
-            ArrayList<PartBase> partlist = new ArrayList<PartBase>();
+            List<PartBase> partlist = new ArrayList<>();
             // Create the parts
             // Add any parameters
-            PropertyIterator args = getArguments().iterator();
-            while (args.hasNext()) {
-                HTTPArgument arg = (HTTPArgument) args.next().getObjectValue();
+            for (JMeterProperty jMeterProperty : getArguments()) {
+                HTTPArgument arg = (HTTPArgument) jMeterProperty.getObjectValue();
                 String parameterName = arg.getName();
-                if (arg.isSkippable(parameterName)){
+                if (arg.isSkippable(parameterName)) {
                     continue;
                 }
                 StringPart part = new StringPart(arg.getName(), arg.getValue(), contentEncoding);
@@ -768,9 +763,8 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
             }
 
             // Add any files
-            for (int i=0; i < files.length; i++) {
-                HTTPFileArg file = files[i];
-                File inputFile = new File(file.getPath());
+            for (HTTPFileArg file : files) {
+                File inputFile = FileServer.getFileServer().getResolvedFile(file.getPath());
                 // We do not know the char set of the file to be uploaded, so we set it to null
                 ViewableFilePart filePart = new ViewableFilePart(file.getParamName(), inputFile, file.getMimeType(), null);
                 filePart.setCharSet(null); // We do not know what the char set of the file is
@@ -880,11 +874,10 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
 
                     // Just append all the parameter values, and use that as the post body
                     StringBuilder postBody = new StringBuilder();
-                    PropertyIterator args = getArguments().iterator();
-                    while (args.hasNext()) {
-                        HTTPArgument arg = (HTTPArgument) args.next().getObjectValue();
+                    for (JMeterProperty jMeterProperty : getArguments()) {
+                        HTTPArgument arg = (HTTPArgument) jMeterProperty.getObjectValue();
                         String value;
-                        if (haveContentEncoding){
+                        if (haveContentEncoding) {
                             value = arg.getEncodedValue(contentEncoding);
                         } else {
                             value = arg.getEncodedValue();
@@ -902,24 +895,23 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
                         post.setRequestHeader(HTTPConstants.HEADER_CONTENT_TYPE, HTTPConstants.APPLICATION_X_WWW_FORM_URLENCODED);
                     }
                     // Add the parameters
-                    PropertyIterator args = getArguments().iterator();
-                    while (args.hasNext()) {
-                        HTTPArgument arg = (HTTPArgument) args.next().getObjectValue();
+                    for (JMeterProperty jMeterProperty : getArguments()) {
+                        HTTPArgument arg = (HTTPArgument) jMeterProperty.getObjectValue();
                         // The HTTPClient always urlencodes both name and value,
                         // so if the argument is already encoded, we have to decode
                         // it before adding it to the post request
                         String parameterName = arg.getName();
-                        if (arg.isSkippable(parameterName)){
+                        if (arg.isSkippable(parameterName)) {
                             continue;
                         }
                         String parameterValue = arg.getValue();
-                        if(!arg.isAlwaysEncoded()) {
+                        if (!arg.isAlwaysEncoded()) {
                             // The value is already encoded by the user
                             // Must decode the value now, so that when the
                             // httpclient encodes it, we end up with the same value
                             // as the user had entered.
                             String urlContentEncoding = contentEncoding;
-                            if(urlContentEncoding == null || urlContentEncoding.length() == 0) {
+                            if (urlContentEncoding == null || urlContentEncoding.length() == 0) {
                                 // Use the default encoding for urls
                                 urlContentEncoding = EncoderCache.URL_ARGUMENT_ENCODING;
                             }
@@ -978,7 +970,7 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
         // This allows the user to specify his own content-type for a POST request
         Header contentTypeHeader = put.getRequestHeader(HTTPConstants.HEADER_CONTENT_TYPE);
         boolean hasContentTypeHeader = contentTypeHeader != null && contentTypeHeader.getValue() != null && contentTypeHeader.getValue().length() > 0;
-        HTTPFileArg files[] = getHTTPFiles();
+        HTTPFileArg[] files = getHTTPFiles();
 
         // If there are no arguments, we can send a file as the body of the request
 
@@ -986,7 +978,8 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
             hasPutBody = true;
 
             // If getSendFileAsPostBody returned true, it's sure that file is not null
-            FileRequestEntity fileRequestEntity = new FileRequestEntity(new File(files[0].getPath()),null);
+            File reservedFile = FileServer.getFileServer().getResolvedFile(files[0].getPath());
+            FileRequestEntity fileRequestEntity = new FileRequestEntity(reservedFile,null);
             put.setRequestEntity(fileRequestEntity);
         }
         // If none of the arguments have a name specified, we
@@ -1007,11 +1000,10 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
 
             // Just append all the parameter values, and use that as the post body
             StringBuilder putBodyContent = new StringBuilder();
-            PropertyIterator args = getArguments().iterator();
-            while (args.hasNext()) {
-                HTTPArgument arg = (HTTPArgument) args.next().getObjectValue();
+            for (JMeterProperty jMeterProperty : getArguments()) {
+                HTTPArgument arg = (HTTPArgument) jMeterProperty.getObjectValue();
                 String value = null;
-                if (haveContentEncoding){
+                if (haveContentEncoding) {
                     value = arg.getEncodedValue(contentEncoding);
                 } else {
                     value = arg.getEncodedValue();
@@ -1030,12 +1022,7 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
             // If the request entity is repeatable, we can send it first to
             // our own stream, so we can return it
             if(put.getRequestEntity().isRepeatable()) {
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                put.getRequestEntity().writeRequest(bos);
-                bos.flush();
-                // We get the posted bytes using the charset that was used to create them
-                putBody.append(new String(bos.toByteArray(),put.getRequestCharSet()));
-                bos.close();
+                putBody.append("<actual file content, not shown here>");
             }
             else {
                 putBody.append("<RequestEntity was not repeatable, cannot view what was sent>");
@@ -1098,9 +1085,9 @@ public class HTTPHC3Impl extends HTTPHCAbstractImpl {
      */
     protected void saveConnectionCookies(HttpMethod method, URL u, CookieManager cookieManager) {
         if (cookieManager != null) {
-            Header hdr[] = method.getResponseHeaders(HTTPConstants.HEADER_SET_COOKIE);
-            for (int i = 0; i < hdr.length; i++) {
-                cookieManager.addCookieFromHeader(hdr[i].getValue(),u);
+            Header[] hdr = method.getResponseHeaders(HTTPConstants.HEADER_SET_COOKIE);
+            for (Header responseHeader : hdr) {
+                cookieManager.addCookieFromHeader(responseHeader.getValue(), u);
             }
         }
     }

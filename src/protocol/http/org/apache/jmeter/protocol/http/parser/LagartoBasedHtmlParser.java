@@ -65,7 +65,7 @@ public class LagartoBasedHtmlParser extends HTMLParser {
         private URLCollection urls;
         private URLPointer baseUrl;
         private Float ieVersion;
-        private Stack<Boolean> enabled = new Stack<Boolean>();
+        private Stack<Boolean> enabled = new Stack<>();
 
         /**
          * @param baseUrl base url to add possibly missing information to urls found in <code>urls</code>
@@ -78,7 +78,7 @@ public class LagartoBasedHtmlParser extends HTMLParser {
             this.ieVersion = ieVersion;
         }
 
-        private final void extractAttribute(Tag tag, String attributeName) {
+        private void extractAttribute(Tag tag, String attributeName) {
             CharSequence url = tag.getAttributeValue(attributeName);
             if (!StringUtils.isEmpty(url)) {
                 urls.addURL(url.toString(), baseUrl.url);
@@ -166,6 +166,8 @@ public class LagartoBasedHtmlParser extends HTMLParser {
                 break;
             case END:
                 break;
+            default:
+                throw new IllegalStateException("Unexpected tagType " + tagType);
             }
         }
 
@@ -184,7 +186,7 @@ public class LagartoBasedHtmlParser extends HTMLParser {
                 }
                 String expressionString = expression.toString().trim();
                 enabled.push(Boolean.valueOf(htmlCCommentExpressionMatcher.match(ieVersion.floatValue(),
-                        expressionString)));                
+                        expressionString)));
             }
         }
 
@@ -208,7 +210,7 @@ public class LagartoBasedHtmlParser extends HTMLParser {
             String contents = new String(html,encoding); 
             // As per Jodd javadocs, emitStrings should be false for visitor for better performances
             LagartoParser lagartoParser = new LagartoParser(contents, false);
-            LagartoParserConfig<LagartoParserConfig<?>> config = new LagartoParserConfig<LagartoParserConfig<?>>();
+            LagartoParserConfig<LagartoParserConfig<?>> config = new LagartoParserConfig<>();
             config.setCaseSensitive(false);
             // Conditional comments only apply for IE < 10
             config.setEnableConditionalComments(isEnableConditionalComments(ieVersion));
@@ -218,7 +220,7 @@ public class LagartoBasedHtmlParser extends HTMLParser {
             lagartoParser.parse(tagVisitor);
             return coll.iterator();
         } catch (LagartoException e) {
-            // TODO is it the best way ? https://issues.apache.org/bugzilla/show_bug.cgi?id=55634
+            // TODO is it the best way ? https://bz.apache.org/bugzilla/show_bug.cgi?id=55634
             if(log.isDebugEnabled()) {
                 log.debug("Error extracting embedded resource URLs from:'"+baseUrl+"', probably not text content, message:"+e.getMessage());
             }
@@ -226,17 +228,5 @@ public class LagartoBasedHtmlParser extends HTMLParser {
         } catch (Exception e) {
             throw new HTMLParseException(e);
         }
-    }
-
-    
-
-
-
-    /* (non-Javadoc)
-     * @see org.apache.jmeter.protocol.http.parser.HTMLParser#isReusable()
-     */
-    @Override
-    protected boolean isReusable() {
-        return true;
     }
 }

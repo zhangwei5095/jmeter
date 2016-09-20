@@ -32,6 +32,7 @@ import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.testelement.property.NullProperty;
 import org.apache.jorphan.collections.HashTree;
 import org.apache.jorphan.collections.ListedHashTree;
+import org.apache.jorphan.util.JMeterStopTestException;
 
 /**
  * The goal of ModuleController is to add modularity to JMeter. The general idea
@@ -100,13 +101,12 @@ public class ModuleController extends GenericController implements ReplaceableCo
     }
 
     private void setNodePath() {
-        List<String> nodePath = new ArrayList<String>();
+        List<String> nodePath = new ArrayList<>();
         if (selectedNode != null) {
             TreeNode[] path = selectedNode.getPath();
             for (TreeNode node : path) {
                 nodePath.add(((JMeterTreeNode) node).getName());
             }
-            // nodePath.add(selectedNode.getName());
         }
         setProperty(new CollectionProperty(NODE_PATH, nodePath));
     }
@@ -136,6 +136,10 @@ public class ModuleController extends GenericController implements ReplaceableCo
             List<?> nodePathList = getNodePath();
             if (nodePathList != null && nodePathList.size() > 0) {
                 traverse(context, nodePathList, 1);
+            }
+
+            if(isRunningVersion() && selectedNode == null) {
+                throw new JMeterStopTestException("ModuleController:"+getName()+" has no selected Controller (did you rename some element in the path to target controller?), test was shutdown as a consequence");
             }
         }
     }

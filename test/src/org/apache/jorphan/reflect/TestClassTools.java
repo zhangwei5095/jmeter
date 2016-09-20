@@ -17,7 +17,9 @@
  */
 package org.apache.jorphan.reflect;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.jorphan.util.JMeterException;
 import org.junit.Test;
@@ -25,7 +27,7 @@ import org.junit.Test;
 /**
  * Test various aspects of the {@link ClassTools} class
  */
-public class TestClassTools extends TestCase {
+public class TestClassTools {
 
     /**
      * Test that a class can be constructed using the default constructor
@@ -84,7 +86,7 @@ public class TestClassTools extends TestCase {
             IllegalArgumentException, JMeterException {
         Dummy dummy = new Dummy();
         ClassTools.invoke(dummy, "callMe");
-        assertEquals(dummy.wasCalled(), true);
+        assertTrue(dummy.wasCalled());
     }
 
     /**

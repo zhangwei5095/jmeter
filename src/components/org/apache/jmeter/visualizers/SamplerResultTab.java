@@ -87,15 +87,22 @@ public abstract class SamplerResultTab implements ResultRenderer {
 
     private JTextPane stats;
 
-    private JPanel resultsPane; /** Response Data pane */
-    protected JScrollPane resultsScrollPane; /** Contains results; contained in resultsPane */
-    protected JEditorPane results; /** Response Data shown here */
+    /** Response Data pane */
+    private JPanel resultsPane;
+    
+    /** Contains results; contained in resultsPane */
+    protected JScrollPane resultsScrollPane;
+    
+    /** Response Data shown here */
+    protected JEditorPane results;
 
     private JLabel imageLabel;
 
-    private RequestPanel requestPanel; /** request pane content */
+    /** request pane content */
+    private RequestPanel requestPanel;
 
-    protected JTabbedPane rightSide; /** holds the tabbed panes */
+    /** holds the tabbed panes */
+    protected JTabbedPane rightSide;
 
     private int lastSelectedTab;
 
@@ -236,6 +243,7 @@ public abstract class SamplerResultTab implements ResultRenderer {
                 statsBuff.append(JMeterUtils.getResString("view_results_size_body_in_bytes")).append(sampleResult.getBodySize()).append(NL); //$NON-NLS-1$
                 statsBuff.append(JMeterUtils.getResString("view_results_sample_count")).append(sampleResult.getSampleCount()).append(NL); //$NON-NLS-1$
                 statsBuff.append(JMeterUtils.getResString("view_results_error_count")).append(sampleResult.getErrorCount()).append(NL); //$NON-NLS-1$
+                statsBuff.append(JMeterUtils.getResString("view_results_datatype")).append(sampleResult.getDataType()).append(NL); //$NON-NLS-1$
                 statsDoc.insertString(statsDoc.getLength(), statsBuff.toString(), null);
                 statsBuff.setLength(0); // reset for reuse
 
@@ -326,6 +334,7 @@ public abstract class SamplerResultTab implements ResultRenderer {
                 statsBuff.append(JMeterUtils.getResString("view_results_assertion_failure_message")).append(assertionResult.getFailureMessage()).append(NL); //$NON-NLS-1$
                 statsDoc.insertString(statsDoc.getLength(), statsBuff.toString(), null);
             }
+            stats.setCaretPosition(1);
         } catch (BadLocationException exc) {
             stats.setText(exc.getLocalizedMessage());
         }
@@ -395,7 +404,8 @@ public abstract class SamplerResultTab implements ResultRenderer {
         paneRaw.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
 
         // Set up the 1st table Result with empty headers
-        tableResult = new JTable(resultModel);     
+        tableResult = new JTable(resultModel);
+        JMeterUtils.applyHiDPI(tableResult);
         tableResult.setToolTipText(JMeterUtils.getResString("textbox_tooltip_cell")); // $NON-NLS-1$
         tableResult.addMouseListener(new TextBoxDoubleClick(tableResult));
         setFirstColumnPreferredSize(tableResult);
@@ -403,6 +413,7 @@ public abstract class SamplerResultTab implements ResultRenderer {
 
         // Set up the 2nd table 
         tableResHeaders = new JTable(resHeadersModel);
+        JMeterUtils.applyHiDPI(tableResHeaders);
         tableResHeaders.setToolTipText(JMeterUtils.getResString("textbox_tooltip_cell")); // $NON-NLS-1$
         tableResHeaders.addMouseListener(new TextBoxDoubleClick(tableResHeaders));
         setFirstColumnPreferredSize(tableResHeaders);
@@ -412,6 +423,7 @@ public abstract class SamplerResultTab implements ResultRenderer {
 
         // Set up the 3rd table 
         tableResFields = new JTable(resFieldsModel);
+        JMeterUtils.applyHiDPI(tableResFields);
         tableResFields.setToolTipText(JMeterUtils.getResString("textbox_tooltip_cell")); // $NON-NLS-1$
         tableResFields.addMouseListener(new TextBoxDoubleClick(tableResFields));
         setFirstColumnPreferredSize(tableResFields);

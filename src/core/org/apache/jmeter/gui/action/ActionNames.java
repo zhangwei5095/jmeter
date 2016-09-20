@@ -18,11 +18,10 @@
 
 package org.apache.jmeter.gui.action;
 
-/*
+/**
  * Collect all the action names together in one place.
  * This helps to ensure that there are no duplicates
- *
- *
+ * 
  */
 public final class ActionNames {
 
@@ -62,7 +61,7 @@ public final class ActionNames {
     public static final String MERGE            = "merge"; // $NON-NLS-1$
     public static final String OPEN             = "open"; // $NON-NLS-1$
     public static final String OPEN_RECENT      = "open_recent"; // $NON-NLS-1$
-    public static final String TEMPLATES      = "templates"; // $NON-NLS-1$
+    public static final String TEMPLATES        = "templates"; // $NON-NLS-1$
     public static final String PASTE            = "Paste"; // $NON-NLS-1$
     public static final String REMOTE_EXIT      = "remote_exit"; // $NON-NLS-1$
     public static final String REMOTE_EXIT_ALL  = "remote_exit_all"; // $NON-NLS-1$
@@ -87,19 +86,23 @@ public final class ActionNames {
     public static final String SUB_TREE_MERGED  = "sub_tree_merged"; // $NON-NLS-1$
     public static final String SUB_TREE_SAVED   = "sub_tree_saved"; // $NON-NLS-1$
     public static final String TOGGLE           = "toggle"; // $NON-NLS-1$ enable/disable
-    public static final String TOOLBAR           = "toolbar"; // $NON-NLS-1$
+    public static final String TOOLBAR          = "toolbar"; // $NON-NLS-1$
     public static final String WHAT_CLASS       = "what_class"; // $NON-NLS-1$
     public static final String SEARCH_TREE      = "search_tree"; // $NON-NLS-1$
-    public static final String SEARCH_RESET      = "search_reset"; // $NON-NLS-1$
+    public static final String SEARCH_RESET     = "search_reset"; // $NON-NLS-1$
     public static final String MOVE_UP          = "move_up"; // $NON-NLS-1$
     public static final String MOVE_DOWN        = "move_down"; // $NON-NLS-1$
     public static final String MOVE_LEFT        = "move_left"; // $NON-NLS-1$
     public static final String MOVE_RIGHT       = "move_right"; // $NON-NLS-1$
     public static final String UNDO             = "undo"; // $NON-NLS-1$
     public static final String REDO             = "redo"; // $NON-NLS-1$
+    public static final String QUICK_COMPONENT  = "quick_component"; // $NON-NLS-1$
+    public static final String COLLAPSE         = "collapse"; // $NON-NLS-1$
+    public static final String EXPAND           = "expand"; // $NON-NLS-1$
+    public static final String RUN_TG           = "run_tg"; // $NON-NLS-1$
+    public static final String RUN_TG_NO_TIMERS = "run_tg_no_timers"; // $NON-NLS-1$
+    public static final String VALIDATE_TG      = "validate_tg"; //$NON-NLS-1$
 
     // Prevent instantiation
-    private ActionNames(){
-
-    }
+    private ActionNames() {}
 }

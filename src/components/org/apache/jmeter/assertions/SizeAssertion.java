@@ -36,7 +36,7 @@ public class SizeAssertion extends AbstractScopedAssertion implements Serializab
 
     private static final long serialVersionUID = 241L;
 
-    // * Static int to signify the type of logical comparitor to assert
+    // Static int to signify the type of logical comparator to assert
     public static final int EQUAL = 1;
 
     public static final int NOTEQUAL = 2;
@@ -49,7 +49,7 @@ public class SizeAssertion extends AbstractScopedAssertion implements Serializab
 
     public static final int LESSTHANEQUAL = 6;
 
-    /** Key for storing assertion-informations in the jmx-file. */
+    /** Key for storing assertion-information in the jmx-file. */
     private static final String SIZE_KEY = "SizeAssertion.size"; // $NON-NLS-1$
 
     private static final String OPERATOR_KEY = "SizeAssertion.operator"; // $NON-NLS-1$
@@ -101,7 +101,8 @@ public class SizeAssertion extends AbstractScopedAssertion implements Serializab
         if (msg.length() > 0) {
             result.setFailure(true);
             Object[] arguments = { Long.valueOf(resultSize), msg, Long.valueOf(getAllowedSize()) };
-            String message = MessageFormat.format(JMeterUtils.getResString("size_assertion_failure"), arguments); //$NON-NLS-1$
+            String message = MessageFormat.format(
+                    JMeterUtils.getResString("size_assertion_failure"), arguments); //$NON-NLS-1$
             result.setFailureMessage(message);
         }
         return result;

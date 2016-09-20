@@ -123,7 +123,7 @@ public class RenderAsCssJQuery implements ResultRenderer, ActionListener {
 
     private String process(String textToParse) {
         try {
-            List<String> result = new ArrayList<String>();
+            List<String> result = new ArrayList<>();
             Extractor extractor = HtmlExtractor.getExtractorImpl(cssJqueryLabeledChoice.getText());
             final int nbFound = extractor.extract(
                     cssJqueryField.getText(), attributeField.getText(), -1, textToParse, result, 0, null);
@@ -207,7 +207,6 @@ public class RenderAsCssJQuery implements ResultRenderer, ActionListener {
         Border margin = new EmptyBorder(5, 5, 0, 5);
         cssJqueryActionPanel.setBorder(margin);
         cssJqueryField = new JLabeledTextField(JMeterUtils.getResString("cssjquery_tester_field")); // $NON-NLS-1$
-        cssJqueryField.setPreferredSize(new Dimension(300, 30));
         c.fill = GridBagConstraints.HORIZONTAL;
         c.gridx=0;
         c.gridy=0;
@@ -216,21 +215,18 @@ public class RenderAsCssJQuery implements ResultRenderer, ActionListener {
         cssJqueryLabeledChoice = new JLabeledChoice(
                 JMeterUtils.getResString("cssjquery_impl"), // $NON-NLS-1$
                 getImplementations()); 
-        cssJqueryLabeledChoice.setPreferredSize(new Dimension(300, 30));
         c.fill = GridBagConstraints.HORIZONTAL;
         c.gridx=1;
         c.gridy=0;
         cssJqueryActionPanel.add(cssJqueryLabeledChoice, c);
                 
         attributeField = new JLabeledTextField(JMeterUtils.getResString("cssjquery_attribute")); // $NON-NLS-1$
-        attributeField.setPreferredSize(new Dimension(300, 30));
         c.fill = GridBagConstraints.HORIZONTAL;
         c.gridx=0;
         c.gridy=1;
         cssJqueryActionPanel.add(attributeField, c);
 
         JButton cssJqueryTester = new JButton(JMeterUtils.getResString("cssjquery_tester_button_test")); // $NON-NLS-1$
-        cssJqueryTester.setPreferredSize(new Dimension(100, 30));
         cssJqueryTester.setActionCommand(CSSJQUEY_TESTER_COMMAND);
         cssJqueryTester.addActionListener(this);
         c.fill = GridBagConstraints.HORIZONTAL;

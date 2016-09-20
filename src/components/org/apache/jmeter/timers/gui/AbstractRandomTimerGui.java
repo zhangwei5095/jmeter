@@ -91,7 +91,7 @@ public abstract class AbstractRandomTimerGui extends AbstractTimerGui {
      */
     @Override
     public void modifyTestElement(TestElement timer) {
-        this.configureTestElement(timer);
+        super.configureTestElement(timer);
         ((RandomTimer) timer).setDelay(delayField.getText());
         ((RandomTimer) timer).setRange(rangeField.getText());
     }
@@ -112,7 +112,7 @@ public abstract class AbstractRandomTimerGui extends AbstractTimerGui {
     /**
      * Initialize this component.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new VerticalLayout(5, VerticalLayout.BOTH));
         setBorder(makeBorder());
 

@@ -82,19 +82,19 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
      * Map from TestElement to JMeterGUIComponent, mapping the nodes in the tree
      * to their corresponding GUI components.
      */
-    private Map<TestElement, JMeterGUIComponent> nodesToGui = new HashMap<TestElement, JMeterGUIComponent>();
+    private Map<TestElement, JMeterGUIComponent> nodesToGui = new HashMap<>();
 
     /**
      * Map from Class to JMeterGUIComponent, mapping the Class of a GUI
      * component to an instance of that component.
      */
-    private Map<Class<?>, JMeterGUIComponent> guis = new HashMap<Class<?>, JMeterGUIComponent>();
+    private Map<Class<?>, JMeterGUIComponent> guis = new HashMap<>();
 
     /**
      * Map from Class to TestBeanGUI, mapping the Class of a TestBean to an
      * instance of TestBeanGUI to be used to edit such components.
      */
-    private Map<Class<?>, JMeterGUIComponent> testBeanGUIs = new HashMap<Class<?>, JMeterGUIComponent>();
+    private Map<Class<?>, JMeterGUIComponent> testBeanGUIs = new HashMap<>();
 
     /** The currently selected node in the tree. */
     private JMeterTreeNode currentNode = null;
@@ -112,9 +112,6 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
 
     /** The main JMeter toolbar. */
     private JToolBar toolbar;
-
-    /** The menu item toolbar. */
-    private JCheckBoxMenuItem menuToolBar;
 
     /**
      * The LoggerPanel menu item
@@ -172,16 +169,33 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
      *            the TreeListener for JMeter's test tree
      * @param treeModel
      *            the model for JMeter's test tree
+     */
+    public static void initInstance(JMeterTreeListener listener, JMeterTreeModel treeModel) {
+        GuiPackage guiPack = new GuiPackage(treeModel, listener);
+        guiPack.undoHistory.add(treeModel, "Created");
+        GuiPackage.guiPack = guiPack;
+    }
+    
+    /**
+     * When GuiPackage is requested for the first time, it should be given
+     * handles to JMeter's Tree Listener and TreeModel.
+     *
+     * @param listener
+     *            the TreeListener for JMeter's test tree
+     * @param treeModel
+     *            the model for JMeter's test tree
      *
      * @return GuiPackage
+     * @deprecated  Will be removed in next version. Use {@link GuiPackage#initInstance(JMeterTreeListener, JMeterTreeModel)}
      */
+    @Deprecated
     public static GuiPackage getInstance(JMeterTreeListener listener, JMeterTreeModel treeModel) {
-        if (guiPack == null) {
-            guiPack = new GuiPackage(treeModel, listener);
-            guiPack.undoHistory.add(treeModel, "Created");
+        if(guiPack == null) {
+            initInstance(listener, treeModel);
         }
-        return guiPack;
+        return GuiPackage.guiPack;
     }
+    
 
     /**
      * Get a JMeterGUIComponent for the specified test element. If the GUI has
@@ -202,13 +216,13 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
         String guiClassName = node.getPropertyAsString(TestElement.GUI_CLASS);
         try {
             Class<?> testClass;
-            if (testClassName.equals("")) { // $NON-NLS-1$
+            if (testClassName.isEmpty()) {
                 testClass = node.getClass();
             } else {
                 testClass = Class.forName(testClassName);
             }
             Class<?> guiClass = null;
-            if (!guiClassName.equals("")) { // $NON-NLS-1$
+            if (!guiClassName.isEmpty()) {
                 guiClass = Class.forName(guiClassName);
             }
             return getGui(node, guiClass, testClass);
@@ -351,13 +365,7 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
                     "Missing jar? See log file." ,
                     JOptionPane.ERROR_MESSAGE);
             throw new RuntimeException(e.toString(), e); // Probably a missing jar
-        } catch (ClassNotFoundException e) {
-            log.error("Problem retrieving gui for " + objClass, e);
-            throw new RuntimeException(e.toString(), e); // Programming error: bail out.
-        } catch (InstantiationException e) {
-            log.error("Problem retrieving gui for " + objClass, e);
-            throw new RuntimeException(e.toString(), e); // Programming error: bail out.
-        } catch (IllegalAccessException e) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             log.error("Problem retrieving gui for " + objClass, e);
             throw new RuntimeException(e.toString(), e); // Programming error: bail out.
         }
@@ -383,8 +391,6 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
      * @throws IllegalAccessException
      *             if access rights do not allow the default constructor to be
      *             called
-     * @throws ClassNotFoundException
-     *             if the specified GUI class cannot be found
      */
     private JMeterGUIComponent getGuiFromCache(Class<?> guiClass, Class<?> testClass) throws InstantiationException,
             IllegalAccessException {
@@ -427,15 +433,23 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
      * choosing the new node.
      */
     public void updateCurrentNode() {
+        
         try {
             if (currentNode != null && !currentNodeUpdated) {
                 log.debug("Updating current node " + currentNode.getName());
                 JMeterGUIComponent comp = getGui(currentNode.getTestElement());
                 TestElement el = currentNode.getTestElement();
-                int before = getTestElementCheckSum(el);
+                int before = 0;
+                int after = 0;
+                final boolean historyEnabled = undoHistory.isEnabled();
+                if(historyEnabled) {
+                    before = getTestElementCheckSum(el);
+                }
                 comp.modifyTestElement(el);
-                int after = getTestElementCheckSum(el);
-                if (before != after) {
+                if(historyEnabled) {
+                    after = getTestElementCheckSum(el);
+                }
+                if (!historyEnabled || (before != after)) {
                     currentNode.nameChanged(); // Bug 50221 - ensure label is updated
                 }
             }
@@ -578,24 +592,6 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
         return toolbar;
     }
 
-    /**
-     * Set the menu item toolbar.
-     *
-     * @param newMenuToolBar
-     *            the new menu item toolbar
-     */
-    public void setMenuItemToolbar(JCheckBoxMenuItem newMenuToolBar) {
-        menuToolBar = newMenuToolBar;
-    }
-
-    /**
-     * Get the menu item  toolbar.
-     *
-     * @return the menu item toolbar
-     */
-    public JCheckBoxMenuItem getMenuItemToolbar() {
-        return menuToolBar;
-    }
 
     /**
      * Display the specified popup menu with the source component and location
@@ -643,9 +639,9 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
 
         // Forget about all GUIs we've created so far: we'll need to re-created
         // them all!
-        guis = new HashMap<Class<?>, JMeterGUIComponent>();
-        nodesToGui = new HashMap<TestElement, JMeterGUIComponent>();
-        testBeanGUIs = new HashMap<Class<?>, JMeterGUIComponent>();
+        guis = new HashMap<>();
+        nodesToGui = new HashMap<>();
+        testBeanGUIs = new HashMap<>();
 
         // BeanInfo objects also contain locale-sensitive data -- flush them
         // away:
@@ -772,7 +768,7 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
      * @return copy of list of {@link Stoppable}s
      */
     public List<Stoppable> getStoppables() {
-        ArrayList<Stoppable> list = new ArrayList<Stoppable>();
+        List<Stoppable> list = new ArrayList<>();
         list.addAll(stoppables);
         return list;
     }
@@ -850,7 +846,15 @@ public final class GuiPackage implements LocaleChangeListener, HistoryListener {
                         .getElement());
             } else {
                 ret ^= obj.getName().hashCode();
-                ret ^= obj.getStringValue().hashCode();
+                String stringValue = obj.getStringValue();
+                if(stringValue != null) {
+                    ret ^= stringValue.hashCode();
+                } else {
+                    if(log.isDebugEnabled()) {
+                        log.debug("obj.getStringValue() returned null for test element:"
+                                +el.getName()+" at property:"+obj.getName());
+                    }
+                }
             }
         }
         return ret;

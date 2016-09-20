@@ -48,9 +48,7 @@ import org.apache.jorphan.gui.JLabeledTextField;
  */
 public class JMSPublisherGui extends AbstractSamplerGui implements ChangeListener {
 
-    private static final long serialVersionUID = 240L;
-
-    private static final String ALL_FILES = "*.*"; //$NON-NLS-1$
+    private static final long serialVersionUID = 241L;
 
     //++ These names are used in the JMX files, and must not be changed
     /** Take source from the named file */
@@ -102,11 +100,11 @@ public class JMSPublisherGui extends AbstractSamplerGui implements ChangeListene
 
     private final JLabeledTextField iterations = new JLabeledTextField(JMeterUtils.getResString("jms_itertions")); //$NON-NLS-1$
 
-    private final FilePanel messageFile = new FilePanel(JMeterUtils.getResString("jms_file"), ALL_FILES); //$NON-NLS-1$
+    private final FilePanel messageFile = new FilePanel(JMeterUtils.getResString("jms_file")); //$NON-NLS-1$
 
-    private final FilePanel randomFile = new FilePanel(JMeterUtils.getResString("jms_random_file"), ALL_FILES); //$NON-NLS-1$
+    private final FilePanel randomFile = new FilePanel(JMeterUtils.getResString("jms_random_file"), true); //$NON-NLS-1$
 
-    private final JSyntaxTextArea textMessage = new JSyntaxTextArea(10, 50); // $NON-NLS-1$
+    private final JSyntaxTextArea textMessage = JSyntaxTextArea.getInstance(10, 50); // $NON-NLS-1$
 
     private final JLabeledRadioI18N msgChoice = new JLabeledRadioI18N("jms_message_type", MSGTYPES_ITEMS, TEXT_MSG_RSC); //$NON-NLS-1$
     
@@ -164,7 +162,7 @@ public class JMSPublisherGui extends AbstractSamplerGui implements ChangeListene
      * @param sampler {@link PublisherSampler} instance
      */
     private void setupSamplerProperties(final PublisherSampler sampler) {
-      this.configureTestElement(sampler);
+      super.configureTestElement(sampler);
       sampler.setUseJNDIProperties(String.valueOf(useProperties.isSelected()));
       sampler.setJNDIIntialContextFactory(jndiICF.getText());
       sampler.setProviderUrl(urlField.getText());
@@ -191,7 +189,7 @@ public class JMSPublisherGui extends AbstractSamplerGui implements ChangeListene
      * init() adds jndiICF to the mainPanel. The class reuses logic from
      * SOAPSampler, since it is common.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout());
         setBorder(makeBorder());
         add(makeTitlePanel(), BorderLayout.NORTH);
@@ -220,7 +218,7 @@ public class JMSPublisherGui extends AbstractSamplerGui implements ChangeListene
 
         JPanel messageContentPanel = new JPanel(new BorderLayout());
         messageContentPanel.add(new JLabel(JMeterUtils.getResString("jms_text_area")), BorderLayout.NORTH);
-        messageContentPanel.add(new JTextScrollPane(textMessage), BorderLayout.CENTER);
+        messageContentPanel.add(JTextScrollPane.getInstance(textMessage), BorderLayout.CENTER);
 
         mainPanel.add(messageContentPanel);
         useProperties.addChangeListener(this);

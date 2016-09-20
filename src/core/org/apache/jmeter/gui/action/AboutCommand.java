@@ -53,7 +53,7 @@ public class AboutCommand implements Command {
     private static JDialog about;
 
     static {
-        HashSet<String> commands = new HashSet<String>();
+        Set<String> commands = new HashSet<>();
         commands.add(ActionNames.ABOUT);
         commandSet = Collections.unmodifiableSet(commands);
     }
@@ -94,7 +94,7 @@ public class AboutCommand implements Command {
                 }
             });
 
-            JLabel jmeter = new JLabel(JMeterUtils.getImage("jmeter.jpg"));
+            JLabel jmeter = new JLabel(JMeterUtils.getImage("jmeter.png"));
             JLabel copyright = new JLabel(JMeterUtils.getJMeterCopyright(), SwingConstants.CENTER);
             JLabel rights = new JLabel("All Rights Reserved.", SwingConstants.CENTER);
             JLabel version = new JLabel("Apache JMeter Version " + JMeterUtils.getJMeterVersion(), SwingConstants.CENTER);
@@ -112,10 +112,7 @@ public class AboutCommand implements Command {
             panel.add(infos, BorderLayout.SOUTH);
         }
 
-        // NOTE: these lines center the about dialog in the
-        // current window. Some older Swing versions have
-        // a bug in getLocationOnScreen() and they may not
-        // make this behave properly.
+        // NOTE: these lines center the about dialog in the current window. 
         Point p = mainFrame.getLocationOnScreen();
         Dimension d1 = mainFrame.getSize();
         Dimension d2 = about.getSize();

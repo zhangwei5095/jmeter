@@ -22,6 +22,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
+import java.awt.Rectangle;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
@@ -37,15 +38,15 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTable;
+import javax.swing.JViewport;
 import javax.swing.ListSelectionModel;
-import javax.swing.table.TableCellEditor;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jmeter.config.Argument;
 import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.gui.util.HeaderAsPropertyRenderer;
 import org.apache.jmeter.testelement.TestElement;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.gui.GuiUtils;
 import org.apache.jorphan.gui.ObjectTableModel;
@@ -87,11 +88,14 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
      */
     private final boolean standalone;
 
-    /** Button to move a argument up*/
+    /** Button to move an argument up*/
     private JButton up;
 
-    /** Button to move a argument down*/
+    /** Button to move an argument down*/
     private JButton down;
+    
+    /** Button to show the detail of an argument*/
+    private JButton showDetail;
 
     private final boolean enableUpDown;
 
@@ -218,9 +222,8 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
     @Override
     public void modifyTestElement(TestElement args) {
         GuiUtils.stopTableEditing(table);
-        Arguments arguments = null;
         if (args instanceof Arguments) {
-            arguments = (Arguments) args;
+            Arguments arguments = (Arguments) args;
             arguments.clear();
             @SuppressWarnings("unchecked") // only contains Argument (or HTTPArgument)
             Iterator<Argument> modelData = (Iterator<Argument>) tableModel.iterator();
@@ -233,7 +236,7 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
                 arguments.addArgument(arg);
             }
         }
-        this.configureTestElement(args);
+        super.configureTestElement(args);
     }
 
     /**
@@ -242,21 +245,19 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
      * querying the Test Element object for the relevant information to display
      * in its GUI.
      *
-     * @param el
-     *            the TestElement to configure
+     * @param el the TestElement to configure
      */
     @Override
     public void configure(TestElement el) {
         super.configure(el);
         if (el instanceof Arguments) {
             tableModel.clearData();
-            PropertyIterator iter = ((Arguments) el).iterator();
-            while (iter.hasNext()) {
-                Argument arg = (Argument) iter.next().getObjectValue();
+            for (JMeterProperty jMeterProperty : ((Arguments) el)) {
+                Argument arg = (Argument) jMeterProperty.getObjectValue();
                 tableModel.addRow(arg);
             }
         }
-        checkDeleteStatus();
+        checkButtonsStatus();
     }
 
     /**
@@ -299,17 +300,31 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
      * Enable or disable the delete button depending on whether or not there is
      * a row to be deleted.
      */
+    @Deprecated
     protected void checkDeleteStatus() {
+       checkButtonsStatus();
+    }
+    
+    
+    protected void checkButtonsStatus() {
         // Disable DELETE if there are no rows in the table to delete.
         if (tableModel.getRowCount() == 0) {
             delete.setEnabled(false);
+            showDetail.setEnabled(false);
         } else {
             delete.setEnabled(true);
+            showDetail.setEnabled(true);
         }
         
-        if(enableUpDown && tableModel.getRowCount()>1) {
-            up.setEnabled(true);
-            down.setEnabled(true);
+        if(enableUpDown) {
+            if(tableModel.getRowCount()>1) {
+                up.setEnabled(true);
+                down.setEnabled(true);
+            }
+            else {
+                up.setEnabled(false);
+                down.setEnabled(false);
+            }
         }
     }
 
@@ -331,8 +346,7 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
      * Invoked when an action occurs. This implementation supports the add and
      * delete buttons.
      *
-     * @param e
-     *            the event that has occurred
+     * @param e the event that has occurred
      */
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -352,25 +366,16 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
         }
     }
 
-    /**
-     * Cancel cell editing if it is being edited
-     */
-    private void cancelEditing() {
-        // If a table cell is being edited, we must cancel the editing before
-        // deleting the row
-        if (table.isEditing()) {
-            TableCellEditor cellEditor = table.getCellEditor(table.getEditingRow(), table.getEditingColumn());
-            cellEditor.cancelCellEditing();
-        }
-    }
     
     /**
      * Move a row down
      */
     private void moveDown() {
-        cancelEditing();
-
+        //get the selected rows before stopping editing
+        // or the selected rows will be unselected
         int[] rowsSelected = table.getSelectedRows();
+        GuiUtils.stopTableEditing(table);
+        
         if (rowsSelected.length > 0 && rowsSelected[rowsSelected.length - 1] < table.getRowCount() - 1) {
             table.clearSelection();
             for (int i = rowsSelected.length - 1; i >= 0; i--) {
@@ -380,24 +385,62 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
             for (int rowSelected : rowsSelected) {
                 table.addRowSelectionInterval(rowSelected + 1, rowSelected + 1);
             }
+            
+            scrollToRowIfNotVisible(rowsSelected[0]+1);
         }
+    }
+
+    
+    /**
+     * ensure that a row is visible in the viewport
+     * @param rowIndx row index
+     */
+    private void scrollToRowIfNotVisible(int rowIndx) {
+        if(table.getParent() instanceof JViewport) {
+            Rectangle visibleRect = table.getVisibleRect();
+            final int cellIndex = 0;
+            Rectangle cellRect = table.getCellRect(rowIndx, cellIndex, false);
+            if (visibleRect.y > cellRect.y) {
+                table.scrollRectToVisible(cellRect);
+            } else {
+                Rectangle rect2 = table.getCellRect(rowIndx + getNumberOfVisibleRows(table), cellIndex, true);
+                int width = rect2.y - cellRect.y;
+                table.scrollRectToVisible(new Rectangle(cellRect.x, cellRect.y, cellRect.width, cellRect.height + width));
+            }
+        }
+    }
+    
+    /**
+     * @param table {@link JTable}
+     * @return number of visible rows
+     */
+    private static int getNumberOfVisibleRows(JTable table) {
+        Rectangle vr = table.getVisibleRect();
+        int first = table.rowAtPoint(vr.getLocation());
+        vr.translate(0, vr.height);
+        return table.rowAtPoint(vr.getLocation()) - first;
     }
 
     /**
      *  Move a row down
      */
     private void moveUp() {
-        cancelEditing();
-
+        //get the selected rows before stopping editing
+        // or the selected rows will be unselected
         int[] rowsSelected = table.getSelectedRows();
+        GuiUtils.stopTableEditing(table);
+        
         if (rowsSelected.length > 0 && rowsSelected[0] > 0) {
             table.clearSelection();
             for (int rowSelected : rowsSelected) {
                 tableModel.moveRow(rowSelected, rowSelected + 1, rowSelected - 1);
             }
+            
             for (int rowSelected : rowsSelected) {
                 table.addRowSelectionInterval(rowSelected - 1, rowSelected - 1);
             }
+            
+            scrollToRowIfNotVisible(rowsSelected[0]-1);
         }
     }
 
@@ -405,9 +448,11 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
      * Show Row Detail
      */
     private void showDetail() {
-        cancelEditing();
-
+        //get the selected rows before stopping editing
+        // or the selected will be unselected
         int[] rowsSelected = table.getSelectedRows();
+        GuiUtils.stopTableEditing(table);
+        
         if (rowsSelected.length == 1) {
             table.clearSelection();
             RowDetailDialog detailDialog = new RowDetailDialog(tableModel, rowsSelected[0]);
@@ -419,7 +464,7 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
      * Remove the currently selected argument from the table.
      */
     protected void deleteArgument() {
-        cancelEditing();
+        GuiUtils.cancelEditing(table);
 
         int[] rowsSelected = table.getSelectedRows();
         int anchorSelection = table.getSelectionModel().getAnchorSelectionIndex();
@@ -429,23 +474,16 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
                 tableModel.removeRow(rowsSelected[i]);
             }
 
-            // Disable DELETE if there are no rows in the table to delete.
-            if (tableModel.getRowCount() == 0) {
-                delete.setEnabled(false);
-            }
             // Table still contains one or more rows, so highlight (select)
             // the appropriate one.
-            else if (tableModel.getRowCount() > 0) {
+            if (tableModel.getRowCount() > 0) {
                 if (anchorSelection >= tableModel.getRowCount()) {
                     anchorSelection = tableModel.getRowCount() - 1;
                 }
                 table.setRowSelectionInterval(anchorSelection, anchorSelection);
             }
             
-            if(enableUpDown && tableModel.getRowCount()>1) {
-                up.setEnabled(true);
-                down.setEnabled(true);
-            }
+            checkButtonsStatus();
         }
     }
 
@@ -459,15 +497,12 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
 
         tableModel.addRow(makeNewArgument());
 
-        // Enable DELETE (which may already be enabled, but it won't hurt)
-        delete.setEnabled(true);
-        if(enableUpDown && tableModel.getRowCount()>1) {
-            up.setEnabled(true);
-            down.setEnabled(true);
-        }
-        // Highlight (select) the appropriate row.
+        checkButtonsStatus();
+        
+        // Highlight (select) and scroll to the appropriate row.
         int rowToSelect = tableModel.getRowCount() - 1;
         table.setRowSelectionInterval(rowToSelect, rowToSelect);
+        table.scrollRectToVisible(table.getCellRect(rowToSelect, 0, true));
     }
 
     /**
@@ -485,24 +520,17 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
             for (String clipboardLine : clipboardLines) {
                 String[] clipboardCols = clipboardLine.split("\t");
                 if (clipboardCols.length > 0) {
-                    Argument argument = makeNewArgument();
-                    argument.setName(clipboardCols[0]);
-                    if (clipboardCols.length > 1) {
-                        argument.setValue(clipboardCols[1]);
-                        if (clipboardCols.length > 2) {
-                            argument.setDescription(clipboardCols[2]);
-                        }
-                    }
+                    Argument argument = createArgumentFromClipboard(clipboardCols);
                     tableModel.addRow(argument);
                 }
             }
             if (table.getRowCount() > rowCount) {
-                // Enable DELETE (which may already be enabled, but it won't hurt)
-                delete.setEnabled(true);
+                checkButtonsStatus();
 
-                // Highlight (select) the appropriate rows.
+                // Highlight (select) and scroll to the appropriate rows.
                 int rowToSelect = tableModel.getRowCount() - 1;
                 table.setRowSelectionInterval(rowCount, rowToSelect);
+                table.scrollRectToVisible(table.getCellRect(rowCount, 0, true));
             }
         } catch (IOException ioe) {
             JOptionPane.showMessageDialog(this,
@@ -513,6 +541,18 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
                     "Could not add retrieve " + DataFlavor.stringFlavor.getHumanPresentableName()
                             + " from clipboard" + ufe.getLocalizedMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    protected Argument createArgumentFromClipboard(String[] clipboardCols) {
+        Argument argument = makeNewArgument();
+        argument.setName(clipboardCols[0]);
+        if (clipboardCols.length > 1) {
+            argument.setValue(clipboardCols[1]);
+            if (clipboardCols.length > 2) {
+                argument.setDescription(clipboardCols[2]);
+            }
+        }
+        return argument;
     }
 
     /**
@@ -537,9 +577,9 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
      * Initialize the table model used for the arguments table.
      */
     protected void initializeTableModel() {
-    if (tableModel == null) {
-        if(standalone) {
-            tableModel = new ObjectTableModel(new String[] { COLUMN_RESOURCE_NAMES_0, COLUMN_RESOURCE_NAMES_1, COLUMN_RESOURCE_NAMES_2 },
+        if (tableModel == null) {
+            if(standalone) {
+                tableModel = new ObjectTableModel(new String[] { COLUMN_RESOURCE_NAMES_0, COLUMN_RESOURCE_NAMES_1, COLUMN_RESOURCE_NAMES_2 },
                     Argument.class,
                     new Functor[] {
                     new Functor("getName"), // $NON-NLS-1$
@@ -550,8 +590,8 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
                     new Functor("setValue"), // $NON-NLS-1$
                     new Functor("setDescription") },  // $NON-NLS-1$
                     new Class[] { String.class, String.class, String.class });
-        } else {
-            tableModel = new ObjectTableModel(new String[] { COLUMN_RESOURCE_NAMES_0, COLUMN_RESOURCE_NAMES_1 },
+            } else {
+                tableModel = new ObjectTableModel(new String[] { COLUMN_RESOURCE_NAMES_0, COLUMN_RESOURCE_NAMES_1 },
                     Argument.class,
                     new Functor[] {
                     new Functor("getName"), // $NON-NLS-1$
@@ -573,8 +613,7 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
     /**
      * Resize the table columns to appropriate widths.
      *
-     * @param _table
-     *            the table to resize columns for
+     * @param _table the table to resize columns for
      */
     protected void sizeColumns(JTable _table) {
     }
@@ -592,6 +631,7 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
         if (this.background != null) {
             table.setBackground(this.background);
         }
+        JMeterUtils.applyHiDPI(table);
         return makeScrollPane(table);
     }
 
@@ -615,14 +655,15 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
      * @return a GUI panel containing the buttons
      */
     private JPanel makeButtonPanel() {
-        JButton showDetail = new JButton(JMeterUtils.getResString("detail")); // $NON-NLS-1$
+        showDetail = new JButton(JMeterUtils.getResString("detail")); // $NON-NLS-1$
         showDetail.setActionCommand(DETAIL);
         showDetail.setEnabled(true);
         
         add = new JButton(JMeterUtils.getResString("add")); // $NON-NLS-1$
         add.setActionCommand(ADD);
         add.setEnabled(true);
-        /** A button for adding new arguments to the table from the clipboard. */
+        
+        // A button for adding new arguments to the table from the clipboard
         JButton addFromClipboard = new JButton(JMeterUtils.getResString("add_from_clipboard")); // $NON-NLS-1$
         addFromClipboard.setActionCommand(ADD_FROM_CLIPBOARD);
         addFromClipboard.setEnabled(true);
@@ -637,7 +678,7 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
             down = new JButton(JMeterUtils.getResString("down")); // $NON-NLS-1$
             down.setActionCommand(DOWN);
         }
-        checkDeleteStatus();
+        checkButtonsStatus();
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
@@ -664,7 +705,7 @@ public class ArgumentsPanel extends AbstractConfigGui implements ActionListener 
     /**
      * Initialize the components and layout of this component.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         JPanel p = this;
 
         if (standalone) {

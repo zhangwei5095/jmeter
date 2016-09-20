@@ -122,7 +122,7 @@ public class TestBeanGUI extends AbstractJMeterGuiComponent implements JMeterGUI
     /**
      * The property name to value map that the active customizer edits:
      */
-    private final Map<String, Object> propertyMap = new HashMap<String, Object>();
+    private final Map<String, Object> propertyMap = new HashMap<>();
 
     /**
      * Whether the GUI components have been created.
@@ -130,7 +130,7 @@ public class TestBeanGUI extends AbstractJMeterGuiComponent implements JMeterGUI
     private boolean initialized = false;
 
     static {
-        List<String> paths = new LinkedList<String>();
+        List<String> paths = new LinkedList<>();
         paths.add("org.apache.jmeter.testbeans.gui");// $NON-NLS-1$
         paths.addAll(Arrays.asList(PropertyEditorManager.getEditorSearchPath()));
         String s = JMeterUtils.getPropDefault("propertyEditorSearchPath", null);// $NON-NLS-1$
@@ -187,10 +187,7 @@ public class TestBeanGUI extends AbstractJMeterGuiComponent implements JMeterGUI
     private Customizer createCustomizer() {
         try {
             return (Customizer) customizerClass.newInstance();
-        } catch (InstantiationException e) {
-            log.error("Could not instantiate customizer of class " + customizerClass, e);
-            throw new Error(e.toString());
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             log.error("Could not instantiate customizer of class " + customizerClass, e);
             throw new Error(e.toString());
         }
@@ -226,11 +223,7 @@ public TestElement createTestElement() {
             modifyTestElement(element); // put the default values back into the
             // new element
             return element;
-        } catch (InstantiationException e) {
-            log.error("Can't create test element", e);
-            throw new Error(e.toString()); // Programming error. Don't
-                                            // continue.
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             log.error("Can't create test element", e);
             throw new Error(e.toString()); // Programming error. Don't
                                             // continue.
@@ -256,12 +249,22 @@ public TestElement createTestElement() {
             log.debug("Modify " + name + " to " + value);
             if (value == null) {
                 if (GenericTestBeanCustomizer.notNull(desc)) { // cannot be null
-                    setPropertyInElement(element, name, desc.getValue(GenericTestBeanCustomizer.DEFAULT));
+                    if (GenericTestBeanCustomizer.noSaveDefault(desc)) {
+                        log.debug("Did not set DEFAULT for " + name);
+                        element.removeProperty(name);
+                    } else {
+                        setPropertyInElement(element, name, desc.getValue(GenericTestBeanCustomizer.DEFAULT));
+                    }
                 } else {
                     element.removeProperty(name);
                 }
             } else {
-                setPropertyInElement(element, name, value);
+                if (GenericTestBeanCustomizer.noSaveDefault(desc) && value.equals(desc.getValue(GenericTestBeanCustomizer.DEFAULT))) {
+                    log.debug("Did not set " + name + " to the default: " + value);
+                    element.removeProperty(name);
+                } else {
+                    setPropertyInElement(element, name, value);
+                }
             }
         }
     }
@@ -363,7 +366,7 @@ public TestElement createTestElement() {
     /** {@inheritDoc} */
     @Override
     public Collection<String> getMenuCategories() {
-        List<String> menuCategories = new LinkedList<String>();
+        List<String> menuCategories = new LinkedList<>();
         BeanDescriptor bd = beanInfo.getBeanDescriptor();
 
         // We don't want to show expert beans in the menus unless we're

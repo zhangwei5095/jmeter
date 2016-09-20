@@ -65,7 +65,7 @@ public class HTMLAssertionGui extends AbstractAssertionGui implements KeyListene
 
     private JCheckBox errorsOnly = null;
 
-    private JComboBox docTypeBox = null;
+    private JComboBox<String> docTypeBox = null;
 
     private JRadioButton htmlRadioButton = null;
 
@@ -198,7 +198,7 @@ public class HTMLAssertionGui extends AbstractAssertionGui implements KeyListene
     /**
      * Inits the GUI.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
 
         setLayout(new BorderLayout(0, 10));
         setBorder(makeBorder());
@@ -213,14 +213,14 @@ public class HTMLAssertionGui extends AbstractAssertionGui implements KeyListene
 
         // doctype
         HorizontalPanel docTypePanel = new HorizontalPanel();
-        docTypeBox = new JComboBox(new String[] { "omit", "auto", "strict", "loose" });
+        docTypeBox = new JComboBox<>(new String[] { "omit", "auto", "strict", "loose" });
         // docTypePanel.add(new
         // JLabel(JMeterUtils.getResString("duration_assertion_label"))); //$NON-NLS-1$
         docTypePanel.add(new JLabel("Doctype:"));
         docTypePanel.add(docTypeBox);
         assertionPanel.add(docTypePanel);
 
-        // format (HMTL, XHTML, XML)
+        // format (HTML, XHTML, XML)
         VerticalPanel formatPanel = new VerticalPanel();
         formatPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Format"));
         htmlRadioButton = new JRadioButton("HTML", true); //$NON-NLS-1$
@@ -272,16 +272,7 @@ public class HTMLAssertionGui extends AbstractAssertionGui implements KeyListene
 
         String errorThresholdString = errorThresholdField.getText();
         if (errorThresholdString != null) {
-            boolean isInvalid = false;
-            try {
-                long errorThreshold = Long.parseLong(errorThresholdString);
-                if (errorThreshold < 0) {
-                    isInvalid = true;
-                }
-            } catch (NumberFormatException ex) {
-                isInvalid = true;
-            }
-            if (isInvalid) {
+            if (!isThresholdValid(errorThresholdString)) {
                 log.warn("HTMLAssertionGui: Error threshold Not a valid number!");
                 JOptionPane.showMessageDialog(null, "Threshold for errors is invalid", "Error",
                         JOptionPane.ERROR_MESSAGE);
@@ -290,21 +281,28 @@ public class HTMLAssertionGui extends AbstractAssertionGui implements KeyListene
 
         String warningThresholdString = warningThresholdField.getText();
         if (warningThresholdString != null) {
-            boolean isInvalid = false;
-            try {
-                long warningThreshold = Long.parseLong(warningThresholdString);
-                if (warningThreshold < 0) {
-                    isInvalid = true;
-                }
-            } catch (NumberFormatException ex) {
-                isInvalid = true;
-            }
-            if (isInvalid) {
-                log.warn("HTMLAssertionGui: Error threshold Not a valid number!");
+            if (!isThresholdValid(warningThresholdString)) {
+                log.warn("HTMLAssertionGui: Warning threshold Not a valid number!");
                 JOptionPane.showMessageDialog(null, "Threshold for warnings is invalid", "Error",
                         JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    /**
+     * @param errorThresholdString Threshold as String
+     * @return boolean
+     */
+    private boolean isThresholdValid(String errorThresholdString) {
+        boolean isValid = true;
+        try {
+            if (Long.parseLong(errorThresholdString) < 0) {
+                isValid = false;
+            }
+        } catch (NumberFormatException ex) {
+            isValid = false;
+        }
+        return isValid;
     }
 
     /**
@@ -318,7 +316,7 @@ public class HTMLAssertionGui extends AbstractAssertionGui implements KeyListene
     }
 
     /**
-     * This method is called from erros-only checkbox
+     * This method is called from errors-only checkbox
      *
      * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
      */

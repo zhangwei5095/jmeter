@@ -19,7 +19,6 @@
 package org.apache.jmeter.gui.tree;
 
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -48,9 +47,6 @@ public class JMeterTreeModel extends DefaultTreeModel {
 
     public JMeterTreeModel() {
         this(new TestPlanGui().createTestElement(),new WorkBenchGui().createTestElement());
-//        super(new JMeterTreeNode(new WorkBenchGui().createTestElement(), null));
-//        TestElement tp = new TestPlanGui().createTestElement();
-//        initTree(tp);
     }
 
     /**
@@ -62,9 +58,6 @@ public class JMeterTreeModel extends DefaultTreeModel {
     @Deprecated
     public JMeterTreeModel(Object o) {
         this(new TestPlan(),new WorkBench());
-//      super(new JMeterTreeNode(new WorkBench(), null));
-//      TestElement tp = new TestPlan();
-//      initTree(tp, new WorkBench());
     }
 
     /**
@@ -74,7 +67,7 @@ public class JMeterTreeModel extends DefaultTreeModel {
      * @return a list of tree nodes of the given <code>type</code>, or an empty list
      */
     public List<JMeterTreeNode> getNodesOfType(Class<?> type) {
-        List<JMeterTreeNode> nodeList = new LinkedList<JMeterTreeNode>();
+        List<JMeterTreeNode> nodeList = new LinkedList<>();
         traverseAndFind(type, (JMeterTreeNode) this.getRoot(), nodeList);
         return nodeList;
     }
@@ -107,9 +100,8 @@ public class JMeterTreeModel extends DefaultTreeModel {
      *             <code>subTree</code>
      */
     public HashTree addSubTree(HashTree subTree, JMeterTreeNode current) throws IllegalUserActionException {
-        Iterator<Object> iter = subTree.list().iterator();
-        while (iter.hasNext()) {
-            TestElement item = (TestElement) iter.next();
+        for (Object o : subTree.list()) {
+            TestElement item = (TestElement) o;
             if (item instanceof TestPlan) {
                 TestPlan tp = (TestPlan) item;
                 current = (JMeterTreeNode) ((JMeterTreeNode) getRoot()).getChildAt(0);

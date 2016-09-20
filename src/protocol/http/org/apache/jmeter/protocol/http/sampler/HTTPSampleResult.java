@@ -21,6 +21,11 @@ package org.apache.jmeter.protocol.http.sampler;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.jmeter.protocol.http.util.HTTPConstants;
 import org.apache.jmeter.samplers.SampleResult;
@@ -32,6 +37,12 @@ import org.apache.jmeter.samplers.SampleResult;
 public class HTTPSampleResult extends SampleResult {
 
     private static final long serialVersionUID = 240L;
+
+    /** Set of all HTTP methods, that have no body */
+    private static final Set<String> METHODS_WITHOUT_BODY = new HashSet<>(
+            Arrays.asList(HTTPConstants.GET, HTTPConstants.HEAD,
+                    HTTPConstants.OPTIONS, HTTPConstants.DELETE,
+                    HTTPConstants.TRACE));
 
     private String cookies = ""; // never null
 
@@ -102,10 +113,12 @@ public class HTTPSampleResult extends SampleResult {
          * 305 = Use Proxy
          * 306 = (Unused)
          */
-        final String[] REDIRECT_CODES = { "301", "302", "303" };
+        final String[] REDIRECT_CODES = { HTTPConstants.SC_MOVED_PERMANENTLY,
+                HTTPConstants.SC_MOVED_TEMPORARILY,
+                HTTPConstants.SC_SEE_OTHER };
         String code = getResponseCode();
-        for (int i = 0; i < REDIRECT_CODES.length; i++) {
-            if (REDIRECT_CODES[i].equals(code)) {
+        for (String redirectCode : REDIRECT_CODES) {
+            if (redirectCode.equals(code)) {
                 return true;
             }
         }
@@ -114,7 +127,7 @@ public class HTTPSampleResult extends SampleResult {
         // the user agent MUST NOT automatically redirect the request unless it can be confirmed by the user,
         // since this might change the conditions under which the request was issued.
         // See Bug 54119
-        if ("307".equals(code) && 
+        if (HTTPConstants.SC_TEMPORARY_REDIRECT.equals(code) && 
                 (HTTPConstants.GET.equals(getHTTPMethod()) || HTTPConstants.HEAD.equals(getHTTPMethod()))) {
             return true;
         }
@@ -136,10 +149,7 @@ public class HTTPSampleResult extends SampleResult {
             sb.append(u.toString());
             sb.append("\n");
             // Include request body if it is a post or put or patch
-            if (HTTPConstants.POST.equals(method) || HTTPConstants.PUT.equals(method) 
-                    || HTTPConstants.PATCH.equals(method)
-                    || HttpWebdav.isWebdavMethod(method)
-                    || HTTPConstants.DELETE.equals(method)) {
+            if (!METHODS_WITHOUT_BODY.contains(method)) {
                 sb.append("\n"+method+" data:\n");
                 sb.append(queryString);
                 sb.append("\n");
@@ -253,5 +263,15 @@ public class HTTPSampleResult extends SampleResult {
         setResponseCode(HTTP_NO_CONTENT_CODE);
         setResponseMessage(HTTP_NO_CONTENT_MSG);
     }
-    
+
+    /* (non-Javadoc)
+     * @see org.apache.jmeter.samplers.SampleResult#getSearchableTokens()
+     */
+    @Override
+    public List<String> getSearchableTokens() throws Exception {
+        List<String> list = new ArrayList<>(super.getSearchableTokens());
+        list.add(getQueryString());
+        list.add(getCookies());
+        return list;
+    }
 }

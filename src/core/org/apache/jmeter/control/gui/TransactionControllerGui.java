@@ -21,21 +21,23 @@ package org.apache.jmeter.control.gui;
 import javax.swing.JCheckBox;
 
 import org.apache.jmeter.control.TransactionController;
+import org.apache.jmeter.gui.util.CheckBoxPanel;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.gui.layout.VerticalLayout;
 
 /**
  * A Transaction controller component.
- *
  */
 public class TransactionControllerGui extends AbstractControllerGui {
 
     private static final long serialVersionUID = 240L;
 
-    private JCheckBox parent; // If selected, then generate parent sample, otherwise as per original controller
+    /** If selected, then generate parent sample, otherwise as per original controller */
+    private JCheckBox generateParentSample;
 
-    private JCheckBox includeTimers; // if selected, add duration of timers to total runtime
+    /** if selected, add duration of timers to total runtime */
+    private JCheckBox includeTimers;
 
     /**
      * Create a new TransactionControllerGui instance.
@@ -44,7 +46,6 @@ public class TransactionControllerGui extends AbstractControllerGui {
         init();
     }
 
-    /* Implements JMeterGUIComponent.createTestElement() */
     @Override
     public TestElement createTestElement() {
         TransactionController lc = new TransactionController();
@@ -56,17 +57,16 @@ public class TransactionControllerGui extends AbstractControllerGui {
     @Override
     public void configure(TestElement el) {
         super.configure(el);
-        parent.setSelected(((TransactionController) el).isParent());
+        generateParentSample.setSelected(((TransactionController) el).isGenerateParentSample());
         includeTimers.setSelected(((TransactionController) el).isIncludeTimers());
     }
 
-    /* Implements JMeterGUIComponent.modifyTestElement(TestElement) */
     @Override
     public void modifyTestElement(TestElement el) {
         configureTestElement(el);
-        ((TransactionController) el).setParent(parent.isSelected());
+        ((TransactionController) el).setGenerateParentSample(generateParentSample.isSelected());
         TransactionController tc = ((TransactionController) el);
-        tc.setParent(parent.isSelected());
+        tc.setGenerateParentSample(generateParentSample.isSelected());
         tc.setIncludeTimers(includeTimers.isSelected());
     }
 
@@ -78,13 +78,13 @@ public class TransactionControllerGui extends AbstractControllerGui {
     /**
      * Initialize the GUI components and layout for this component.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new VerticalLayout(5, VerticalLayout.BOTH, VerticalLayout.TOP));
         setBorder(makeBorder());
         add(makeTitlePanel());
-        parent = new JCheckBox(JMeterUtils.getResString("transaction_controller_parent")); // $NON-NLS-1$
-        add(parent);
+        generateParentSample = new JCheckBox(JMeterUtils.getResString("transaction_controller_parent")); // $NON-NLS-1$
+        add(CheckBoxPanel.wrap(generateParentSample));
         includeTimers = new JCheckBox(JMeterUtils.getResString("transaction_controller_include_timers"), true); // $NON-NLS-1$
-        add(includeTimers);
+        add(CheckBoxPanel.wrap(includeTimers));
     }
 }

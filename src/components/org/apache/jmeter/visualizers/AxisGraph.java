@@ -27,6 +27,7 @@ import java.awt.Paint;
 import java.math.BigDecimal;
 
 import javax.swing.JPanel;
+import javax.swing.UIManager;
 
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.logging.LoggingManager;
@@ -79,7 +80,9 @@ public class AxisGraph extends JPanel {
 
     protected Font legendFont;
 
-    protected Font valueFont = new Font("SansSerif", Font.PLAIN, 8);
+    private static final Font FONT_DEFAULT = UIManager.getDefaults().getFont("TextField.font");
+
+    protected Font valueFont = new Font("SansSerif", Font.PLAIN, (int) Math.round(FONT_DEFAULT.getSize() * 0.6));
 
     protected Color[] color = { Color.YELLOW };
 
@@ -315,13 +318,12 @@ public class AxisGraph extends JPanel {
         }
     }
 
-    private double findMax(double _data[][]) {
-        double max = 0;
-        max = _data[0][0];
-        for (int i = 0; i < _data.length; i++) {
-            for (int j = 0; j < _data[i].length; j++) {
-                if (_data[i][j] > max) {
-                    max = _data[i][j];
+    private double findMax(double[][] _data) {
+        double max = _data[0][0];
+        for (double[] dArray : _data) {
+            for (double d : dArray) {
+                if (d > max) {
+                    max = d;
                 }
             }
         }
@@ -426,9 +428,7 @@ public class AxisGraph extends JPanel {
                     legendProperties, _width, _height );
             axisChart.setGraphics2D((Graphics2D) g);
             axisChart.render();
-        } catch (ChartDataException e) {
-            log.warn("",e);
-        } catch (PropertyException e) {
+        } catch (ChartDataException | PropertyException e) {
             log.warn("",e);
         }
     }

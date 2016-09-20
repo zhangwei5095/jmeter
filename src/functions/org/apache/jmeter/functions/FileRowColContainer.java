@@ -58,7 +58,7 @@ public class FileRowColContainer {
         fileName = file;
         delimiter = delim;
         nextRow = 0;
-        fileData = new ArrayList<List<String>>();
+        fileData = new ArrayList<>();
         load();
     }
 
@@ -67,7 +67,7 @@ public class FileRowColContainer {
         fileName = file;
         delimiter = DELIMITER;
         nextRow = 0;
-        fileData = new ArrayList<List<String>>();
+        fileData = new ArrayList<>();
         load();
     }
 
@@ -86,10 +86,6 @@ public class FileRowColContainer {
                 fileData.add(splitLine(line, delimiter));
                 line = myBread.readLine();
             }
-        } catch (FileNotFoundException e) {
-            fileData.clear();
-            log.warn(e.toString());
-            throw e;
         } catch (IOException e) {
             fileData.clear();
             log.warn(e.toString());
@@ -140,11 +136,11 @@ public class FileRowColContainer {
     /**
      * Splits the line according to the specified delimiter
      *
-     * @return an ArrayList of Strings containing one element for each value in
+     * @return a List of Strings containing one element for each value in
      *         the line
      */
     private static List<String> splitLine(String theLine, String delim) {
-        ArrayList<String> result = new ArrayList<String>();
+        List<String> result = new ArrayList<>();
         StringTokenizer tokener = new StringTokenizer(theLine, delim, true);
         /*
          * the beginning of the line is a "delimiter" so that ,a,b,c returns ""

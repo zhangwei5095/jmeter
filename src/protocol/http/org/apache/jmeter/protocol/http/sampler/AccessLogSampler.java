@@ -18,7 +18,9 @@
 
 package org.apache.jmeter.protocol.http.sampler;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jmeter.protocol.http.control.CookieManager;
+import org.apache.jmeter.protocol.http.util.HTTPConstants;
 import org.apache.jmeter.protocol.http.util.accesslog.Filter;
 import org.apache.jmeter.protocol.http.util.accesslog.LogParser;
 import org.apache.jmeter.samplers.Entry;
@@ -207,11 +209,8 @@ public class AccessLogSampler extends HTTPSampler implements TestBean,ThreadList
                         log.error("No log file specified");
                     }
                 }
-            } catch (InstantiationException e) {
-                log.error("", e);
-            } catch (IllegalAccessException e) {
-                log.error("", e);
-            } catch (ClassNotFoundException e) {
+            } catch (InstantiationException | ClassNotFoundException
+                    | IllegalAccessException e) {
                 log.error("", e);
             }
         }
@@ -277,6 +276,29 @@ public class AccessLogSampler extends HTTPSampler implements TestBean,ThreadList
      */
     public void setPortString(String port) {
         super.setProperty(HTTPSamplerBase.PORT, port);
+    }
+    
+    /**
+     * Sets the scheme, with default
+     * @param value the protocol
+     */
+    @Override
+    public void setProtocol(String value) {
+        setProperty(PROTOCOL, value.toLowerCase(java.util.Locale.ENGLISH));
+    }
+    
+    /**
+     * Gets the protocol, with default.
+     *
+     * @return the protocol
+     */
+    @Override
+    public String getProtocol() {
+        String protocol = getPropertyAsString(PROTOCOL);
+        if (StringUtils.isEmpty(protocol)) {
+            return HTTPConstants.PROTOCOL_HTTP;
+        }
+        return protocol;
     }
 
     /**

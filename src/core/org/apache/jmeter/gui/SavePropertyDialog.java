@@ -55,16 +55,17 @@ public class SavePropertyDialog extends JDialog implements ActionListener {
 
     private static final long serialVersionUID = 232L;
 
-    private static final Map<String, Functor> functors = new HashMap<String, Functor>();
+    private static final Map<String, Functor> functors = new HashMap<>();
 
-    private static final String NAME_SAVE_PFX   = "save";  // $NON-NLS-1$ i.e. boolean saveXXX()
-    private static final String NAME_SET_PREFIX = "set";   // $NON-NLS-1$ i.e. void setXXX(boolean)
     private static final String RESOURCE_PREFIX = "save_"; // $NON-NLS-1$ e.g. save_XXX property
-    private static final int    NAME_SAVE_PFX_LEN = NAME_SAVE_PFX.length();
 
     private SampleSaveConfiguration saveConfig;
 
-    public SavePropertyDialog(){
+    /**
+     * @deprecated Constructor only intended for use in testing
+     */
+    @Deprecated // Constructor only intended for use in testing
+    public SavePropertyDialog() {
         log.warn("Constructor only intended for use in testing"); // $NON-NLS-1$
     }
     /**
@@ -75,7 +76,6 @@ public class SavePropertyDialog extends JDialog implements ActionListener {
      * @throws java.awt.HeadlessException - when run headless
      */
     public SavePropertyDialog(Frame owner, String title, boolean modal, SampleSaveConfiguration s)
-    // throws HeadlessException
     {
         super(owner, title, modal);
         saveConfig = s;
@@ -83,42 +83,25 @@ public class SavePropertyDialog extends JDialog implements ActionListener {
         initDialog();
     }
 
-    private int countMethods(Method[] m) {
-        int count = 0;
-        for (int i = 0; i < m.length; i++) {
-            if (m[i].getName().startsWith(NAME_SAVE_PFX)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
     private void initDialog() {
         this.getContentPane().setLayout(new BorderLayout());
-        Method[] methods = SampleSaveConfiguration.class.getMethods();
-        int x = (countMethods(methods) / 3) + 1;
-        log.debug("grid panel is " + 3 + " by " + x);
-        JPanel checkPanel = new JPanel(new GridLayout(x, 3));
-        for (int i = 0; i < methods.length; i++) {
-            String name = methods[i].getName();
-            if (name.startsWith(NAME_SAVE_PFX) && methods[i].getParameterTypes().length == 0) {
-                try {
-                    name = name.substring(NAME_SAVE_PFX_LEN);
-                    JCheckBox check = new JCheckBox(
-                            JMeterUtils.getResString(RESOURCE_PREFIX + name)
-                            ,((Boolean) methods[i].invoke(saveConfig, new Object[0])).booleanValue());
-                    checkPanel.add(check, BorderLayout.NORTH);
-                    check.addActionListener(this);
-                    String actionCommand = NAME_SET_PREFIX + name; // $NON-NLS-1$
-                    check.setActionCommand(actionCommand);
-                    if (!functors.containsKey(actionCommand)) {
-                        functors.put(actionCommand, new Functor(actionCommand));
-                    }
-                } catch (IllegalAccessException e) {
-                    log.warn("Problem creating save config dialog", e);
-                } catch (InvocationTargetException e) {
-                    log.warn("Problem creating save config dialog", e);
+        final int configCount = (SampleSaveConfiguration.SAVE_CONFIG_NAMES.size() / 3) + 1;
+        log.debug("grid panel is " + 3 + " by " + configCount);
+        JPanel checkPanel = new JPanel(new GridLayout(configCount, 3));
+        for (final String name : SampleSaveConfiguration.SAVE_CONFIG_NAMES) {
+            try {
+                JCheckBox check = new JCheckBox(
+                        JMeterUtils.getResString(RESOURCE_PREFIX + name),
+                        getSaveState(SampleSaveConfiguration.getterName(name)));
+                check.addActionListener(this);
+                final String actionCommand = SampleSaveConfiguration.setterName(name); // $NON-NLS-1$
+                check.setActionCommand(actionCommand);
+                if (!functors.containsKey(actionCommand)) {
+                    functors.put(actionCommand, new Functor(actionCommand));
                 }
+                checkPanel.add(check, BorderLayout.NORTH);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                log.warn("Problem creating save config dialog", e);
             }
         }
         getContentPane().add(checkPanel, BorderLayout.NORTH);
@@ -136,8 +119,12 @@ public class SavePropertyDialog extends JDialog implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         String action = e.getActionCommand();
         Functor f = functors.get(action);
-        f.invoke(saveConfig, new Object[] {
-                Boolean.valueOf(((JCheckBox) e.getSource()).isSelected()) });
+        f.invoke(saveConfig, new Object[] {Boolean.valueOf(((JCheckBox) e.getSource()).isSelected()) });
+    }
+
+    private boolean getSaveState(String methodName) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        Method method = SampleSaveConfiguration.class.getMethod(methodName);
+        return ((Boolean) method.invoke(saveConfig)).booleanValue();
     }
 
     /**

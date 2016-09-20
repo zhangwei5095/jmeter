@@ -57,8 +57,8 @@ public class Data implements Serializable {
      * Constructor - takes no arguments.
      */
     public Data() {
-        header = new ArrayList<String>();
-        data = new HashMap<String, List<Object>>();
+        header = new ArrayList<>();
+        data = new HashMap<>();
         currentPos = -1;
         size = currentPos + 1;
     }
@@ -92,8 +92,8 @@ public class Data implements Serializable {
         if (headers.length != dHeaders.length) {
             valid = false;
         } else {
-            for (int count = 0; count < dHeaders.length; count++) {
-                if (!header.contains(dHeaders[count])) {
+            for (String dHeader : dHeaders) {
+                if (!header.contains(dHeader)) {
                     valid = false;
                     break;
                 }
@@ -104,8 +104,8 @@ public class Data implements Serializable {
             currentPos = size;
             d.reset();
             while (d.next()) {
-                for (int count = 0; count < headers.length; count++) {
-                    addColumnValue(headers[count], d.getColumnValue(headers[count]));
+                for (String aHeader : headers) {
+                    addColumnValue(aHeader, d.getColumnValue(aHeader));
                 }
             }
         }
@@ -151,10 +151,10 @@ public class Data implements Serializable {
 
     public void addRow() {
         String[] headers = getHeaders();
-        List<Object> tempList = new ArrayList<Object>();
+        List<Object> tempList = new ArrayList<>();
         for (int i = 0; i < headers.length; i++) {
             if ((tempList = data.get(header.get(i))) == null) {
-                tempList = new ArrayList<Object>();
+                tempList = new ArrayList<>();
                 data.put(headers[i], tempList);
             }
             tempList.add("");
@@ -192,9 +192,8 @@ public class Data implements Serializable {
     private void swapRows(int row1, int row2) {
         List<Object> temp;
         Object o;
-        Iterator<String> it = data.keySet().iterator();
-        while (it.hasNext()) {
-            temp = data.get(it.next());
+        for (String s : data.keySet()) {
+            temp = data.get(s);
             o = temp.get(row1);
             temp.set(row1, temp.get(row2));
             temp.set(row2, o);
@@ -214,17 +213,17 @@ public class Data implements Serializable {
      */
     private void sortData(String column, int start, int end) {
         int x = start, y = end - 1;
-        String basis = ((List<?>) data.get(column)).get((x + y) / 2).toString();
+        String basis = data.get(column).get((x + y) / 2).toString();
         if (x == y) {
             return;
         }
 
         while (x <= y) {
-            while (x < end && ((List<?>) data.get(column)).get(x).toString().compareTo(basis) < 0) {
+            while (x < end && data.get(column).get(x).toString().compareTo(basis) < 0) {
                 x++;
             }
 
-            while (y >= (start - 1) && ((List<?>) data.get(column)).get(y).toString().compareTo(basis) > 0) {
+            while (y >= (start - 1) && data.get(column).get(y).toString().compareTo(basis) > 0) {
                 y--;
             }
 
@@ -271,7 +270,7 @@ public class Data implements Serializable {
     public void addColumnValue(String column, Object value) {
         List<Object> tempList;
         if ((tempList = data.get(column)) == null) {
-            tempList = new ArrayList<Object>();
+            tempList = new ArrayList<>();
             data.put(column, tempList);
         }
         int s = tempList.size();
@@ -320,7 +319,7 @@ public class Data implements Serializable {
     public void setColumnValue(String column, Object value) {
         List<Object> tempList;
         if ((tempList = data.get(column)) == null) {
-            tempList = new ArrayList<Object>();
+            tempList = new ArrayList<>();
             data.put(column, tempList);
         }
 
@@ -417,7 +416,7 @@ public class Data implements Serializable {
     public Object getColumnValue(String column) {
         try {
             if (currentPos < size) {
-                return ((List<?>) data.get(column)).get(currentPos);
+                return data.get(column).get(currentPos);
             } else {
                 return null;
             }
@@ -435,15 +434,7 @@ public class Data implements Serializable {
      */
     public Object getColumnValue(int column) {
         String columnName = header.get(column);
-        try {
-            if (currentPos < size) {
-                return ((List<?>) data.get(columnName)).get(currentPos);
-            } else {
-                return null;
-            }
-        } catch (Exception e) {
-            return null;
-        }
+        return getColumnValue(columnName);
     }
 
     public Object getColumnValue(int column, int row) {
@@ -468,10 +459,10 @@ public class Data implements Serializable {
      */
     public void setHeaders(String[] h) {
         int x = 0;
-        header = new ArrayList<String>(h.length);
+        header = new ArrayList<>(h.length);
         for (x = 0; x < h.length; x++) {
             header.add(h[x]);
-            data.put(h[x], new ArrayList<Object>());
+            data.put(h[x], new ArrayList<>());
         }
     }
 
@@ -597,7 +588,7 @@ public class Data implements Serializable {
      */
     public void addHeader(String s) {
         header.add(s);
-        data.put(s, new ArrayList<Object>(Math.max(size(), 100)));
+        data.put(s, new ArrayList<>(Math.max(size(), 100)));
     }
 
     /**
@@ -685,13 +676,13 @@ public class Data implements Serializable {
         String[] contents = getDataAsText();
         StringBuilder sb = new StringBuilder();
         boolean first = true;
-        for (int x = 0; x < contents.length; x++) {
+        for (String content : contents) {
             if (!first) {
                 sb.append("\n");
             } else {
                 first = false;
             }
-            sb.append(contents[x]);
+            sb.append(content);
         }
         return sb.toString();
     }

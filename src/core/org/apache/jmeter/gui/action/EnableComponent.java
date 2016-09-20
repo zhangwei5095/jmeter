@@ -33,7 +33,7 @@ import org.apache.log.Logger;
 public class EnableComponent implements Command {
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private static final Set<String> commands = new HashSet<String>();
+    private static final Set<String> commands = new HashSet<>();
 
     static {
         commands.add(ActionNames.ENABLE);
@@ -70,10 +70,10 @@ public class EnableComponent implements Command {
 
     private void toggleComponents(JMeterTreeNode[] nodes) {
         GuiPackage pack = GuiPackage.getInstance();
-        for (int i = 0; i < nodes.length; i++) {
-            boolean enable = !nodes[i].isEnabled();
-            nodes[i].setEnabled(enable);
-            pack.getGui(nodes[i].getTestElement()).setEnabled(enable);
+        for (JMeterTreeNode node : nodes) {
+            boolean enable = !node.isEnabled();
+            node.setEnabled(enable);
+            pack.getGui(node.getTestElement()).setEnabled(enable);
         }
     }
 

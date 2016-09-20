@@ -67,10 +67,8 @@ public class JSoupExtractor implements Extractor {
             document = Jsoup.parse(inputString);
         }
         Elements elements = document.select(expression);
-        int size = elements.size();
-        for (int i = 0; i < size; i++) {
-            Element element = elements.get(i);
-            if (matchNumber <=0 || found != matchNumber) {
+        for (Element element : elements) {
+            if (matchNumber <= 0 || found != matchNumber) {
                 result.add(extractValue(attribute, element));
                 found++;
             } else {

@@ -52,7 +52,7 @@ public class JLabeledRadioI18N extends JPanel implements JLabeledField, ActionLi
 
     private final ButtonGroup bGroup = new ButtonGroup();
 
-    private final ArrayList<ChangeListener> mChangeListeners = new ArrayList<ChangeListener>(3);
+    private final ArrayList<ChangeListener> mChangeListeners = new ArrayList<>(3);
 
     /**
      *
@@ -101,15 +101,15 @@ public class JLabeledRadioI18N extends JPanel implements JLabeledField, ActionLi
      *
      */
     private void initButtonGroup(String[] resouces, String selected) {
-        for (int idx = 0; idx < resouces.length; idx++) {
-            JRadioButton btn = new JRadioButton(JMeterUtils.getResString(resouces[idx]));
-            btn.setActionCommand(resouces[idx]);
+        for (String resource : resouces) {
+            JRadioButton btn = new JRadioButton(JMeterUtils.getResString(resource));
+            btn.setActionCommand(resource);
             btn.addActionListener(this);
             // add the button to the button group
             this.bGroup.add(btn);
             // add the button
             this.add(btn);
-            if (selected != null && selected.equals(resouces[idx])) {
+            if (selected != null && selected.equals(resource)) {
                 btn.setSelected(true);
             }
         }
@@ -129,7 +129,7 @@ public class JLabeledRadioI18N extends JPanel implements JLabeledField, ActionLi
      */
     public void resetButtons(String[] resouces, String selected) {
         Enumeration<AbstractButton> buttons = bGroup.getElements();
-        List<AbstractButton> buttonsToRemove = new ArrayList<AbstractButton>(this.bGroup.getButtonCount());
+        List<AbstractButton> buttonsToRemove = new ArrayList<>(this.bGroup.getButtonCount());
         while (buttons.hasMoreElements()) {
             AbstractButton abstractButton = buttons
                     .nextElement();
@@ -195,8 +195,8 @@ public class JLabeledRadioI18N extends JPanel implements JLabeledField, ActionLi
      */
     private void notifyChangeListeners() {
         ChangeEvent ce = new ChangeEvent(this);
-        for (int index = 0; index < mChangeListeners.size(); index++) {
-            mChangeListeners.get(index).stateChanged(ce);
+        for (ChangeListener mChangeListener : mChangeListeners) {
+            mChangeListener.stateChanged(ce);
         }
     }
 
@@ -206,7 +206,7 @@ public class JLabeledRadioI18N extends JPanel implements JLabeledField, ActionLi
      */
     @Override
     public List<JComponent> getComponentList() {
-        List<JComponent> comps = new LinkedList<JComponent>();
+        List<JComponent> comps = new LinkedList<>();
         comps.add(mLabel);
         Enumeration<AbstractButton> en = this.bGroup.getElements();
         while (en.hasMoreElements()) {

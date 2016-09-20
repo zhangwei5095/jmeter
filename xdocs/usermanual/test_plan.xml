@@ -18,6 +18,7 @@
 
 <!DOCTYPE document[
 <!ENTITY sect-num '4'>
+<!ENTITY hellip   "&#x02026;" >
 ]>
 
 <document prev="build-test-plan.html" next="build-web-test-plan.html" id="$Id$">
@@ -29,8 +30,15 @@
 <body>
 
 <section name="&sect-num;. Elements of a Test Plan">
+<p>
+This section describes the different parts of a test plan.
+</p>
+<p>
+A minimal test will consist of the Test Plan, a Thread Group and one or more Samplers.
+</p>
 
-<p>The Test Plan object has a checkbox called "Functional Testing".  If selected, it
+<subsection name="&sect-num;.0 Test Plan" anchor="test_plan">
+<p>The Test Plan object has a checkbox called "<code>Functional Testing</code>".  If selected, it
 will cause JMeter to record the data returned from the server for each sample.  If you have 
 selected a file in your test listeners, this data will be written to file.  This can be useful if
 you are doing a small run to ensure that JMeter is configured correctly, and that your server
@@ -38,7 +46,8 @@ is returning the expected results.  The consequence is that the file will grow h
 JMeter's performance will suffer.  This option should be off if you are doing stress-testing (it
 is off by default).  </p>
 <p>If you are not recording the data to file, this option makes no difference.</p>
-<p>You can also use the Configuration button on a listener to decide what fields to save.</p>
+<p>You can also use the <code>Configuration</code> button on a listener to decide what fields to save.</p>
+</subsection>
 
 <subsection name="&sect-num;.1 Thread Group" anchor="thread_group">
 <p>Thread group elements are the beginning points of any test plan.
@@ -73,14 +82,20 @@ Start with Ramp-up = number of threads and adjust up or down as needed.
 
 <p>By default, the thread group is configured to loop once through its elements.</p>
 
-<p>Version 1.9 introduces a test run <b>scheduler</b>. 
-    Click the checkbox at the bottom of the Thread Group panel to reveal extra fields
-     in which you can enter the start and end times of the run. 
+<p>Thread Group also provides a <b>scheduler</b>. 
+    Click the checkbox at the bottom of the Thread Group panel to enable/disable extra fields
+     in which you can enter the duration of test, the startup delay, the start and end times of the run. 
+     You can configure <code>Duration (seconds)</code> and <code>Startup Delay (seconds)</code> to control
+     the duration of each thread group and the after how much seconds it starts.
+     When the test is started, JMeter will wait <code>Startup Delay (seconds)</code> before starting the Threads 
+     of the Thread Group and run for the configured <code>Duration (seconds)</code> time.
+     Note those 2 options override the <code>Start time</code> and <code>End time</code>.
+     
+     <p>Alternatively (although not recommended as not very flexible) you can use the two other fields <code>Start time</code> and <code>End time</code>.
      When the test is started, JMeter will wait if necessary until the start-time has been reached.
      At the end of each cycle, JMeter checks if the end-time has been reached, and if so, the run is stopped,
      otherwise the test is allowed to continue until the iteration limit is reached.</p>
-     <p>Alternatively, one can use the relative delay and duration fields. 
-     Note that delay overrides start-time, and duration over-rides end-time.</p>
+     </p>
 </subsection>
 
 <subsection name="&sect-num;.2 Controllers" anchor="controllers">
@@ -115,12 +130,15 @@ Controllers can be used to modify the number of repetitions of a sampler.
 JMeter samplers include:
 <ul>
     <li>FTP Request</li>
-    <li>HTTP Request</li>
+    <li>HTTP Request (can be used for SOAP or REST Webservice also)</li>
     <li>JDBC Request</li>
     <li>Java object request</li>
+    <li>JMS request</li>
+    <li>JUnit Test request</li>
     <li>LDAP Request</li>
-    <li>SOAP/XML-RPC Request</li>
-    <li>WebService (SOAP) Request</li>
+    <li>Mail request</li>
+    <li>OS Process request</li>
+    <li>TCP request</li>
 </ul>
 Each sampler has several properties you can set.
 You can further customize a sampler by adding one or more Configuration Elements to the Test Plan.
@@ -192,7 +210,7 @@ two different searches.  However, we want to re-load the search page itself betw
 each search.  We could do this by having 4 simple HTTP request elements (load search,
 search "A", load search, search "B").  Instead, we use the <complink name="Interleave
 Controller"/> which passes on one child request each time through the test.  It keeps the
-ordering (ie - it doesn't pass one on at random, but "remembers" its place) of its
+ordering (i.e. it doesn't pass one on at random, but "remembers" its place) of its
 child elements.  Interleaving 2 child requests may be overkill, but there could easily have
 been 8, or 20 child requests.</p>
 
@@ -232,7 +250,7 @@ exists on the Test Plan tree at the same level as the Thread Group element.  It 
 from a Thread Group in that it is not executed unless it is 
 referenced by either a <complink name="Module Controller"/> or an <complink name="Include_Controller"/>.
 </p>
-<p>This element is purely for code re-use within Test Plans and was introduced in Version 2.5</p>
+<p>This element is purely for code re-use within Test Plans</p>
 </subsection>
 
 <subsection name="&sect-num;.3 Listeners" anchor="listeners">
@@ -247,7 +265,7 @@ Other listeners provide summary or aggregation information.
 Additionally, listeners can direct the data to a file for later use.  
 Every listener in JMeter provides a field to indicate the file to store data to.
 There is also a Configuration button which can be used to choose which fields to save, and whether to use CSV or XML format.
-<b>Note that all Listeners save the same data; the only difference is in the way the data is presented on the screen.</b>
+<note>Note that all Listeners save the same data; the only difference is in the way the data is presented on the screen.</note>
 </p>
 
 <p>
@@ -261,12 +279,12 @@ that come with JMeter.</p>
 
 <subsection name="&sect-num;.4 Timers" anchor="timers">
 
-<p>By default, a JMeter thread sends requests without pausing between each request.
+<p>By default, a JMeter thread executes samplers in sequence without pausing.
 We recommend that you specify a delay by adding one of the available timers to
 your Thread Group. If you do not add a delay, JMeter could overwhelm your server by
 making too many requests in a very short amount of time.</p>
 
-<p>The timer will cause JMeter to delay a certain amount of time <b>before</b> each
+<p>A timer will cause JMeter to delay a certain amount of time <b>before</b> each
 sampler which is in its <a href="#scoping_rules">scope</a>.</p>
 
 <p>
@@ -291,16 +309,16 @@ you can indicate that the response is to contain the text, or that it should mat
 the whole response.</p>
 
 <p>You can add an assertion to any Sampler. For example, you can
-add an assertion to a HTTP Request that checks for the text, "&amp;lt;/HTML&amp;gt;".  JMeter
+add an assertion to a HTTP Request that checks for the text, "<code>&lt;/HTML&gt;</code>".  JMeter
 will then check that the text is present in the HTTP response.  If JMeter cannot find the
 text, then it will mark this as a failed request.</p>
 
-<p>
-Note that assertions apply to all samplers which are in its <a href="#scoping_rules">scope</a>.
-To restrict the assertion to a single sampler, add the assertion as a child of the sampler.
-</p>
+<note>
+Note that assertions apply to all samplers which are in their <a href="#scoping_rules">scope</a>.
+To restrict an assertion to a single sampler, add the assertion as a child of the sampler.
+</note>
 
-<p>To view the assertion results, add an Assertion Listener to the Thread Group.
+<p>To view assertion results, add an Assertion Listener to the Thread Group.
 Failed Assertions will also show up in the Tree View and Table Listeners, 
 and will count towards the error %age for example in the Aggregate and Summary reports.
 </p>
@@ -349,9 +367,9 @@ See the <a href="test_plan.html#scoping_rules"><b>scoping rules</b></a> for more
 <li>Pre-Processors</li>
 <li>Timers</li>
 <li>Sampler</li>
-<li>Post-Processors (unless SampleResult is null)</li>
-<li>Assertions (unless SampleResult is null)</li>
-<li>Listeners (unless SampleResult is null)</li>
+<li>Post-Processors (unless SampleResult is <code>null</code>)</li>
+<li>Assertions (unless SampleResult is <code>null</code>)</li>
+<li>Listeners (unless SampleResult is <code>null</code>)</li>
 </ol>
 
 <note>
@@ -398,7 +416,7 @@ Assertion 1
 
 <subsection name="&sect-num;.10 Scoping Rules" anchor="scoping_rules">
 <p>
-The JMeter test tree contains elements that are both hierarchical and ordered.  Some elements in the test trees are strictly hierarchical (Listeners, Config Elements, Post-Procesors, Pre-Processors, Assertions, Timers), and some are primarily ordered (controllers, samplers).  When you create your test plan, you will create an ordered list of sample request (via Samplers) that represent a set of steps to be executed.  These requests are often organized within controllers that are also ordered.  Given the following test tree:</p>
+The JMeter test tree contains elements that are both hierarchical and ordered.  Some elements in the test trees are strictly hierarchical (Listeners, Config Elements, Post-Processors, Pre-Processors, Assertions, Timers), and some are primarily ordered (controllers, samplers).  When you create your test plan, you will create an ordered list of sample request (via Samplers) that represent a set of steps to be executed.  These requests are often organized within controllers that are also ordered.  Given the following test tree:</p>
 <figure image="scoping1.png">Example test tree</figure>
 <p>The order of requests will be, One, Two, Three, Four.</p>
 <p>Some controllers affect the order of their subelements, and you can read about these specific controllers in <a href="component_reference.html">the component reference</a>.</p>
@@ -411,31 +429,31 @@ that Controller.  In the following test tree:</p>
 <p>Another example, this time using Timers:</p>
 <figure image="scoping3.png">complex example</figure>
 <p>In this example, the requests are named to reflect the order in which they will be executed.  Timer #1 will apply to Requests Two, Three, and Four (notice how order is irrelevant for hierarchical elements).  Assertion #1 will apply only to Request Three.  Timer #2 will affect all the requests.</p>
-<p>Hopefully these examples make it clear how configuration (hierarchical) elements are applied.  If you imagine each Request being passed up the tree branches, to its parent, then to its parent's parent, etc, and each time collecting all the configuration elements of that parent, then you will see how it works.  </p>
-<b>
+<p>Hopefully these examples make it clear how configuration (hierarchical) elements are applied.  If you imagine each Request being passed up the tree branches, to its parent, then to its parent's parent, etc., and each time collecting all the configuration elements of that parent, then you will see how it works.  </p>
+<note>
 The Configuration elements Header Manager, Cookie Manager and Authorization manager are
 treated differently from the Configuration Default elements.
 The settings from the Configuration Default elements are merged into a set of values that the Sampler has access to.
 However, the settings from the Managers are not merged.
 If more than one Manager is in the scope of a Sampler, 
-only one Manager is used, but there is currently no way to specify <b>which</b> is used.
-</b>
+only one Manager is used, but there is currently no way to specify <em>which</em> is used.
+</note>
 </subsection>
 
 
 <subsection name="&sect-num;.11 Properties and Variables" anchor="properties">
 
 <p>
-JMeter <b>properties</b> are defined in jmeter.properties (see <a href="get-started.html#configuring_jmeter">Gettting Started - Configuring JMeter</a> for more details).
+JMeter <em>properties</em> are defined in <code>jmeter.properties</code> (see <a href="get-started.html#configuring_jmeter">Getting Started - Configuring JMeter</a> for more details).
 <br></br>
 Properties are global to jmeter, and are mostly used to define some of the defaults JMeter uses.
-For example the property remote_hosts defines the servers that JMeter will try to run remotely.
+For example the property <code>remote_hosts</code> defines the servers that JMeter will try to run remotely.
 Properties can be referenced in test plans 
 - see <a href="functions.html#__property">Functions - read a property</a> -
 but cannot be used for thread-specific values.
 </p>
 <p>
-JMeter <b>variables</b> are local to each thread. The values may be the same for each thread, or they may be different.
+JMeter <em>variables</em> are local to each thread. The values may be the same for each thread, or they may be different.
 <br></br>
 If a variable is updated by a thread, only the thread copy of the variable is changed.
 For example the <complink name="Regular Expression Extractor"/> Post-Processor 
@@ -470,7 +488,7 @@ For example, the name of a host, or the number of threads in a thread group.
 When deciding how to structure a Test Plan, 
 make a note of which items are constant for the run, but which may change between runs.
 Decide on some variable names for these - 
-perhaps use a naming convention such as prefixing them with C_ or K_ or using uppercase only
+perhaps use a naming convention such as prefixing them with <code>C_</code> or <code>K_</code> or using uppercase only
 to distinguish them from variables that need to change during the test.
 Also consider which items need to be local to a thread - 
 for example counters or values extracted with the Regular Expression Post-Processor.
@@ -483,8 +501,8 @@ HOST             www.example.com
 THREADS          10
 LOOPS            20
 </pre>
-You can refer to these in the test plan as ${HOST} ${THREADS} etc.
-If you later want to change the host, just change the value of the HOST variable.
+You can refer to these in the test plan as <code>${HOST}</code> <code>${THREADS}</code> etc.
+If you later want to change the host, just change the value of the <code>HOST</code> variable.
 This works fine for small numbers of tests, but becomes tedious when testing lots of different combinations.
 One solution is to use a property to define the value of the variables, for example:
 <pre>
@@ -494,7 +512,7 @@ LOOPS            ${__P(loops,20)}
 </pre>
 You can then change some or all of the values on the command-line as follows:
 <pre>
-jmeter ... -Jhost=www3.example.org -Jloops=13
+jmeter &hellip; -Jhost=www3.example.org -Jloops=13
 </pre>
 </p>
 </subsection>

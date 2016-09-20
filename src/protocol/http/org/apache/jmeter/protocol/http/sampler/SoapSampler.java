@@ -46,7 +46,9 @@ import org.apache.log.Logger;
 
 /**
  * Commons HTTPClient based soap sampler
+ * @deprecated since 3.0, will be removed in next version
  */
+@Deprecated
 public class SoapSampler extends HTTPSampler2 implements Interruptible { // Implemented by parent class
     private static final Logger log = LoggingManager.getLoggerForClass();
 
@@ -158,8 +160,8 @@ public class SoapSampler extends HTTPSampler2 implements Interruptible { // Impl
     /**
      * Send POST data from <code>Entry</code> to the open connection.
      *
-     * @param post
-     * @throws IOException if an I/O exception occurs
+     * @param post POST request to send
+     * @param length the length of the content
      */
     private String sendPostData(PostMethod post, final int length) {
         // Buffer to hold the post body, except file content
@@ -354,12 +356,8 @@ public class SoapSampler extends HTTPSampler2 implements Interruptible { // Impl
             log.debug("End : sample");
             httpMethod.releaseConnection();
             return res;
-        } catch (IllegalArgumentException e)// e.g. some kinds of invalid URL
+        } catch (IllegalArgumentException | IOException e)// e.g. some kinds of invalid URL
         {
-            res.sampleEnd();
-            errorResult(e, res);
-            return res;
-        } catch (IOException e) {
             res.sampleEnd();
             errorResult(e, res);
             return res;

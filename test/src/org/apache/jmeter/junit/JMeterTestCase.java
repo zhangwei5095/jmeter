@@ -18,15 +18,14 @@
 
 package org.apache.jmeter.junit;
 
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Locale;
 import java.util.MissingResourceException;
-
-import junit.framework.TestCase;
-
 import org.apache.jmeter.engine.util.CompoundVariable;
 import org.apache.jmeter.functions.AbstractFunction;
 import org.apache.jmeter.functions.InvalidVariableException;
@@ -35,19 +34,12 @@ import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
 
 /*
- * Extend JUnit TestCase to provide common setup
+ * Common setup for JUnit4 test cases
  */
-public abstract class JMeterTestCase extends TestCase {
+public abstract class JMeterTestCase {
     // Used by findTestFile
     private static final String filePrefix;
 
-    public JMeterTestCase() {
-        super();
-    }
-
-    public JMeterTestCase(String name) {
-        super(name);
-    }
 
     /*
      * If not running under AllTests.java, make sure that the properties (and
@@ -60,7 +52,7 @@ public abstract class JMeterTestCase extends TestCase {
      */
     static {
         if (JMeterUtils.getJMeterProperties() == null) {
-            String file = "testfiles/jmetertest.properties";
+            String file = "jmeter.properties";
             File f = new File(file);
             if (!f.canRead()) {
                 System.out.println("Can't find " + file + " - trying bin directory");
@@ -96,16 +88,11 @@ public abstract class JMeterTestCase extends TestCase {
             logprop("user.variant");
             System.out.println("Locale="+Locale.getDefault().toString());
             logprop("java.class.version");
+            logprop("java.awt.headless");
             logprop("os.name");
             logprop("os.version");
             logprop("os.arch");
             logprop("java.class.path");
-            // String cp = System.getProperty("java.class.path");
-            // String cpe[]= JOrphanUtils.split(cp,File.pathSeparator);
-            // System.out.println("java.class.path=");
-            // for (int i=0;i<cpe.length;i++){
-            // System.out.println(cpe[i]);
-            // }
         } else {
             filePrefix = "";
         }
@@ -137,7 +124,7 @@ public abstract class JMeterTestCase extends TestCase {
 
     protected void checkInvalidParameterCounts(AbstractFunction func, int minimum)
             throws Exception {
-        Collection<CompoundVariable> parms = new LinkedList<CompoundVariable>();
+        Collection<CompoundVariable> parms = new LinkedList<>();
         for (int c = 0; c < minimum; c++) {
             try {
                 func.setParameters(parms);
@@ -152,7 +139,7 @@ public abstract class JMeterTestCase extends TestCase {
     
     protected void checkInvalidParameterCounts(AbstractFunction func, int min,
             int max) throws Exception {
-        Collection<CompoundVariable> parms = new LinkedList<CompoundVariable>();
+        Collection<CompoundVariable> parms = new LinkedList<>();
         for (int count = 0; count < min; count++) {
             try {
                 func.setParameters(parms);
@@ -173,5 +160,9 @@ public abstract class JMeterTestCase extends TestCase {
                     + " parameters");
         } catch (InvalidVariableException ignored) {
         }
+    }
+
+    public static void assertPrimitiveEquals(boolean expected, boolean actual) {
+        org.junit.Assert.assertEquals(Boolean.valueOf(expected), Boolean.valueOf(actual));
     }
 }

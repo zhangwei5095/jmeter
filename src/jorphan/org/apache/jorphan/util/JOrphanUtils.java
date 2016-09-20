@@ -19,6 +19,7 @@
 package org.apache.jorphan.util;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -92,7 +93,7 @@ public final class JOrphanUtils {
                 splittee = splittee.substring(0,splittee.length()-splitLength);
             }
         }
-        List<String> returns = new ArrayList<String>();
+        List<String> returns = new ArrayList<>();
         final int length = splittee.length(); // This is the new length
         int start = 0;
         spot = 0;
@@ -145,11 +146,11 @@ public final class JOrphanUtils {
     public static String[] split(String splittee, String delims, String def) {
         StringTokenizer tokens = new StringTokenizer(splittee,delims,def!=null);
         boolean lastWasDelim=false;
-        List<String> strList=new ArrayList<String>();
+        List<String> strList = new ArrayList<>();
         while (tokens.hasMoreTokens()) {
             String tok=tokens.nextToken();
             if (   tok.length()==1 // we have a single character; could be a token
-                && delims.indexOf(tok)!=-1) // it is a token
+                && delims.contains(tok)) // it is a token
             {
                 if (lastWasDelim) {// we saw a delimiter last time
                     strList.add(def);// so add the default
@@ -251,7 +252,7 @@ public final class JOrphanUtils {
     /**
      * Version of String.replaceAll() for JDK1.3
      * See below for another version which replaces strings rather than chars
-     *
+     * and provides a fast path which does not allocate memory
      * @param source
      *            input string
      * @param search
@@ -261,15 +262,22 @@ public final class JOrphanUtils {
      * @return the output string
      */
     public static String replaceAllChars(String source, char search, String replace) {
+        int indexOf = source.indexOf(search);
+        if(indexOf == -1) {
+            return source;
+        }
+        
+        int offset = 0;
         char[] chars = source.toCharArray();
         StringBuilder sb = new StringBuilder(source.length()+20);
-        for(char c : chars){
-            if (c == search){
-                sb.append(replace);
-            } else {
-                sb.append(c);
-            }
+        while(indexOf != -1) {
+            sb.append(chars, offset, indexOf-offset);
+            sb.append(replace);
+            offset = indexOf +1;
+            indexOf = source.indexOf(search, offset);
         }
+        sb.append(chars, offset, chars.length- offset);
+        
         return sb.toString();
     }
 
@@ -414,10 +422,10 @@ public final class JOrphanUtils {
      * @param ba input binary byte array
      * @return hex representation of binary input
      */
-    public static String baToHexString(byte ba[]) {
+    public static String baToHexString(byte[] ba) {
         StringBuilder sb = new StringBuilder(ba.length*2);
-        for (int i = 0; i < ba.length; i++) {
-            int j = ba[i] & 0xff;
+        for (byte b : ba) {
+            int j = b & 0xff;
             if (j < 16) {
                 sb.append("0"); // $NON-NLS-1$ add zero padding
             }
@@ -433,7 +441,7 @@ public final class JOrphanUtils {
      * @param separator the separator to be added between pairs of hex digits
      * @return hex representation of binary input
      */
-    public static String baToHexString(byte ba[], char separator) {
+    public static String baToHexString(byte[] ba, char separator) {
         StringBuilder sb = new StringBuilder(ba.length*2);
         for (int i = 0; i < ba.length; i++) {
             if (i > 0 && separator != 0) {
@@ -454,7 +462,7 @@ public final class JOrphanUtils {
      * @param ba input binary byte array
      * @return hex representation of binary input
      */
-    public static byte[] baToHexBytes(byte ba[]) {
+    public static byte[] baToHexBytes(byte[] ba) {
         byte[] hb = new byte[ba.length*2];
         for (int i = 0; i < ba.length; i++) {
             byte upper = (byte) ((ba[i] & 0xf0) >> 4);
@@ -499,7 +507,7 @@ public final class JOrphanUtils {
     /**
      * Display currently running threads on system.out
      * This may be expensive to run.
-     * Mainly designed for use at the end of a non-GUI test to check for threads that might prevent the JVM from exitting.
+     * Mainly designed for use at the end of a non-GUI test to check for threads that might prevent the JVM from exiting.
      *
      * @param includeDaemons whether to include daemon threads or not.
      */
@@ -565,6 +573,48 @@ public final class JOrphanUtils {
             output.write(data, offset, chunk);
             bytes -= chunk;
             offset += chunk;
+        }
+    }
+
+    /**
+     * @param elapsedSec long elapsed time in seconds
+     * @return String formatted with format HH:mm:ss
+     */
+    @SuppressWarnings("boxing")
+    public static String formatDuration(long elapsedSec) {
+        return String.format("%02d:%02d:%02d",
+                elapsedSec / 3600, (elapsedSec % 3600) / 60, elapsedSec % 60);
+    }
+
+    /**
+     * Throw {@link IllegalArgumentException} if folder cannot be written to either:
+     * <ul>
+     *  <li>Because it exists but is not a folder</li>
+     *  <li>Because it exists but is not empty</li>
+     *  <li>Because it does not exist but cannot be created</li>
+     * </ul>
+     * @param folder {@link File}
+     * @throws IllegalArgumentException
+     */
+    public static void canSafelyWriteToFolder(File folder)
+            throws IllegalArgumentException {
+        if(folder.exists()) {
+            if (folder.isFile()) {
+                throw new IllegalArgumentException("Cannot write to '"
+                        +folder.getAbsolutePath()+"' as it is an existing file");
+            } else {
+                File[] listedFiles = folder.listFiles();
+                if(listedFiles != null && listedFiles.length > 0) {
+                    throw new IllegalArgumentException("Cannot write to '"
+                            +folder.getAbsolutePath()+"' as folder is not empty");
+                }
+            }
+        } else {
+            // check we can create it
+            if(!folder.getAbsoluteFile().getParentFile().canWrite()) {
+                throw new IllegalArgumentException("Cannot write to '"
+                        +folder.getAbsolutePath()+"' as folder does not exist and parent folder is not writable");
+            }
         }
     }
 }

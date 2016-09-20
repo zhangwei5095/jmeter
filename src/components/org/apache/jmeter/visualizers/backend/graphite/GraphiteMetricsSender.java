@@ -18,15 +18,17 @@
 
 package org.apache.jmeter.visualizers.backend.graphite;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * @since 2.13
  */
 interface GraphiteMetricsSender {
-    final int SOCKET_CONNECT_TIMEOUT_MS = 1000;
-    final int SOCKET_TIMEOUT = 1000;
+    int SOCKET_CONNECT_TIMEOUT_MS = 1000;
+    int SOCKET_TIMEOUT = 1000;
 
 
-    String CHARSET_NAME = "UTF-8"; //$NON-NLS-1$
+    String CHARSET_NAME = StandardCharsets.UTF_8.name();
 
     final class MetricTuple {
         String name;
@@ -38,6 +40,7 @@ interface GraphiteMetricsSender {
             this.value = value;
         }
     }
+    
     /**
      * Convert the metric to a python tuple of the form:
      *      (timestamp, (prefix.contextName.metricName, metricValue))
@@ -47,7 +50,7 @@ interface GraphiteMetricsSender {
      * @param metricName name of this metric
      * @param metricValue value of this metric
      */
-    public abstract void addMetric(long timestamp, String contextName,
+    void addMetric(long timestamp, String contextName,
             String metricName, String metricValue);
 
     /**
@@ -56,16 +59,16 @@ interface GraphiteMetricsSender {
      * @param graphitePort Port
      * @param prefix Root Data prefix
      */
-    public void setup(String graphiteHost, int graphitePort, String prefix);
+    void setup(String graphiteHost, int graphitePort, String prefix);
     
     /**
      * Write metrics to Graphite using custom format
      */
-    public abstract void writeAndSendMetrics();
+    void writeAndSendMetrics();
 
     /**
      * Destroy sender
      */
-    public abstract void destroy();
+    void destroy();
 
 }

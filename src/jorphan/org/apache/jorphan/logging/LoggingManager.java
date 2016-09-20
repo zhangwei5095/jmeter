@@ -18,13 +18,13 @@
 
 package org.apache.jorphan.logging;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.Properties;
 
 import org.apache.avalon.excalibur.logger.LogKitLoggerManager;
@@ -139,7 +139,8 @@ public final class LoggingManager {
             Context ctx = new DefaultContext();
             manager.contextualize(ctx);
             manager.configure(c);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | ContextException
+                | IOException | SAXException | ConfigurationException e) {
             // This happens if the default log-target id-ref specifies a non-existent target
             System.out.println("Error processing logging config " + cfg);
             System.out.println(e.toString());
@@ -147,18 +148,6 @@ public final class LoggingManager {
             // This can happen if a log-target id-ref specifies a non-existent target
             System.out.println("Error processing logging config " + cfg);
             System.out.println("Perhaps a log target is missing?");
-        } catch (ConfigurationException e) {
-            System.out.println("Error processing logging config " + cfg);
-            System.out.println(e.toString());
-        } catch (SAXException e) {
-            System.out.println("Error processing logging config " + cfg);
-            System.out.println(e.toString());
-        } catch (IOException e) {
-            System.out.println("Error processing logging config " + cfg);
-            System.out.println(e.toString());
-        } catch (ContextException e) {
-            System.out.println("Error processing logging config " + cfg);
-            System.out.println(e.toString());
         }
     }
 
@@ -190,6 +179,8 @@ public final class LoggingManager {
         Writer wt;
         isWriterSystemOut = false;
         try {
+            File logFileAsFile = new File(logFile);
+            System.out.println("Writing log file to: "+logFileAsFile.getAbsolutePath());
             wt = new FileWriter(logFile);
         } catch (Exception e) {
             System.out.println(propName + "=" + logFile + " " + e.toString());
@@ -211,9 +202,8 @@ public final class LoggingManager {
      *            {@link LoggingManager#LOG_FILE LOG_FILE} prefixed entries
      */
     public static void setLoggingLevels(Properties appProperties) {
-        Iterator<?> props = appProperties.keySet().iterator();
-        while (props.hasNext()) {
-            String prop = (String) props.next();
+        for (Object o : appProperties.keySet()) {
+            String prop = (String) o;
             if (prop.startsWith(LOG_PRIORITY + ".")) //$NON_NLS-1$
             // don't match the empty category
             {
@@ -282,7 +272,7 @@ public final class LoggingManager {
      * @param category - string containing the category
      */
     public static void setPriority(String priority, String category) {
-        setPriority(Priority.getPriorityForName(priority), category);
+        setPriority(Priority.getPriorityForName(trimPriority(priority)), category);
     }
 
     /**
@@ -292,7 +282,7 @@ public final class LoggingManager {
      * @param fullName - e.g. org.apache.jmeter.etc, will have the prefix removed.
      */
     public static void setPriorityFullName(String priority, String fullName) {
-        setPriority(Priority.getPriorityForName(priority), removePrefix(fullName));
+        setPriority(Priority.getPriorityForName(trimPriority(priority)), removePrefix(fullName));
     }
 
     /**
@@ -306,7 +296,15 @@ public final class LoggingManager {
     }
 
     public static void setPriority(String p) {
-        setPriority(Priority.getPriorityForName(p));
+        setPriority(Priority.getPriorityForName(trimPriority(p)));
+    }
+    
+    /**
+     * @param priority String log priority
+     * @return String trimmed priority
+     */
+    private static final String trimPriority(String priority) {
+        return priority.trim();
     }
 
     /**

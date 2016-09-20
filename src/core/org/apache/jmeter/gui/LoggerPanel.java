@@ -63,14 +63,14 @@ public class LoggerPanel extends JPanel implements LogTarget {
         format = new PatternFormatter(LoggingManager.DEFAULT_PATTERN + "\n"); // $NON-NLS-1$
     }
 
-    private JTextArea init() {
+    private JTextArea init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         this.setLayout(new BorderLayout());
         final JScrollPane areaScrollPane;
         final JTextArea jTextArea;
 
         if (JMeterUtils.getPropDefault("loggerpanel.usejsyntaxtext", true)) {
             // JSyntax Text Area
-            JSyntaxTextArea jSyntaxTextArea = new JSyntaxTextArea(15, 80, true);
+            JSyntaxTextArea jSyntaxTextArea = JSyntaxTextArea.getInstance(15, 80, true);
             jSyntaxTextArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
             jSyntaxTextArea.setCodeFoldingEnabled(false);
             jSyntaxTextArea.setAntiAliasingEnabled(false);
@@ -78,7 +78,7 @@ public class LoggerPanel extends JPanel implements LogTarget {
             jSyntaxTextArea.setLineWrap(false);
             jSyntaxTextArea.setLanguage("text");
             jSyntaxTextArea.setMargin(new Insets(2, 2, 2, 2)); // space between borders and text
-            areaScrollPane = new JTextScrollPane(jSyntaxTextArea);
+            areaScrollPane = JTextScrollPane.getInstance(jSyntaxTextArea);
             jTextArea = jSyntaxTextArea;
         } else {
             // Plain text area

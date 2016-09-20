@@ -23,23 +23,23 @@ import java.io.FilenameFilter;
 import java.util.HashSet;
 import java.util.Set;
 
-import junit.framework.TestSuite;
-
-import org.apache.jmeter.junit.JMeterTestCase;
+import org.apache.jmeter.junit.JMeterTestCaseJUnit3;
 import org.apache.jmeter.save.SaveService;
 import org.apache.jorphan.collections.HashTree;
+
+import junit.framework.TestSuite;
 
 /**
  * 
  * Test JMX files to check that they can be loaded OK.
  */
-public class TestLoad extends JMeterTestCase {
+public class TestLoad extends JMeterTestCaseJUnit3 {
 
     private static final String basedir = new File(System.getProperty("user.dir")).getParent();
     private static final File testfiledir = new File(basedir,"bin/testfiles");
     private static final File demofiledir = new File(basedir,"xdocs/demos");
     
-    private static final Set<String> notTestPlan = new HashSet<String>();// not full test plans
+    private static final Set<String> notTestPlan = new HashSet<>();// not full test plans
     
     static{
         notTestPlan.add("load_bug_list.jmx");// used by TestAnchorModifier
@@ -70,18 +70,17 @@ public class TestLoad extends JMeterTestCase {
     }
 
     public static TestSuite suite(){
-        TestSuite suite=new TestSuite("Load Test");
-        //suite.addTest(new TestLoad("checkGuiPackage"));
-        scanFiles(suite,testfiledir);
-        scanFiles(suite,demofiledir);
+        TestSuite suite = new TestSuite("Load Test");
+        scanFiles(suite, testfiledir);
+        scanFiles(suite, demofiledir);
         return suite;
     }
 
     private static void scanFiles(TestSuite suite, File parent) {
-        File testFiles[]=parent.listFiles(jmxFilter);
         String dir = parent.getName();
-        for (int i=0; i<testFiles.length; i++){
-            suite.addTest(new TestLoad("checkTestFile",testFiles[i],dir));
+        File[] testFiles = parent.listFiles(jmxFilter);
+        for (File file : testFiles) {
+            suite.addTest(new TestLoad("checkTestFile", file, dir));
         }
     }
     

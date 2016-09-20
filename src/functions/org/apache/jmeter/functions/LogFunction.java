@@ -49,7 +49,7 @@ import org.apache.log.Priority;
 public class LogFunction extends AbstractFunction {
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private static final List<String> desc = new LinkedList<String>();
+    private static final List<String> desc = new LinkedList<>();
 
     private static final String KEY = "__log"; //$NON-NLS-1$
 
@@ -142,7 +142,7 @@ public class LogFunction extends AbstractFunction {
             printDetails(System.err, s, t, c);
         } else {
             // N.B. if the string is not recognised, DEBUG is assumed
-            Priority p = Priority.getPriorityForName(prio);
+            Priority p = Priority.getPriorityForName(prio.trim());
             if (log.isPriorityEnabled(p)) {// Thread method is potentially expensive
                 String tn = Thread.currentThread().getName();
                 StringBuilder sb = new StringBuilder(40);

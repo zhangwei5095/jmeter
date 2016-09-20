@@ -130,7 +130,7 @@ public class RowDetailDialog extends JDialog implements ActionListener, Document
         return rootPane;
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         this.getContentPane().setLayout(new BorderLayout(10,10));
 
         nameLabel = new JLabel(JMeterUtils.getResString("name")); //$NON-NLS-1$
@@ -141,12 +141,12 @@ public class RowDetailDialog extends JDialog implements ActionListener, Document
         namePane.add(nameTF, BorderLayout.CENTER);
 
         valueLabel = new JLabel(JMeterUtils.getResString("value")); //$NON-NLS-1$
-        valueTA = new JSyntaxTextArea(30, 80);
+        valueTA = JSyntaxTextArea.getInstance(30, 80);
         valueTA.getDocument().addDocumentListener(this);
         setValues(selectedRow);
         JPanel valuePane = new JPanel(new BorderLayout());
         valuePane.add(valueLabel, BorderLayout.NORTH);
-        JTextScrollPane jTextScrollPane = new JTextScrollPane(valueTA);
+        JTextScrollPane jTextScrollPane = JTextScrollPane.getInstance(valueTA);
         valuePane.add(jTextScrollPane, BorderLayout.CENTER);
 
         JPanel detailPanel = new JPanel(new BorderLayout());

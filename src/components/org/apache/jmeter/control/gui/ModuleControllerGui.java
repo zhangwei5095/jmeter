@@ -18,9 +18,11 @@
 
 package org.apache.jmeter.control.gui;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Collection;
@@ -35,11 +37,16 @@ import javax.swing.JMenu;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTree;
+import javax.swing.SwingConstants;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.DefaultTreeSelectionModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
+import javax.swing.tree.TreeSelectionModel;
 
 import org.apache.jmeter.control.Controller;
 import org.apache.jmeter.control.ModuleController;
@@ -66,9 +73,6 @@ import org.apache.jorphan.gui.layout.VerticalLayout;
  *
  */
 public class ModuleControllerGui extends AbstractControllerGui implements ActionListener {
-	/**
-     * 
-     */
     private static final long serialVersionUID = -4195441608252523573L;
 
     private static final String SEPARATOR = " > ";
@@ -103,12 +107,77 @@ public class ModuleControllerGui extends AbstractControllerGui implements Action
      * Initializes the gui panel for the ModuleController instance.
      */
     public ModuleControllerGui() {
-		moduleToRunTreeModel = new DefaultTreeModel(new DefaultMutableTreeNode());
-		moduleToRunTreeNodes = new JTree(moduleToRunTreeModel);
-		moduleToRunTreeNodes.setCellRenderer(new ModuleControllerCellRenderer());
-		
-        warningLabel = new JLabel(""); // $NON-NLS-1$
+        moduleToRunTreeModel = new DefaultTreeModel(new DefaultMutableTreeNode());
+        moduleToRunTreeNodes = new JTree(moduleToRunTreeModel);
+        moduleToRunTreeNodes.setCellRenderer(new ModuleControllerCellRenderer());
+        
+        // this custom TreeSelectionModel forbid the selection of some test elements (test plan, thread group, etc..)
+        TreeSelectionModel tsm =  new DefaultTreeSelectionModel() {
+
+            private static final long serialVersionUID = 4062816201792954617L;
+
+            private boolean isSelectedPathAllowed(DefaultMutableTreeNode lastSelected) {
+                JMeterTreeNode tn = null;
+                if (lastSelected != null && lastSelected.getUserObject() instanceof JMeterTreeNode) {
+                    tn = (JMeterTreeNode) lastSelected.getUserObject();
+                }
+                return tn != null && isTestElementAllowed(tn.getTestElement());
+            }
+            
+            @Override
+            public void setSelectionPath(TreePath path) {
+                DefaultMutableTreeNode lastSelected = (DefaultMutableTreeNode) path.getLastPathComponent();
+                
+                if (isSelectedPathAllowed(lastSelected)) {
+                    super.setSelectionPath(path);
+                }
+            }
+
+            @Override
+            public void setSelectionPaths(TreePath[] pPaths) {
+                DefaultMutableTreeNode lastSelected = (DefaultMutableTreeNode) pPaths[pPaths.length-1].getLastPathComponent();
+                if(isSelectedPathAllowed(lastSelected)) {
+                    super.setSelectionPaths(pPaths);
+                }
+            }
+
+            @Override
+            public void addSelectionPath(TreePath path) {
+                DefaultMutableTreeNode lastSelected = (DefaultMutableTreeNode) path.getLastPathComponent();
+                if(isSelectedPathAllowed(lastSelected)) {
+                    super.addSelectionPath(path);
+                }
+            }
+
+            @Override
+            public void addSelectionPaths(TreePath[] paths) {
+                DefaultMutableTreeNode lastSelected = (DefaultMutableTreeNode) paths[paths.length-1].getLastPathComponent();
+                if(isSelectedPathAllowed(lastSelected)) {
+                    super.addSelectionPaths(paths);
+                }
+            }
+        };
+        tsm.setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        moduleToRunTreeNodes.setSelectionModel(tsm);
+        
+        ImageIcon image = JMeterUtils.getImage("warning.png");
+        warningLabel = new JLabel("", image, SwingConstants.LEFT); // $NON-NLS-1$
+        warningLabel.setForeground(Color.RED);
+        Font font = warningLabel.getFont();
+        warningLabel.setFont(new Font(font.getFontName(), Font.BOLD, (int)(font.getSize()*1.1)));
+        warningLabel.setVisible(false);
+        
         init();
+        
+        // the listener is used to hide the error message when a target element is selected
+        TreeSelectionListener tsl = new TreeSelectionListener() {
+            @Override
+            public void valueChanged(TreeSelectionEvent e) {
+                warningLabel.setVisible(false);
+                expandButton.setEnabled(true);
+            }
+        };
+        moduleToRunTreeNodes.addTreeSelectionListener(tsl);
     }
 
     /** {@inheritDoc}} */
@@ -116,6 +185,7 @@ public class ModuleControllerGui extends AbstractControllerGui implements Action
     public String getLabelResource() {
         return "module_controller_title"; // $NON-NLS-1$
     }
+    
     /** {@inheritDoc}} */
     @Override
     public void configure(TestElement el) {
@@ -125,8 +195,11 @@ public class ModuleControllerGui extends AbstractControllerGui implements Action
         if (selected == null && controller.getNodePath() != null) {
             warningLabel.setText(JMeterUtils.getResString("module_controller_warning") // $NON-NLS-1$
                     + renderPath(controller.getNodePath()));
+            warningLabel.setVisible(true);
+            expandButton.setEnabled(false);
         } else {
-            warningLabel.setText(""); // $NON-NLS-1$
+            warningLabel.setVisible(false);
+            expandButton.setEnabled(true);
         }
         reinitialize();
     }
@@ -165,19 +238,26 @@ public class ModuleControllerGui extends AbstractControllerGui implements Action
     public void modifyTestElement(TestElement element) {
         configureTestElement(element); 
         JMeterTreeNode tn = null;
-        DefaultMutableTreeNode lastSelected = (DefaultMutableTreeNode) this.moduleToRunTreeNodes.getLastSelectedPathComponent(); 
+        DefaultMutableTreeNode lastSelected =
+                (DefaultMutableTreeNode) this.moduleToRunTreeNodes.getLastSelectedPathComponent();
         if (lastSelected != null && lastSelected.getUserObject() instanceof JMeterTreeNode) {
-        	tn = (JMeterTreeNode) lastSelected.getUserObject();
+            tn = (JMeterTreeNode) lastSelected.getUserObject();
         }
         if (tn != null) {
             selected = tn;
-            //prevent from selecting thread group or test plan elements
-            if (selected != null 
-            		&& !(selected.getTestElement() instanceof AbstractThreadGroup)
-            		&& !(selected.getTestElement() instanceof TestPlan)) {
+            // prevent from selecting thread group or test plan elements
+            if (isTestElementAllowed(selected.getTestElement())) {
                 ((ModuleController) element).setSelectedNode(selected);
             }
         }
+    }
+    
+    // check if a given test element can be selected as the target of a module controller
+    private static boolean isTestElementAllowed(TestElement testElement) {
+        return testElement != null
+                && !(testElement instanceof AbstractThreadGroup)
+                && !(testElement instanceof TestPlan);
+
     }
 
     /** {@inheritDoc}} */
@@ -187,7 +267,6 @@ public class ModuleControllerGui extends AbstractControllerGui implements Action
         selected = null;
     }
 
-
     /** {@inheritDoc}} */
     @Override
     public JPopupMenu createPopupMenu() {
@@ -196,7 +275,6 @@ public class ModuleControllerGui extends AbstractControllerGui implements Action
                 new String[] {
                         MenuFactory.CONFIG_ELEMENTS,
                         MenuFactory.ASSERTIONS,
-                        MenuFactory.TIMERS,
                         MenuFactory.LISTENERS,
                 },
                 JMeterUtils.getResString("add"),  // $NON-NLS-1$
@@ -207,14 +285,14 @@ public class ModuleControllerGui extends AbstractControllerGui implements Action
         return menu;
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new VerticalLayout(5, VerticalLayout.BOTH, VerticalLayout.TOP));
         setBorder(makeBorder());
         add(makeTitlePanel());
 
         JPanel modulesPanel = new JPanel();
         
-        expandButton = new JButton(JMeterUtils.getResString("expand")); //$NON-NLS-1$
+        expandButton = new JButton(JMeterUtils.getResString("find_target_element")); //$NON-NLS-1$
         expandButton.addActionListener(this);
         modulesPanel.add(expandButton);
         modulesPanel.setLayout(new BoxLayout(modulesPanel, BoxLayout.Y_AXIS));
@@ -227,7 +305,7 @@ public class ModuleControllerGui extends AbstractControllerGui implements Action
         
         JPanel treePanel = new JPanel();
         treePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-		treePanel.add(moduleToRunTreeNodes);
+        treePanel.add(moduleToRunTreeNodes);
         add(treePanel);
     }
 
@@ -241,147 +319,135 @@ public class ModuleControllerGui extends AbstractControllerGui implements Action
      * 
      * @return path of a found element 
      */
-	private TreeNode[] findPathInTreeModel(int level, TreeNode[] testPlanPath, DefaultMutableTreeNode parent)
-	{
-		if(level >= testPlanPath.length) {
-			return EMPTY_TREE_NODES;
-		}
-		int childCount = parent.getChildCount();
-		JMeterTreeNode searchedTreeNode = 
-		        (JMeterTreeNode) testPlanPath[level];
+    private TreeNode[] findPathInTreeModel(
+            int level, TreeNode[] testPlanPath, DefaultMutableTreeNode parent)
+    {
+        if (level >= testPlanPath.length) {
+            return EMPTY_TREE_NODES;
+        }
+        int childCount = parent.getChildCount();
+        JMeterTreeNode searchedTreeNode = 
+                (JMeterTreeNode) testPlanPath[level];
 
-		for (int i = 0; i < childCount; i++) {
-			DefaultMutableTreeNode child = (DefaultMutableTreeNode) parent.getChildAt(i);
-			JMeterTreeNode childUserObj = (JMeterTreeNode) child.getUserObject();
+        for (int i = 0; i < childCount; i++) {
+            DefaultMutableTreeNode child = (DefaultMutableTreeNode) parent.getChildAt(i);
+            JMeterTreeNode childUserObj = (JMeterTreeNode) child.getUserObject();
 
-			if(!childUserObj.equals(searchedTreeNode)){
-				continue;
-			} else {
-				if(level == (testPlanPath.length - 1)){
-					return child.getPath();
-				} else {
-					return findPathInTreeModel(level+1, testPlanPath, child);
-				}
-			}
-		}
-		return EMPTY_TREE_NODES;
-	}
-	
-	/**
-	 * Expand module to run tree to selected JMeterTreeNode and set selection path to it
-	 * @param selected - referenced module to run
-	 */
-	private void focusSelectedOnTree(JMeterTreeNode selected)
-	{
-		TreeNode[] path = selected.getPath();
-		TreeNode[] filteredPath = new TreeNode[path.length-1];
-		
-		//ignore first element of path - WorkBench, (why WorkBench is appearing in the path ???)
-		for(int i = 1; i < path.length; i++){
-			filteredPath[i-1] = path[i];
-		}
-		
-		DefaultMutableTreeNode root = (DefaultMutableTreeNode) moduleToRunTreeNodes.getModel().getRoot();
-		//treepath of test plan tree and module to run tree cannot be compared directly - moduleToRunTreeModel.getPathToRoot()
-		//custom method for finding an JMeterTreeNode element in DefaultMutableTreeNode have to be used 
-		TreeNode[] dmtnPath = this.findPathInTreeModel(1, filteredPath, root);
-		if (dmtnPath.length>0) {
-			TreePath treePath = new TreePath(dmtnPath);
-			moduleToRunTreeNodes.setSelectionPath(treePath);
-			moduleToRunTreeNodes.scrollPathToVisible(treePath);
-		}
-	}
+            if (childUserObj.equals(searchedTreeNode)) {
+                if (level == (testPlanPath.length - 1)) {
+                    return child.getPath();
+                } else {
+                    return findPathInTreeModel(level + 1, testPlanPath, child);
+                }
+            }
+        }
+        return EMPTY_TREE_NODES;
+    }
     
-	/**
-	 * 
-	 */
-	private void reinitialize() {
-		((DefaultMutableTreeNode) moduleToRunTreeModel.getRoot()).removeAllChildren();
+    /**
+     * Expand module to run tree to selected JMeterTreeNode and set selection path to it
+     * @param selected - referenced module to run
+     */
+    private void focusSelectedOnTree(JMeterTreeNode selected)
+    {
+        TreeNode[] path = selected.getPath();
+        TreeNode[] filteredPath = new TreeNode[path.length-1];
+        
+        //ignore first element of path - WorkBench, (why WorkBench is appearing in the path ???)
+        for (int i = 1; i < path.length; i++){
+            filteredPath[i-1] = path[i];
+        }
+        
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) moduleToRunTreeNodes.getModel().getRoot();
+        //treepath of test plan tree and module to run tree cannot be compared directly - moduleToRunTreeModel.getPathToRoot()
+        //custom method for finding an JMeterTreeNode element in DefaultMutableTreeNode have to be used 
+        TreeNode[] dmtnPath = this.findPathInTreeModel(1, filteredPath, root);
+        if (dmtnPath.length > 0) {
+            TreePath treePath = new TreePath(dmtnPath);
+            moduleToRunTreeNodes.setSelectionPath(treePath);
+            moduleToRunTreeNodes.scrollPathToVisible(treePath);
+        }
+    }
 
-		GuiPackage gp = GuiPackage.getInstance();
-		JMeterTreeNode root;
-		if (gp != null) {
-			root = (JMeterTreeNode) GuiPackage.getInstance().getTreeModel().getRoot();
-			buildTreeNodeModel(root, 0, null);
-			moduleToRunTreeModel.nodeStructureChanged((TreeNode) moduleToRunTreeModel.getRoot());
-		}
-		if (selected != null) {			
-			//expand Module to run tree to selected node and set selection path to it
-			this.focusSelectedOnTree(selected);
-		}
-	}
+    private void reinitialize() {
+        ((DefaultMutableTreeNode) moduleToRunTreeModel.getRoot()).removeAllChildren();
 
-	/**
-	 * Recursively build module to run tree. Only 4 types of elements are allowed to be added:
-	 * - All controllers except ModuleController
-	 * - TestPlan
-	 * - TestFragmentController
-	 * - AbstractThreadGroup
-	 * 
-	 * @param node - element of test plan tree
-	 * @param level - level of element in a tree
-	 * @param parent
-	 */
-	private void buildTreeNodeModel(JMeterTreeNode node, int level,
-			DefaultMutableTreeNode parent) {
+        GuiPackage gp = GuiPackage.getInstance();
+        JMeterTreeNode root;
+        if (gp != null) {
+            root = (JMeterTreeNode) GuiPackage.getInstance().getTreeModel().getRoot();
+            buildTreeNodeModel(root, 0, null);
+            moduleToRunTreeModel.nodeStructureChanged((TreeNode) moduleToRunTreeModel.getRoot());
+        }
+        if (selected != null) {            
+            //expand Module to run tree to selected node and set selection path to it
+            this.focusSelectedOnTree(selected);
+        }
+    }
 
-		if (node != null) {
-			for (int i = 0; i < node.getChildCount(); i++) {
-				JMeterTreeNode cur = (JMeterTreeNode) node.getChildAt(i);
-				TestElement te = cur.getTestElement();
+    /**
+     * Recursively build module to run tree. Only 4 types of elements are allowed to be added:
+     * - All controllers except ModuleController
+     * - TestPlan
+     * - TestFragmentController
+     * - AbstractThreadGroup
+     * 
+     * @param node - element of test plan tree
+     * @param level - level of element in a tree
+     * @param parent
+     */
+    private void buildTreeNodeModel(JMeterTreeNode node, int level,
+            DefaultMutableTreeNode parent) {
 
-				if (te instanceof Controller
-						&& !(te instanceof ModuleController) && level > 0) {
-					DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(cur);
-					parent.add(newNode);
-					buildTreeNodeModel(cur, level + 1, newNode);
-					
-				} else if (te instanceof TestFragmentController) {
-					DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(cur);
-					parent.add(newNode);
-					buildTreeNodeModel(cur, level + 1, newNode);
-				
-				} else if (te instanceof AbstractThreadGroup) {
-					DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(cur);
-					parent.add(newNode);
-					buildTreeNodeModel(cur, level + 1, newNode);
-				}
+        if (node != null) {
+            for (int i = 0; i < node.getChildCount(); i++) {
+                JMeterTreeNode cur = (JMeterTreeNode) node.getChildAt(i);
+                TestElement te = cur.getTestElement();
 
-				else if (te instanceof TestPlan) {
-					((DefaultMutableTreeNode) moduleToRunTreeModel.getRoot())
-							.setUserObject(cur);
-					buildTreeNodeModel(cur, level,
-							(DefaultMutableTreeNode) moduleToRunTreeModel.getRoot());
-				}
-			}
-		}
-	}
+                if (te instanceof Controller
+                        && !(te instanceof ModuleController) && level > 0) {
+                    DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(cur);
+                    parent.add(newNode);
+                    buildTreeNodeModel(cur, level + 1, newNode);
+                } else if (te instanceof TestFragmentController
+                        || te instanceof AbstractThreadGroup) {
+                    DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(cur);
+                    parent.add(newNode);
+                    buildTreeNodeModel(cur, level + 1, newNode);
+                } else if (te instanceof TestPlan) {
+                    ((DefaultMutableTreeNode) moduleToRunTreeModel.getRoot())
+                            .setUserObject(cur);
+                    buildTreeNodeModel(cur, level,
+                            (DefaultMutableTreeNode) moduleToRunTreeModel.getRoot());
+                }
+            }
+        }
+    }
 
-	/**
-	 * Implementation of Expand button - moves focus to a test plan tree element referenced by 
-	 * selected element in Module to run tree
-	 */
+    /**
+     * Implementation of Expand button - moves focus to a test plan tree element referenced by 
+     * selected element in Module to run tree
+     */
     @Override
     public void actionPerformed(ActionEvent e) {
-        if(e.getSource()==expandButton) {
+        if (e.getSource() == expandButton) {
             JMeterTreeNode tn = null;
             DefaultMutableTreeNode selected = (DefaultMutableTreeNode) 
                     this.moduleToRunTreeNodes.getLastSelectedPathComponent(); 
-            if(selected != null && selected.getUserObject() instanceof JMeterTreeNode){
-            	tn = (JMeterTreeNode) selected.getUserObject();
+            if (selected != null && selected.getUserObject() instanceof JMeterTreeNode){
+                tn = (JMeterTreeNode) selected.getUserObject();
             }
-            if(tn != null){
-				TreePath treePath = new TreePath(tn.getPath());
-				//changing selection in a test plan tree
-				GuiPackage.getInstance().getTreeListener().getJTree()
-						.setSelectionPath(treePath);
-				//expanding tree to make referenced element visible in test plan tree
-				GuiPackage.getInstance().getTreeListener().getJTree()
-						.scrollPathToVisible(treePath);
+            if (tn != null){
+                TreePath treePath = new TreePath(tn.getPath());
+                //changing selection in a test plan tree
+                GuiPackage.getInstance().getTreeListener().getJTree()
+                        .setSelectionPath(treePath);
+                //expanding tree to make referenced element visible in test plan tree
+                GuiPackage.getInstance().getTreeListener().getJTree()
+                        .scrollPathToVisible(treePath);
             }
         } 
     }
-
 
     /**
      * @param selected JMeterTreeNode tree node to expand
@@ -398,30 +464,37 @@ public class ModuleControllerGui extends AbstractControllerGui implements Action
      */
     private static class ModuleControllerCellRenderer extends DefaultTreeCellRenderer {
 
-		private static final long serialVersionUID = 1129098620102526299L;
-		
+        private static final long serialVersionUID = 1129098620102526299L;
+        
         /**
          * @see javax.swing.tree.DefaultTreeCellRenderer#getTreeCellRendererComponent(javax.swing.JTree, java.lang.Object, boolean, boolean, boolean, int, boolean)
          */
-		@Override
+        @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded,
                 boolean leaf, int row, boolean hasFocus) {
             JMeterTreeNode node = (JMeterTreeNode)((DefaultMutableTreeNode) value).getUserObject();
-            if(node != null){
-	            super.getTreeCellRendererComponent(tree, node.getName(), selected, expanded, leaf, row,
-	                    hasFocus);
-	            //print same icon as in test plan tree
-	            boolean enabled = node.isEnabled();
-	            ImageIcon icon = node.getIcon(enabled);
-	            if (icon != null) {
-	                if (enabled) {
-	                    setIcon(icon);
-	                } else {
-	                    setDisabledIcon(icon);
-	                }
-	            }
+            if (node != null){
+                super.getTreeCellRendererComponent(tree, node.getName(), selected, expanded, leaf, row,
+                        hasFocus);
+                //print same icon as in test plan tree
+                boolean enabled = node.isEnabled();
+                ImageIcon icon = node.getIcon(enabled);
+                if (icon != null) {
+                    if (enabled) {
+                        setIcon(icon);
+                    } else {
+                        setDisabledIcon(icon);
+                    }
+                }
+                else if (!enabled) { // i.e. no disabled icon found
+                    // Must therefore set the enabled icon so there is at least some  icon
+                    icon = node.getIcon();
+                    if (icon != null) {
+                        setIcon(icon);
+                    }
+                }
             }
-	        return this;
+            return this;
         }
     }
 }

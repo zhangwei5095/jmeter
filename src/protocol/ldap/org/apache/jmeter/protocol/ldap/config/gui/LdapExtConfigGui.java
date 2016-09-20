@@ -45,25 +45,18 @@ import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.gui.JLabeledChoice;
 
 /*******************************************************************************
+ * This class LdapConfigGui is user interface gui for getting all the
+ * configuration value from the user
+ *
  * author Dolf Smits(Dolf.Smits@Siemens.com) created Aug 09 2003 11:00 AM
  * company Siemens Netherlands N.V..
  *
  * Based on the work of: author T.Elanjchezhiyan(chezhiyan@siptech.co.in)
  * created Apr 29 2003 11:00 AM company Sip Technologies and Exports Ltd.
  ******************************************************************************/
-
-/*******************************************************************************
- * This class LdapConfigGui is user interface gui for getting all the
- * configuration value from the user
- ******************************************************************************/
-
 public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener {
 
     private static final long serialVersionUID = 240L;
-
-    // private static final String ROOTDN = "rootDn";
-    // private static final String TEST = "tesT";
-    // private static String testValue="NNNN";
 
     private JTextField rootdn = new JTextField(20);
 
@@ -177,10 +170,10 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
     }
 
     /***************************************************************************
-     * !ToDo (Constructor description)
-     *
+     * Constructor for LdapExtConfigGui
+     * 
      * @param displayName
-     *            !ToDo (Parameter description)
+     *            flag, whether to show the display name of the component.
      **************************************************************************/
     public LdapExtConfigGui(boolean displayName) {
         this.displayName = displayName;
@@ -207,15 +200,15 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
         servername.setText(element.getPropertyAsString(LDAPExtSampler.SERVERNAME));
         port.setText(element.getPropertyAsString(LDAPExtSampler.PORT));
         rootdn.setText(element.getPropertyAsString(LDAPExtSampler.ROOTDN));
-           scope.setSelectedIndex(element.getPropertyAsInt(LDAPExtSampler.SCOPE));
+        scope.setSelectedIndex(element.getPropertyAsInt(LDAPExtSampler.SCOPE));
         countlim.setText(element.getPropertyAsString(LDAPExtSampler.COUNTLIM));
         timelim.setText(element.getPropertyAsString(LDAPExtSampler.TIMELIM));
         attribs.setText(element.getPropertyAsString(LDAPExtSampler.ATTRIBS));
-           retobj.setSelected(element.getPropertyAsBoolean(LDAPExtSampler.RETOBJ));
-           deref.setSelected(element.getPropertyAsBoolean(LDAPExtSampler.DEREF));
+        retobj.setSelected(element.getPropertyAsBoolean(LDAPExtSampler.RETOBJ));
+        deref.setSelected(element.getPropertyAsBoolean(LDAPExtSampler.DEREF));
         connto.setText(element.getPropertyAsString(LDAPExtSampler.CONNTO));
-          parseflag.setSelected(element.getPropertyAsBoolean(LDAPExtSampler.PARSEFLAG));
-           secure.setSelected(element.getPropertyAsBoolean(LDAPExtSampler.SECURE));
+        parseflag.setSelected(element.getPropertyAsBoolean(LDAPExtSampler.PARSEFLAG));
+        secure.setSelected(element.getPropertyAsBoolean(LDAPExtSampler.SECURE));
         userpw.setText(element.getPropertyAsString(LDAPExtSampler.USERPW));
         userdn.setText(element.getPropertyAsString(LDAPExtSampler.USERDN));
         comparedn.setText(element.getPropertyAsString(LDAPExtSampler.COMPAREDN));
@@ -408,70 +401,17 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
     }
 
     /***************************************************************************
-     * This will create the servername panel in the LdapConfigGui
-     **************************************************************************/
-    private JPanel createServernamePanel() {
-        JPanel serverPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("servername")); // $NON-NLS-1$
-        label.setLabelFor(servername);
-        serverPanel.add(label, BorderLayout.WEST);
-        serverPanel.add(servername, BorderLayout.CENTER);
-        return serverPanel;
-    }
-
-    /***************************************************************************
-     * This will create the port panel in the LdapConfigGui
-     **************************************************************************/
-    private JPanel createPortPanel() {
-        JPanel portPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("port")); // $NON-NLS-1$
-        label.setLabelFor(port);
-        portPanel.add(label, BorderLayout.WEST);
-        portPanel.add(port, BorderLayout.CENTER);
-        return portPanel;
-    }
-
-    /***************************************************************************
-     * This will create the Root distinguised name panel in the LdapConfigGui
-     **************************************************************************/
-    private JPanel createRootdnPanel() {
-        JPanel rootdnPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("ddn")); // $NON-NLS-1$
-        label.setLabelFor(rootdn);
-        rootdnPanel.add(label, BorderLayout.WEST);
-        rootdnPanel.add(rootdn, BorderLayout.CENTER);
-        return rootdnPanel;
-    }
-
-    /***************************************************************************
      * This will create the bind/sbind panel in the LdapConfigGui
      **************************************************************************/
     private JPanel createBindPanel() {
         VerticalPanel bindPanel = new VerticalPanel();
-        bindPanel.add(createServernamePanel());
-        bindPanel.add(createPortPanel());
-        bindPanel.add(createRootdnPanel());
 
-        JPanel BPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel Blabel0 = new JLabel(JMeterUtils.getResString("userdn")); // $NON-NLS-1$
-        Blabel0.setLabelFor(userdn);
-        BPanel.add(Blabel0, BorderLayout.WEST);
-        BPanel.add(userdn, BorderLayout.CENTER);
-        bindPanel.add(BPanel);
-
-        JPanel B1Panel = new JPanel(new BorderLayout(5, 0));
-        JLabel Blabel1 = new JLabel(JMeterUtils.getResString("userpw")); // $NON-NLS-1$
-        Blabel1.setLabelFor(userpw);
-        B1Panel.add(Blabel1, BorderLayout.WEST);
-        B1Panel.add(userpw, BorderLayout.CENTER);
-        bindPanel.add(B1Panel);
-
-        JPanel B2Panel = new JPanel(new BorderLayout(5, 0));
-        JLabel Blabel2 = new JLabel(JMeterUtils.getResString("ldap_connto")); // $NON-NLS-1$
-        Blabel2.setLabelFor(connto);
-        B2Panel.add(Blabel2, BorderLayout.WEST);
-        B2Panel.add(connto, BorderLayout.CENTER);
-        bindPanel.add(B2Panel);
+        bindPanel.add(createLabelPanel("servername", servername));
+        bindPanel.add(createLabelPanel("port", port));
+        bindPanel.add(createLabelPanel("ddn", rootdn));
+        bindPanel.add(createLabelPanel("userdn", userdn));
+        bindPanel.add(createLabelPanel("userpw", userpw));
+        bindPanel.add(createLabelPanel("ldap_connto", connto));
 
         bindPanel.add(secure);
         return bindPanel;
@@ -482,19 +422,9 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
      **************************************************************************/
     private JPanel createComparePanel() {
         VerticalPanel cbindPanel = new VerticalPanel();
-        JPanel cBPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel cBlabel0 = new JLabel(JMeterUtils.getResString("entrydn")); // $NON-NLS-1$
-        cBlabel0.setLabelFor(comparedn);
-        cBPanel.add(cBlabel0, BorderLayout.WEST);
-        cBPanel.add(comparedn, BorderLayout.CENTER);
-        cbindPanel.add(cBPanel);
 
-        JPanel cBPanel1 = new JPanel(new BorderLayout(5, 0));
-        JLabel cBlabel1 = new JLabel(JMeterUtils.getResString("comparefilt")); // $NON-NLS-1$
-        cBlabel1.setLabelFor(comparefilt);
-        cBPanel1.add(cBlabel1, BorderLayout.WEST);
-        cBPanel1.add(comparefilt, BorderLayout.CENTER);
-        cbindPanel.add(cBPanel1);
+        cbindPanel.add(createLabelPanel("entrydn", comparedn));
+        cbindPanel.add(createLabelPanel("comparefilt", comparefilt));
 
         return cbindPanel;
     }
@@ -503,59 +433,29 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
      * This will create the Search controls panel in the LdapConfigGui
      **************************************************************************/
     private JPanel createSCPanel() {
-        VerticalPanel SCPanel = new VerticalPanel();
+        VerticalPanel scPanel = new VerticalPanel();
 
-        SCPanel.add(scope);
+        scPanel.add(scope);
 
-        JPanel SC1Panel = new JPanel(new BorderLayout(5, 0));
-        JLabel label1 = new JLabel(JMeterUtils.getResString("countlim")); // $NON-NLS-1$
-        label1.setLabelFor(countlim);
-        SC1Panel.add(label1, BorderLayout.WEST);
-        SC1Panel.add(countlim, BorderLayout.CENTER);
-        SCPanel.add(SC1Panel);
+        scPanel.add(createLabelPanel("countlim", countlim));
+        scPanel.add(createLabelPanel("timelim", timelim));
+        scPanel.add(createLabelPanel("attrs", attribs));
 
-        JPanel SC2Panel = new JPanel(new BorderLayout(5, 0));
-        JLabel label2 = new JLabel(JMeterUtils.getResString("timelim")); // $NON-NLS-1$
-        label2.setLabelFor(timelim);
-        SC2Panel.add(label2, BorderLayout.WEST);
-        SC2Panel.add(timelim, BorderLayout.CENTER);
-        SCPanel.add(SC2Panel);
+        scPanel.add(retobj);
+        scPanel.add(deref);
+        scPanel.add(parseflag);
 
-        JPanel SC3Panel = new JPanel(new BorderLayout(5, 0));
-        JLabel label3 = new JLabel(JMeterUtils.getResString("attrs")); // $NON-NLS-1$
-        label3.setLabelFor(attribs);
-        SC3Panel.add(label3, BorderLayout.WEST);
-        SC3Panel.add(attribs, BorderLayout.CENTER);
-        SCPanel.add(SC3Panel);
-
-        SCPanel.add(retobj);
-        SCPanel.add(deref);
-        SCPanel.add(parseflag);
-
-        return SCPanel;
+        return scPanel;
     }
 
     /***************************************************************************
      * This will create the Search panel in the LdapConfigGui
      **************************************************************************/
-
     private JPanel createSearchPanel() {
         VerticalPanel searchPanel = new VerticalPanel();
 
-        JPanel searchBPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("searchbase")); // $NON-NLS-1$
-        label.setLabelFor(searchbase);
-        searchBPanel.add(label, BorderLayout.WEST);
-        searchBPanel.add(searchbase, BorderLayout.CENTER);
-
-        JPanel searchFPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label20 = new JLabel(JMeterUtils.getResString("searchfilter")); // $NON-NLS-1$
-        label20.setLabelFor(searchfilter);
-        searchFPanel.add(label20, BorderLayout.WEST);
-        searchFPanel.add(searchfilter, BorderLayout.CENTER);
-
-        searchPanel.add(searchBPanel);
-        searchPanel.add(searchFPanel);
+        searchPanel.add(createLabelPanel("searchbase", searchbase));
+        searchPanel.add(createLabelPanel("searchfilter", searchfilter));
         searchPanel.add(createSCPanel());
 
         return searchPanel;
@@ -564,25 +464,30 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
     /***************************************************************************
      * This will create the Moddn panel in the LdapConfigGui
      **************************************************************************/
-
     private JPanel createModdnPanel() {
         VerticalPanel modPanel = new VerticalPanel();
-
-        JPanel renamePanel = new JPanel(new BorderLayout(5, 0));
-        JLabel labelmod = new JLabel(JMeterUtils.getResString("modddn")); // $NON-NLS-1$
-        labelmod.setLabelFor(modddn);
-        renamePanel.add(labelmod, BorderLayout.WEST);
-        renamePanel.add(modddn, BorderLayout.CENTER);
-
-        JPanel rename2Panel = new JPanel(new BorderLayout(5, 0));
-        JLabel labelmod2 = new JLabel(JMeterUtils.getResString("newdn")); // $NON-NLS-1$
-        labelmod2.setLabelFor(newdn);
-        rename2Panel.add(labelmod2, BorderLayout.WEST);
-        rename2Panel.add(newdn, BorderLayout.CENTER);
-
-        modPanel.add(renamePanel);
-        modPanel.add(rename2Panel);
+        modPanel.add(createLabelPanel("modddn", modddn));
+        modPanel.add(createLabelPanel("newdn", newdn));
         return modPanel;
+    }
+
+    /**
+     * Create a panel with a label and a text field
+     * 
+     * @param key
+     *            to look up the label with
+     *            {@link JMeterUtils#getResString(String)}
+     * @param field
+     *            field to show and attach the label
+     * @return newly constructed panel
+     */
+    private JPanel createLabelPanel(String key, JTextField field) {
+        JPanel panel = new JPanel(new BorderLayout(5, 0));
+        JLabel label = new JLabel(JMeterUtils.getResString(key)); // $NON-NLS-1$
+        label.setLabelFor(field);
+        panel.add(label, BorderLayout.WEST);
+        panel.add(field, BorderLayout.CENTER);
+        return panel;
     }
 
     /***************************************************************************
@@ -590,12 +495,7 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
      **************************************************************************/
     private JPanel createDeletePanel() {
         VerticalPanel panel = new VerticalPanel();
-        JPanel deletePanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("delete")); // $NON-NLS-1$
-        label.setLabelFor(delete);
-        deletePanel.add(label, BorderLayout.WEST);
-        deletePanel.add(delete, BorderLayout.CENTER);
-        panel.add(deletePanel);
+        panel.add(createLabelPanel("delete", delete));
         return panel;
     }
 
@@ -604,12 +504,7 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
      **************************************************************************/
     private JPanel createAddPanel() {
         JPanel addPanel = new JPanel(new BorderLayout(5, 0));
-        JPanel addInnerPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("entrydn")); // $NON-NLS-1$
-        label.setLabelFor(add);
-        addInnerPanel.add(label, BorderLayout.WEST);
-        addInnerPanel.add(add, BorderLayout.CENTER);
-        addPanel.add(addInnerPanel, BorderLayout.NORTH);
+        addPanel.add(createLabelPanel("entrydn", add), BorderLayout.NORTH);
         addPanel.add(tableAddPanel, BorderLayout.CENTER);
         return addPanel;
     }
@@ -619,12 +514,7 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
      **************************************************************************/
     private JPanel createModifyPanel() {
         JPanel modifyPanel = new JPanel(new BorderLayout(5, 0));
-        JPanel modifyInnerPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel label = new JLabel(JMeterUtils.getResString("entrydn")); // $NON-NLS-1$
-        label.setLabelFor(modify);
-        modifyInnerPanel.add(label, BorderLayout.WEST);
-        modifyInnerPanel.add(modify, BorderLayout.CENTER);
-        modifyPanel.add(modifyInnerPanel, BorderLayout.NORTH);
+        modifyPanel.add(createLabelPanel("entrydn", modify), BorderLayout.NORTH);
         modifyPanel.add(tableModifyPanel, BorderLayout.CENTER);
         return modifyPanel;
     }
@@ -682,9 +572,9 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
     }
 
     /***************************************************************************
-     * This will initalise all the panel in the LdapConfigGui
+     * This will initalise all the panels in the LdapConfigGui
      **************************************************************************/
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout(0, 5));
         if (displayName) {
             setBorder(makeBorder());
@@ -694,7 +584,7 @@ public class LdapExtConfigGui extends AbstractConfigGui implements ItemListener 
         mainPanel.add(createTestPanel());
         mainPanel.add(testPanel());
         add(mainPanel, BorderLayout.CENTER);
-        // Take note of when buttong are changed so can change panel
+        // Take note of when buttons are changed so we can change panel
         bind.addItemListener(this);
         sbind.addItemListener(this);
         unbind.addItemListener(this);

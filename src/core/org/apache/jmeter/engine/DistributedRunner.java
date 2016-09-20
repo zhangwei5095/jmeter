@@ -24,12 +24,14 @@ import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.collections.HashTree;
 import org.apache.jorphan.logging.LoggingManager;
@@ -55,7 +57,7 @@ public class DistributedRunner {
     private final int retriesNumber;
     private PrintStream stdout = new PrintStream(new SilentOutputStream());
     private PrintStream stderr = new PrintStream(new SilentOutputStream());
-    private final Map<String, JMeterEngine> engines = new HashMap<String, JMeterEngine>();
+    private final Map<String, JMeterEngine> engines = new HashMap<>();
 
 
     public DistributedRunner() {
@@ -71,7 +73,7 @@ public class DistributedRunner {
 
     public void init(List<String> addresses, HashTree tree) {
         // converting list into mutable version
-        List<String> addrs = new LinkedList<String>(addresses);
+        List<String> addrs = new LinkedList<>(addresses);
 
         for (int tryNo = 0; tryNo < retriesNumber; tryNo++) {
             if (tryNo > 0) {
@@ -131,9 +133,7 @@ public class DistributedRunner {
                 } else {
                     log.warn("Host not found in list of active engines: " + address);
                 }
-            } catch (IllegalStateException e) {
-                JMeterUtils.reportErrorToUser(e.getMessage(), JMeterUtils.getResString("remote_error_starting")); // $NON-NLS-1$
-            } catch (JMeterEngineException e) {
+            } catch (IllegalStateException | JMeterEngineException e) {
                 JMeterUtils.reportErrorToUser(e.getMessage(), JMeterUtils.getResString("remote_error_starting")); // $NON-NLS-1$
             }
         }
@@ -144,7 +144,7 @@ public class DistributedRunner {
      * Start all engines that were previously initiated
      */
     public void start() {
-        List<String> addresses = new LinkedList<String>();
+        List<String> addresses = new LinkedList<>();
         addresses.addAll(engines.keySet());
         start(addresses);
     }
@@ -169,7 +169,7 @@ public class DistributedRunner {
      * Stop all engines that were previously initiated
      */
     public void stop() {
-        List<String> addresses = new LinkedList<String>();
+        List<String> addresses = new LinkedList<>();
         addresses.addAll(engines.keySet());
         stop(addresses);
     }
@@ -261,5 +261,12 @@ public class DistributedRunner {
         public void write(int b) throws IOException {
             // enjoy the silence
         }
+    }
+
+    /**
+     * @return {@link Collection} of {@link JMeterEngine}
+     */
+    public Collection<? extends JMeterEngine> getEngines() {
+        return engines.values();
     }
 }

@@ -35,7 +35,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.commons.collections.ArrayStack;
 import org.apache.jmeter.gui.JMeterFileFilter;
@@ -79,11 +79,9 @@ public class FileServer {
     private File base;
 
     //@GuardedBy("this") NOTE this also guards against possible window in checkForOpenFiles()
-    private final Map<String, FileEntry> files = new HashMap<String, FileEntry>();
+    private final Map<String, FileEntry> files = new HashMap<>();
 
     private static final FileServer server = new FileServer();
-
-    private final Random random = new Random();
 
     // volatile needed to ensure safe publication
     private volatile String scriptName;
@@ -252,49 +250,65 @@ public class FileServer {
      * Creates an association between a filename and a File inputOutputObject,
      * and stores it for later use - unless it is already stored.
      *
-     * @param filename - relative (to base) or absolute file name (must not be null)
+     * @param filename - relative (to base) or absolute file name (must not be null or empty)
      * @param charsetName - the character set encoding to use for the file (may be null)
      * @param alias - the name to be used to access the object (must not be null)
      * @param hasHeader true if the file has a header line describing the contents
      * @return the header line; may be null
+     * @throws EOFException if eof reached
+     * @throws IllegalArgumentException if header could not be read or filename is null or empty
      */
     public synchronized String reserveFile(String filename, String charsetName, String alias, boolean hasHeader) {
-        if (filename == null){
-            throw new IllegalArgumentException("Filename must not be null");
+        if (filename == null || filename.isEmpty()){
+            throw new IllegalArgumentException("Filename must not be null or empty");
         }
         if (alias == null){
             throw new IllegalArgumentException("Alias must not be null");
         }
         FileEntry fileEntry = files.get(alias);
         if (fileEntry == null) {
-            File f = new File(filename);
-            fileEntry =
-                new FileEntry(f.isAbsolute() ? f : new File(base, filename),null,charsetName);
+            fileEntry = new FileEntry(resolveFileFromPath(filename), null, charsetName);
             if (filename.equals(alias)){
                 log.info("Stored: "+filename);
             } else {
                 log.info("Stored: "+filename+" Alias: "+alias);
             }
             files.put(alias, fileEntry);
-            if (hasHeader){
+            if (hasHeader) {
                 try {
-                    fileEntry.headerLine=readLine(alias, false);
-                } catch (IOException e) {
+                    fileEntry.headerLine = readLine(alias, false);
+                    if (fileEntry.headerLine == null) {
+                        fileEntry.exception = new EOFException("File is empty: " + fileEntry.file);
+                    }
+                } catch (IOException | IllegalArgumentException e) {
                     fileEntry.exception = e;
-                    throw new IllegalArgumentException("Could not read file header line",e);
-                }
-                if (fileEntry.headerLine == null) {
-                    fileEntry.exception = new EOFException("File is empty: " + fileEntry.file);                    
                 }
             }
         }
         if (hasHeader && fileEntry.headerLine == null) {
-            throw new IllegalArgumentException("Could not read file header line", fileEntry.exception);            
+            throw new IllegalArgumentException("Could not read file header line for file " + filename,
+                    fileEntry.exception);
         }
         return fileEntry.headerLine;
     }
 
-   /**
+    /**
+     * Resolves file name into {@link File} instance.
+     * When filename is not absolute and not found from current workind dir,
+     * it tries to find it under current base directory
+     * @param filename original file name
+     * @return {@link File} instance
+     */
+    private File resolveFileFromPath(String filename) {
+        File f = new File(filename);
+        if (f.isAbsolute() || f.exists()) {
+            return f;
+        } else {
+            return new File(base, filename);
+        }
+    }
+
+    /**
      * Get the next line of the named file, recycle by default.
      *
      * @param filename the filename or alias that was used to reserve the file
@@ -404,6 +418,9 @@ public class FileServer {
     }
 
     private BufferedReader createBufferedReader(FileEntry fileEntry) throws IOException {
+        if (!fileEntry.file.canRead() || !fileEntry.file.isFile()) {
+            throw new IllegalArgumentException("File "+ fileEntry.file.getName()+ " must exist and be readable");
+        }
         FileInputStream fis = new FileInputStream(fileEntry.file);
         InputStreamReader isr = null;
         // If file encoding is specified, read using that encoding, otherwise use default platform encoding
@@ -497,13 +514,25 @@ public class FileServer {
         File input = null;
         if (basedir != null) {
             File src = new File(basedir);
-            if (src.isDirectory() && src.list() != null) {
-                File[] lfiles = src.listFiles(new JMeterFileFilter(extensions));
+            File[] lfiles = src.listFiles(new JMeterFileFilter(extensions));
+            if (lfiles != null) {
+                // lfiles cannot be null as it has been checked before
                 int count = lfiles.length;
-                input = lfiles[random.nextInt(count)];
+                input = lfiles[ThreadLocalRandom.current().nextInt(count)];
             }
         }
         return input;
+    }
+
+    /**
+     * Get {@link File} instance for provided file path,
+     * resolve file location relative to base dir or script dir when needed
+     * @param path original path to file, maybe relative
+     * @return {@link File} instance 
+     */
+    public File getResolvedFile(String path) {
+        reserveFile(path);
+        return files.get(path).file;
     }
 
     private static class FileEntry{

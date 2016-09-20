@@ -43,11 +43,16 @@ import org.apache.log.Logger;
  *
  */
 public class TransactionController extends GenericController implements SampleListener, Controller, Serializable {
+    /**
+     * Used to identify Transaction Controller Parent Sampler
+     */
+    static final String NUMBER_OF_SAMPLES_IN_TRANSACTION_PREFIX = "Number of samples in transaction : ";
+
     private static final long serialVersionUID = 233L;
     
     private static final String TRUE = Boolean.toString(true); // i.e. "true"
 
-    private static final String PARENT = "TransactionController.parent";// $NON-NLS-1$
+    private static final String GENERATE_PARENT_SAMPLE = "TransactionController.parent";// $NON-NLS-1$
 
     private static final String INCLUDE_TIMERS = "TransactionController.includeTimers";// $NON-NLS-1$
     
@@ -106,12 +111,40 @@ public class TransactionController extends GenericController implements SampleLi
         return this;
     }
 
-    public void setParent(boolean _parent){
-        setProperty(new BooleanProperty(PARENT, _parent));
+    /**
+     * @param generateParent flag whether a parent sample should be generated.
+     */
+    public void setGenerateParentSample(boolean generateParent) {
+        setProperty(new BooleanProperty(GENERATE_PARENT_SAMPLE, generateParent));
     }
 
-    public boolean isParent(){
-        return getPropertyAsBoolean(PARENT);
+    /**
+     * @return {@code true} if a parent sample will be generated
+     */
+    public boolean isGenerateParentSample() {
+        return getPropertyAsBoolean(GENERATE_PARENT_SAMPLE);
+    }
+
+    /**
+     * @deprecated use {@link TransactionController#isGenerateParentSample()}
+     *             instead
+     * @return {@code true} if a parent sample will be generated
+     */
+    @Deprecated
+    public boolean isParent() {
+        return isGenerateParentSample();
+    }
+
+    /**
+     * @deprecated use
+     *             {@link TransactionController#setGenerateParentSample(boolean)}
+     *             instead
+     * @param _parent
+     *            flag whether a parent sample should be generated
+     */
+    @Deprecated
+    public void setParent(boolean _parent) {
+        setGenerateParentSample(_parent);
     }
 
     /**
@@ -119,15 +152,15 @@ public class TransactionController extends GenericController implements SampleLi
      */
     @Override
     public Sampler next(){
-        if (isParent()){
-            return next1();
+        if (isGenerateParentSample()){
+            return nextWithTransactionSampler();
         }
-        return next2();
+        return nextWithoutTransactionSampler();
     }
 
 ///////////////// Transaction Controller - parent ////////////////
 
-    private Sampler next1() {
+    private Sampler nextWithTransactionSampler() {
         // Check if transaction is done
         if(transactionSampler != null && transactionSampler.isTransactionDone()) {
             if (log.isDebugEnabled()) {
@@ -159,7 +192,7 @@ public class TransactionController extends GenericController implements SampleLi
 
     @Override
     protected Sampler nextIsAController(Controller controller) throws NextIsNullException {
-        if (!isParent()) {
+        if (!isGenerateParentSample()) {
             return super.nextIsAController(controller);
         }
         Sampler returnValue;
@@ -178,7 +211,7 @@ public class TransactionController extends GenericController implements SampleLi
 
 ////////////////////// Transaction Controller - additional sample //////////////////////////////
 
-    private Sampler next2() {
+    private Sampler nextWithoutTransactionSampler() {
         if (isFirst()) // must be the start of the subtree
         {
             calls = 0;
@@ -203,7 +236,7 @@ public class TransactionController extends GenericController implements SampleLi
                 }
                 res.setIdleTime(pauseTime+res.getIdleTime());
                 res.sampleEnd();
-                res.setResponseMessage("Number of samples in transaction : " + calls + ", number of failing samples : " + noFailingSamples);
+                res.setResponseMessage(TransactionController.NUMBER_OF_SAMPLES_IN_TRANSACTION_PREFIX + calls + ", number of failing samples : " + noFailingSamples);
                 if(res.isSuccessful()) {
                     res.setResponseCodeOK();
                 }
@@ -217,18 +250,28 @@ public class TransactionController extends GenericController implements SampleLi
 
         return returnValue;
     }
+    
+    /**
+     * @param res {@link SampleResult}
+     * @return true if res is the ParentSampler transactions
+     */
+    public static boolean isFromTransactionController(SampleResult res) {
+        return res.getResponseMessage() != null && 
+                res.getResponseMessage().startsWith(
+                        TransactionController.NUMBER_OF_SAMPLES_IN_TRANSACTION_PREFIX);
+    }
 
     /**
      * @see org.apache.jmeter.control.GenericController#triggerEndOfLoop()
      */
     @Override
     public void triggerEndOfLoop() {
-        if(!isParent()) {
+        if(!isGenerateParentSample()) {
             if (res != null) {
-                res.setIdleTime(pauseTime+res.getIdleTime());
+                res.setIdleTime(pauseTime + res.getIdleTime());
                 res.sampleEnd();
                 res.setSuccessful(TRUE.equals(JMeterContextService.getContext().getVariables().get(JMeterThread.LAST_SAMPLE_OK)));
-                res.setResponseMessage("Number of samples in transaction : " + calls + ", number of failing samples : " + noFailingSamples);
+                res.setResponseMessage(TransactionController.NUMBER_OF_SAMPLES_IN_TRANSACTION_PREFIX + calls + ", number of failing samples : " + noFailingSamples);
                 notifyListeners();
             }
         } else {
@@ -240,7 +283,6 @@ public class TransactionController extends GenericController implements SampleLi
             // update them with SubSamplerResult
             if(subSampler instanceof TransactionSampler) {
                 TransactionSampler tc = (TransactionSampler) subSampler;
-                tc.getTransactionController().triggerEndOfLoop();
                 transactionSampler.addSubSamplerResult(tc.getTransactionResult());
             }
             transactionSampler.setTransactionDone();
@@ -274,7 +316,7 @@ public class TransactionController extends GenericController implements SampleLi
 
     @Override
     public void sampleOccurred(SampleEvent se) {
-        if (!isParent()) {
+        if (!isGenerateParentSample()) {
             // Check if we are still sampling our children
             if(res != null && !se.isTransactionSampleEvent()) {
                 SampleResult sampleResult = se.getResult();

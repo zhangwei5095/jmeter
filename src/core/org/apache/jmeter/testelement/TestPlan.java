@@ -57,7 +57,7 @@ public class TestPlan extends AbstractTestElement implements Serializable, TestS
 
     private static final String BASEDIR = "basedir";
 
-    private transient List<AbstractThreadGroup> threadGroups = new LinkedList<AbstractThreadGroup>();
+    private transient List<AbstractThreadGroup> threadGroups = new LinkedList<>();
 
     // There's only 1 test plan, so can cache the mode here
     private static volatile boolean functionalMode = false;
@@ -76,7 +76,7 @@ public class TestPlan extends AbstractTestElement implements Serializable, TestS
 
     // create transient item
     private Object readResolve(){
-        threadGroups = new LinkedList<AbstractThreadGroup>();
+        threadGroups = new LinkedList<>();
         return this;
     }
 
@@ -256,9 +256,9 @@ public class TestPlan extends AbstractTestElement implements Serializable, TestS
         }
         // we set the classpath
         String[] paths = this.getTestPlanClasspathArray();
-        for (int idx=0; idx < paths.length; idx++) {
-            NewDriver.addURL(paths[idx]);
-            log.info("add " + paths[idx] + " to classpath");
+        for (String path : paths) {
+            NewDriver.addURL(path);
+            log.info("add " + path + " to classpath");
         }
     }
 

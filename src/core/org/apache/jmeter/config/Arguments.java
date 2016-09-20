@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jmeter.testelement.property.CollectionProperty;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.testelement.property.PropertyIterator;
 import org.apache.jmeter.testelement.property.TestElementProperty;
 
@@ -32,7 +33,7 @@ import org.apache.jmeter.testelement.property.TestElementProperty;
  * A set of Argument objects.
  *
  */
-public class Arguments extends ConfigTestElement implements Serializable {
+public class Arguments extends ConfigTestElement implements Serializable, Iterable<JMeterProperty> {
     private static final long serialVersionUID = 240L;
 
     /** The name of the property used to store the arguments. */
@@ -81,7 +82,7 @@ public class Arguments extends ConfigTestElement implements Serializable {
      */
     public Map<String, String> getArgumentsAsMap() {
         PropertyIterator iter = getArguments().iterator();
-        Map<String, String> argMap = new LinkedHashMap<String, String>();
+        Map<String, String> argMap = new LinkedHashMap<>();
         while (iter.hasNext()) {
             Argument arg = (Argument) iter.next().getObjectValue();
             // Because CollectionProperty.mergeIn will not prevent adding two
@@ -137,10 +138,27 @@ public class Arguments extends ConfigTestElement implements Serializable {
     }
 
     /**
+     * Add a new argument with the given name, value, metadata and description
+     *
+     * @param name
+     *            the name of the argument
+     * @param value
+     *            the value of the argument
+     * @param metadata
+     *            the metadata for the argument
+     * @param description
+     *            the argument description
+     */
+    public void addArgument(String name, String value, String metadata, String description) {
+        addArgument(new Argument(name, value, metadata, description));
+    }
+
+    /**
      * Get a PropertyIterator of the arguments.
      *
      * @return an iteration of the arguments
      */
+    @Override
     public PropertyIterator iterator() {
         return getArguments().iterator();
     }
@@ -164,6 +182,12 @@ public class Arguments extends ConfigTestElement implements Serializable {
                 str.append(metaData);
             }
             str.append(arg.getValue());
+            final String desc = arg.getDescription();
+            if (desc != null) {
+                str.append("(");
+                str.append(desc);
+                str.append(")");
+            }
             if (iter.hasNext()) {
                 str.append("&"); //$NON-NLS-1$
             }
@@ -216,6 +240,23 @@ public class Arguments extends ConfigTestElement implements Serializable {
     }
 
     /**
+     * Remove the argument with the specified name and value.
+     *
+     * @param argName
+     *            the name of the argument to remove
+     * @param argValue the value to compare - must not be null
+     */
+    public void removeArgument(String argName, String argValue) {
+        PropertyIterator iter = getArguments().iterator();
+        while (iter.hasNext()) {
+            Argument arg = (Argument) iter.next().getObjectValue();
+            if (arg.getName().equals(argName) && argValue.equals(arg.getValue())) {
+                iter.remove();
+            }
+        }
+    }
+
+    /**
      * Remove all arguments from the list.
      */
     public void removeAllArguments() {
@@ -255,5 +296,10 @@ public class Arguments extends ConfigTestElement implements Serializable {
         }
 
         return argument;
+    }
+    public static void main(String [] a){
+        Arguments args = new Arguments();
+        args.addArgument("a","b","c","d");
+        System.out.println(args);
     }
 }

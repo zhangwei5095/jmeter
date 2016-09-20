@@ -65,7 +65,7 @@ public class JsoupBasedHtmlParser extends HTMLParser {
             this.baseUrl = baseUrl;
         }
 
-        private final void extractAttribute(Element tag, String attributeName) {
+        private void extractAttribute(Element tag, String attributeName) {
             String url = tag.attr(attributeName);
             if (!StringUtils.isEmpty(url)) {
                 urls.addURL(url, baseUrl.url);
@@ -151,13 +151,5 @@ public class JsoupBasedHtmlParser extends HTMLParser {
         } catch (Exception e) {
             throw new HTMLParseException(e);
         }
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.jmeter.protocol.http.parser.HTMLParser#isReusable()
-     */
-    @Override
-    protected boolean isReusable() {
-        return true;
     }
 }

@@ -39,7 +39,7 @@ public class CollectionProperty extends MultiProperty {
 
     public CollectionProperty() {
         super();
-        value = new ArrayList<JMeterProperty>();
+        value = new ArrayList<>();
     }
 
     @Override
@@ -144,9 +144,8 @@ public class CollectionProperty extends MultiProperty {
         try {
             @SuppressWarnings("unchecked") // value is of type Collection<JMeterProperty>
             Collection<JMeterProperty> newCol = value.getClass().newInstance();
-            PropertyIterator iter = iterator();
-            while (iter.hasNext()) {
-                newCol.add(iter.next().clone());
+            for (JMeterProperty jMeterProperty : this) {
+                newCol.add(jMeterProperty.clone());
             }
             return newCol;
         } catch (Exception e) {

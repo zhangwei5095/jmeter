@@ -32,8 +32,8 @@ import org.apache.jmeter.samplers.SampleEvent;
 import org.apache.jmeter.testbeans.TestBean;
 import org.apache.jmeter.testbeans.TestBeanHelper;
 import org.apache.jmeter.testelement.TestElement;
-import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.testelement.TestPlan;
+import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.threads.AbstractThreadGroup;
 import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jmeter.threads.ListenerNotifier;
@@ -59,16 +59,6 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
     private static final boolean exitAfterTest =
         JMeterUtils.getPropDefault("server.exitaftertest", false);  // $NON-NLS-1$
 
-    private static final boolean startListenersLater =
-        JMeterUtils.getPropDefault("jmeterengine.startlistenerslater", true); // $NON-NLS-1$
-
-    static {
-        if (startListenersLater){
-            log.info("Listeners will be started after enabling running version");
-            log.info("To revert to the earlier behaviour, define jmeterengine.startlistenerslater=false");
-        }
-    }
-
     // Allow engine and threads to be stopped from outside a thread
     // e.g. from beanshell server
     // Assumes that there is only one instance of the engine
@@ -80,7 +70,7 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
      * Only used by the function parser so far.
      * The list is merged with the testListeners and then cleared.
      */
-    private static final List<TestStateListener> testList = new ArrayList<TestStateListener>();
+    private static final List<TestStateListener> testList = new ArrayList<>();
 
     /** Whether to call System.exit(0) in exit after stopping RMI */
     private static final boolean REMOTE_SYSTEM_EXIT = JMeterUtils.getPropDefault("jmeterengine.remote.system.exit", false);
@@ -111,7 +101,7 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
     private final String host;
 
     // The list of current thread groups; may be setUp, main, or tearDown.
-    private final List<AbstractThreadGroup> groups = new CopyOnWriteArrayList<AbstractThreadGroup>();
+    private final List<AbstractThreadGroup> groups = new CopyOnWriteArrayList<>();
 
     public static void stopEngineNow() {
         if (engine != null) {// May be null if called from Unit test
@@ -164,7 +154,7 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
     @Override
     public void configure(HashTree testTree) {
         // Is testplan serialised?
-        SearchByClass<TestPlan> testPlan = new SearchByClass<TestPlan>(TestPlan.class);
+        SearchByClass<TestPlan> testPlan = new SearchByClass<>(TestPlan.class);
         testTree.traverse(testPlan);
         Object[] plan = testPlan.getSearchResults().toArray();
         if (plan.length == 0) {
@@ -204,7 +194,6 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
         }
     }
 
-    @SuppressWarnings("deprecation") // Deliberate use of deprecated method
     private void notifyTestListenersOfStart(SearchByClass<TestStateListener> testListeners) {
         for (TestStateListener tl : testListeners.getSearchResults()) {
             if (tl instanceof TestBean) {
@@ -281,8 +270,8 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
                         // TODO should we call test listeners? That might hang too ...
                         log.fatalError(JMeterUtils.getResString("stopping_test_failed")); //$NON-NLS-1$
                         if (SYSTEM_EXIT_ON_STOP_FAIL) { // default is true
-                            log.fatalError("Exitting");
-                            System.out.println("Fatal error, could not stop test, exitting");
+                            log.fatalError("Exiting");
+                            System.out.println("Fatal error, could not stop test, exiting");
                             System.exit(1);
                         } else {
                             System.out.println("Fatal error, could not stop test");                            
@@ -323,7 +312,7 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
          * Notification of test listeners needs to happen after function
          * replacement, but before setting RunningVersion to true.
          */
-        SearchByClass<TestStateListener> testListeners = new SearchByClass<TestStateListener>(TestStateListener.class); // TL - S&E
+        SearchByClass<TestStateListener> testListeners = new SearchByClass<>(TestStateListener.class); // TL - S&E
         test.traverse(testListeners);
 
         // Merge in any additional test listeners
@@ -331,16 +320,15 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
         testListeners.getSearchResults().addAll(testList);
         testList.clear(); // no longer needed
 
-        if (!startListenersLater ) { notifyTestListenersOfStart(testListeners); }
         test.traverse(new TurnElementsOn());
-        if (startListenersLater) { notifyTestListenersOfStart(testListeners); }
+        notifyTestListenersOfStart(testListeners);
 
-        List<?> testLevelElements = new LinkedList<Object>(test.list(test.getArray()[0]));
+        List<?> testLevelElements = new LinkedList<>(test.list(test.getArray()[0]));
         removeThreadGroups(testLevelElements);
 
-        SearchByClass<SetupThreadGroup> setupSearcher = new SearchByClass<SetupThreadGroup>(SetupThreadGroup.class);
-        SearchByClass<AbstractThreadGroup> searcher = new SearchByClass<AbstractThreadGroup>(AbstractThreadGroup.class);
-        SearchByClass<PostThreadGroup> postSearcher = new SearchByClass<PostThreadGroup>(PostThreadGroup.class);
+        SearchByClass<SetupThreadGroup> setupSearcher = new SearchByClass<>(SetupThreadGroup.class);
+        SearchByClass<AbstractThreadGroup> searcher = new SearchByClass<>(AbstractThreadGroup.class);
+        SearchByClass<PostThreadGroup> postSearcher = new SearchByClass<>(PostThreadGroup.class);
 
         test.traverse(setupSearcher);
         test.traverse(searcher);
@@ -446,7 +434,7 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
         }
 
         notifyTestListenersOfEnd(testListeners);
-
+        JMeterContextService.endTest();
         if (JMeter.isNonGUI() && SYSTEM_EXIT_FORCED) {
             log.info("Forced JVM shutdown requested at end of test");
             System.exit(0);

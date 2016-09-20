@@ -26,7 +26,7 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 
 import org.apache.jmeter.gui.util.JMeterMenuBar;
-import org.apache.jmeter.junit.JMeterTestCase;
+import org.apache.jmeter.junit.JMeterTestCaseJUnit3;
 import org.apache.jmeter.testbeans.TestBean;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.util.JMeterUtils;
@@ -35,7 +35,6 @@ import org.apache.jorphan.reflect.ClassFinder;
 import org.apache.log.Logger;
 
 import junit.framework.Test;
-// import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 /*
@@ -47,12 +46,10 @@ import junit.framework.TestSuite;
  * TODO: - Check property files don't have duplicate keys (is this important)
  * 
  */
-public final class PackageTest extends JMeterTestCase {
+public final class PackageTest extends JMeterTestCaseJUnit3 {
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    // ResourceBundle i18nEdit=
-    // ResourceBundle.getBundle("org.apache.jmeter.resources.i18nedit");
-    private static final Locale defaultLocale = new Locale("en",""); // i18nEdit.getString("locale.default");
+    private static final Locale defaultLocale = new Locale("en","");
 
     private final ResourceBundle defaultBundle;
 
@@ -81,7 +78,7 @@ public final class PackageTest extends JMeterTestCase {
     @Override
     public void setUp() {
         if (testLocale == null) {
-            return;// errorDetected()
+            return;
         }
         JMeterUtils.setLocale(testLocale);
         Introspector.flushFromCaches(testBeanClass);
@@ -106,7 +103,7 @@ public final class PackageTest extends JMeterTestCase {
     public void runTest() throws Throwable {
         if (testLocale == null) {
             super.runTest();
-            return;// errorDetected()
+            return;
         }
         if (bundle == defaultBundle) {
             checkAllNecessaryKeysPresent();
@@ -131,35 +128,34 @@ public final class PackageTest extends JMeterTestCase {
         String dn = defaultBundle.getString("displayName").toUpperCase(Locale.ENGLISH);
 
         // Skip the rest of this test for alpha/experimental beans:
-        if (dn.indexOf("(ALPHA") != -1 || dn.indexOf("(EXPERIMENTAL") != -1) {
+        if (dn.contains("(ALPHA") || dn.contains("(EXPERIMENTAL")) {
             return;
         }
 
         // Check for property- and group-related texts:
         PropertyDescriptor[] descriptors = beanInfo.getPropertyDescriptors();
-        for (int i = 0; i < descriptors.length; i++) {
+        for (PropertyDescriptor descriptor : descriptors) {
             // Skip non-editable properties, that is:
             // Ignore hidden, read-only, and write-only properties
-            if (descriptors[i].isHidden() || descriptors[i].getReadMethod() == null
-                    || descriptors[i].getWriteMethod() == null) {
+            if (descriptor.isHidden() || descriptor.getReadMethod() == null
+                    || descriptor.getWriteMethod() == null) {
                 continue;
             }
             // Ignore TestElement properties which don't have an explicit
             // editor:
-            if (TestElement.class.isAssignableFrom(descriptors[i].getPropertyType())
-                    && descriptors[i].getPropertyEditorClass() == null) {
+            if (TestElement.class.isAssignableFrom(descriptor.getPropertyType())
+                    && descriptor.getPropertyEditorClass() == null) {
                 continue;
             }
             // Done -- we're working with an editable property.
 
-            String name = descriptors[i].getName();
+            String name = descriptor.getName();
 
             bundle.getString(name + ".displayName");
-            // bundle.getString(name+".shortDescription"); NOT MANDATORY
 
-            String group = (String) descriptors[i].getValue(GenericTestBeanCustomizer.GROUP);
+            String group = (String) descriptor.getValue(GenericTestBeanCustomizer.GROUP);
             if (group != null) {
-                bundle.getString( group + ".displayName");
+                bundle.getString(group + ".displayName");
             }
         }
     }
@@ -167,20 +163,19 @@ public final class PackageTest extends JMeterTestCase {
     public static Test suite() throws Exception {
         TestSuite suite = new TestSuite("Bean Resource Test Suite");
 
-        List<String> testBaeanclassNames = ClassFinder.findClassesThatExtend(JMeterUtils.getSearchPaths(), new Class[] { TestBean.class });
+        List<String> testBeanClassNames = ClassFinder.findClassesThatExtend(JMeterUtils.getSearchPaths(), new Class[] { TestBean.class });
 
         boolean errorDetected = false;
         JMeterUtils.setLocale(defaultLocale);
-        for (String className : testBaeanclassNames) {
+        for (String className : testBeanClassNames) {
             Class<?> testBeanClass = Class.forName(className);
-            ResourceBundle defaultBundle = null;
+            ResourceBundle defaultBundle;
             try {
                 defaultBundle = (ResourceBundle) Introspector.getBeanInfo(testBeanClass).getBeanDescriptor().getValue(
                         GenericTestBeanCustomizer.RESOURCE_BUNDLE);
             } catch (IntrospectionException e) {
                 log.error("Can't get beanInfo for " + testBeanClass.getName(), e);
-                throw new Error(e.toString(), e); // Programming error. Don't
-                                                // continue.
+                throw new Error(e.toString(), e); // Programming error. Don't continue.
             }
 
             if (defaultBundle == null) {
@@ -190,15 +185,14 @@ public final class PackageTest extends JMeterTestCase {
                 }
                 errorDetected=true;
                 log.error("No default bundle found for " + className + " using " + defaultLocale.toString());
-                //throw new Error("No default bundle for class " + className);
                 continue;
             }
 
             suite.addTest(new PackageTest(testBeanClass, defaultLocale, defaultBundle));
 
-            String [] languages = JMeterMenuBar.getLanguages();
-            for (int i=0; i < languages.length; i++){
-                final String[] language = languages[i].split("_");
+            String[] languages = JMeterMenuBar.getLanguages();
+            for (String lang : languages) {
+                final String[] language = lang.split("_");
                 if (language.length == 1){
                     suite.addTest(new PackageTest(testBeanClass, new Locale(language[0]), defaultBundle));                                    
                 } else if (language.length == 2){

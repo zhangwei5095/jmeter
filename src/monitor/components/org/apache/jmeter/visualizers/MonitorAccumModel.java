@@ -57,8 +57,8 @@ public class MonitorAccumModel implements Clearable, Serializable {
      *
      */
     public MonitorAccumModel() {
-        serverListMap = new HashMap<String, List<MonitorModel>>();
-        listeners = new LinkedList<MonitorListener>();
+        serverListMap = new HashMap<>();
+        listeners = new LinkedList<>();
     }
 
     public int getBufferSize() {
@@ -174,7 +174,7 @@ public class MonitorAccumModel implements Clearable, Serializable {
                 } 
                 // This part of code throws NullPointerException
                 // Don't think Monitor results can be loaded from files
-                // see https://issues.apache.org/bugzilla/show_bug.cgi?id=51810
+                // see https://bz.apache.org/bugzilla/show_bug.cgi?id=51810
 //                else {
 //                    noResponse(surl);
 //                }
@@ -229,8 +229,7 @@ public class MonitorAccumModel implements Clearable, Serializable {
      *            the {@link MonitorModel} that should be sent to the listeners
      */
     public void notifyListeners(MonitorModel model) {
-        for (int idx = 0; idx < listeners.size(); idx++) {
-            MonitorListener ml = listeners.get(idx);
+        for (MonitorListener ml : listeners) {
             ml.addSample(model);
         }
     }

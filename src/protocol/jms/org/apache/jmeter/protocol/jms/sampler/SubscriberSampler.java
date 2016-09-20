@@ -188,21 +188,23 @@ public class SubscriberSampler extends BaseJMSSampler implements Interruptible, 
             now = System.currentTimeMillis();
         }
         result.sampleEnd();
-        result.setResponseMessage(read + " samples messages received");
         if (getReadResponseAsBoolean()) {
             result.setResponseData(buffer.toString().getBytes()); // TODO - charset?
         } else {
-            result.setBytes(buffer.toString().getBytes().length); // TODO - charset?
+            result.setBytes(buffer.toString().length());
         }
         result.setResponseHeaders(propBuffer.toString());
         if (read == 0) {
             result.setResponseCode("404"); // Not found
             result.setSuccessful(false);
-        } else { // TODO set different status if not enough messages found?
+        } else if (read < loop) { // Not enough messages found
+            result.setResponseCode("500"); // Server error
+            result.setSuccessful(false);
+        } else { 
             result.setResponseCodeOK();
             result.setSuccessful(true);
         }
-        result.setResponseMessage(read + " message(s) received successfully");
+        result.setResponseMessage(read + " message(s) received successfully of " + loop + " expected");
         result.setSamplerData(loop + " messages expected");
         result.setSampleCount(read);
         
@@ -228,7 +230,9 @@ public class SubscriberSampler extends BaseJMSSampler implements Interruptible, 
      * @return wait time
      */
     private long calculateWait(long until, long now) {
-        if (until == 0) return DEFAULT_WAIT; // Timeouts not active
+        if (until == 0) {
+            return DEFAULT_WAIT; // Timeouts not active
+        }
         long wait = until - now; // How much left
         return wait > DEFAULT_WAIT ? DEFAULT_WAIT : wait;
     }
@@ -295,9 +299,7 @@ public class SubscriberSampler extends BaseJMSSampler implements Interruptible, 
                     if (!stopBetweenSamples){ // Don't start yet if stop between samples
                         SUBSCRIBER.start();
                     }
-                } catch (NamingException e) {
-                    exceptionDuringInit = e;
-                } catch (JMSException e) {
+                } catch (NamingException | JMSException e) {
                     exceptionDuringInit = e;
                 }
             } else {
@@ -306,9 +308,7 @@ public class SubscriberSampler extends BaseJMSSampler implements Interruptible, 
                     if (!stopBetweenSamples){ // Don't start yet if stop between samples
                         SUBSCRIBER.start();
                     }
-                } catch (JMSException e) {
-                    exceptionDuringInit = e;
-                } catch (NamingException e) {
+                } catch (JMSException | NamingException e) {
                     exceptionDuringInit = e;
                 }
             }

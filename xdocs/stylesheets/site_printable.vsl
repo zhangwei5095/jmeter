@@ -82,7 +82,7 @@
 <td bgcolor="$tabletdbg" #if ($colspan)colspan="$colspan"#end #if ($rowspan)rowspan="$rowspan"#end valign="top" align="left">
 <font color="#000000" size="-1" face="arial,helvetica,sanserif">
 #if ($value.getText().length() != 0 || $value.getChildren().size() > 0)
-$value.content
+#runloop($value)
 #else
 &nbsp;
 #end
@@ -130,6 +130,10 @@ $value.content
 #set ($align=$value.getAttributeValue("align"))
 #end
 <img src="$relativePath$value.getAttributeValue("src")" width="$!width" height="$!height" align="$!align"/>
+#end
+
+#macro ( code $value)
+<tt class="code">$escape.getText($value.getText())</tt>
 #end
 
 #macro ( source $value)
@@ -226,7 +230,11 @@ No
 #end
 ##
 #macro ( bugzilla $id)
-<a href="https://issues.apache.org/bugzilla/show_bug.cgi?id=$id.getText()">Bug $id.getText()</a>
+<a href="https://bz.apache.org/bugzilla/show_bug.cgi?id=$id.getText()">Bug $id.getText()</a>
+#end
+
+#macro ( pr $id)
+<a href="https://github.com/apache/jmeter/pull/$id.getText()">Pull request #$id.getText()</a> - ##
 #end
 
 ## Shorthand - automatically adds " - " before remaining text
@@ -268,6 +276,8 @@ Contributed by $id.getAttributeValue("name") &lt;$id.getAttributeValue("mail")&g
 #example ($node)
 #elseif ($node.getName().equals("source"))
 #source ($node)
+#elseif ($node.getName().equals("code"))
+#code ($node)
 #elseif ($node.getName().equals("table"))
 #table ($node)
 #elseif ($node.getName().equals("component"))
@@ -280,6 +290,8 @@ Contributed by $id.getAttributeValue("name") &lt;$id.getAttributeValue("mail")&g
 #bugzilla ($node)
 #elseif ($node.getName().equals("bug"))
 #bug ($node)
+#elseif ($node.getName().equals("pr"))
+#pr ($node)
 #elseif ($node.getName().equals("contributor"))
 #contributor ($node)
 #elseif ($node.getName().equals("ch_section"))
@@ -288,6 +300,16 @@ Contributed by $id.getAttributeValue("name") &lt;$id.getAttributeValue("mail")&g
 #ch_category ($node)
 #elseif ($node.getName().equals("ch_title"))
 #ch_title ($node)
+#elseif ($node.getName().equals("menuchoice"))
+#menuchoice ($node)
+#elseif ($node.getName().equals("shortcut"))
+#shortcut ($node)
+#elseif ($node.getName().equals("keycombo"))
+#keycombo ($node)
+#elseif ($node.getName().equals("keysym"))
+#keysym ($node)
+#elseif ($node.getName().equals("guimenuitem"))
+#guimenuitem ($node)
 #else
 #outputTag($node)
 #runloop($node)
@@ -310,6 +332,25 @@ Contributed by $id.getAttributeValue("name") &lt;$id.getAttributeValue("mail")&g
 #macro (outputEndTag $tag)
 </$tag.getName()>
 #end
+
+#macro (menuchoice $items)
+ <span class="menuchoice">
+ #foreach ($item in $items.getChildren("guimenuitem"))#guimenuitem($item)#if ($foreach.hasNext)&nbsp;&rarr;&nbsp;#end#end
+ #foreach ($item in $items.getChildren("shortcut"))
+  #shortcut($item)
+ #end
+ </span>
+#end
+
+#macro (guimenuitem $item)<span class="guimenuitem">$item.getText()</span>#end
+
+#macro (shortcut $shortcut)
+ (#foreach ($keycombo in $shortcut.getChildren("keycombo"))#keycombo ($keycombo)#end)
+#end
+
+#macro (keycombo $combo)<span class="keycombo">#foreach ($key in $combo.getChildren("keysym"))#keysym($key)#if ($foreach.hasNext)&nbsp;+&nbsp;#end#end</span>#end
+
+#macro (keysym $keysym)<span class="keysym">$keysym.getText()</span>#end
 
 #macro (runloop $itemToLoop)
 #foreach ($node in $itemToLoop.getContent())
@@ -492,7 +533,7 @@ $comp.getAttributeValue("index")
 #set ( $logoHeight = $project.getChild("logo").getAttributeValue("height") )
 #set ( $logoWidth  = $project.getChild("logo").getAttributeValue("width") )
 <td align="left">
-<a href="http://www.apache.org"><img title="Apache Software Foundation" width="387" height="100" src="$imgdir/asf-logo.gif" border="0"/></a>
+<a href="http://www.apache.org"><img style="margin: 0px 30px 0px 0px" title="Apache Software Foundation" width="261" height="106" src="$imgdir/asf-logo.png" border="0"/></a>
 </td>
 <td align="right">
 #if ( $logoString.startsWith("/") )
@@ -503,7 +544,7 @@ $comp.getAttributeValue("index")
 </td>
 #else
 <td colspan="2">
-<a href="http://www.apache.org"><img title="Apache Software Foundation" width="387" height="100" src="$imgdir/asf-logo.gif" border="0"/></a>
+<a href="http://www.apache.org"><img title="Apache Software Foundation" width="261" height="106" src="$imgdir/asf-logo.png" border="0"/></a>
 </td>
 #end
 #end
@@ -515,7 +556,7 @@ $comp.getAttributeValue("index")
 <html>
 <head>
 <link rel="stylesheet" type="text/css" href="$cssdir/style.css"/>
-<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 #set ($authors = $root.getChild("properties").getChildren("author"))
 #foreach ( $au in $authors )
 #metaauthor ( $au.getText() $au.getAttributeValue("email") )
@@ -528,6 +569,9 @@ $comp.getAttributeValue("index")
 #set ($id = $root.getAttributeValue("id"))
 
 <title>$project.getChild("title").getText() - $root.getChild("properties").getChild("title").getText()</title>
+<style>
+  .code { font-weight: bold; }
+</style>
 </head>
 
 <body bgcolor="$bodybg" text="$bodyfg" link="$bodylink">

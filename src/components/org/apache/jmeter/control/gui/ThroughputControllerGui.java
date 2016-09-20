@@ -31,6 +31,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import org.apache.jmeter.control.ThroughputController;
+import org.apache.jmeter.gui.util.CheckBoxPanel;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.gui.layout.VerticalLayout;
@@ -38,7 +39,7 @@ import org.apache.jorphan.gui.layout.VerticalLayout;
 public class ThroughputControllerGui extends AbstractControllerGui {
     private static final long serialVersionUID = 240L;
 
-    private JComboBox styleBox;
+    private JComboBox<String> styleBox;
 
     private int style;
 
@@ -100,9 +101,9 @@ public class ThroughputControllerGui extends AbstractControllerGui {
     @Override
     public void clearGui() {
         super.clearGui();
-        styleBox.setSelectedIndex(0);
+        styleBox.setSelectedIndex(1);
         throughput.setText("1"); // $NON-NLS-1$
-        perthread.setSelected(true);
+        perthread.setSelected(false);
     }
 
     @Override
@@ -123,15 +124,15 @@ public class ThroughputControllerGui extends AbstractControllerGui {
         return "throughput_control_title"; // $NON-NLS-1$
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new VerticalLayout(5, VerticalLayout.BOTH, VerticalLayout.TOP));
         setBorder(makeBorder());
         add(makeTitlePanel());
 
-        DefaultComboBoxModel styleModel = new DefaultComboBoxModel();
+        DefaultComboBoxModel<String> styleModel = new DefaultComboBoxModel<>();
         styleModel.addElement(BYNUMBER_LABEL);
         styleModel.addElement(BYPERCENT_LABEL);
-        styleBox = new JComboBox(styleModel);
+        styleBox = new JComboBox<>(styleModel);
         styleBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -169,6 +170,6 @@ public class ThroughputControllerGui extends AbstractControllerGui {
                 }
             }
         });
-        add(perthread);
+        add(CheckBoxPanel.wrap(perthread));
     }
 }

@@ -21,7 +21,6 @@ package org.apache.jmeter.control;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.LinkedList;
 
 import org.apache.jmeter.gui.tree.JMeterTreeNode;
@@ -67,9 +66,8 @@ public class IncludeController extends GenericController implements ReplaceableC
         clone.setIncludePath(this.getIncludePath());
         if (this.subtree != null) {
             if (this.subtree.size() == 1) {
-                Iterator<Object> itr = this.subtree.keySet().iterator();
-                while (itr.hasNext()) {
-                    this.sub = (TestElement) itr.next();
+                for (Object o : this.subtree.keySet()) {
+                    this.sub = (TestElement) o;
                 }
             }
             clone.subtree = (HashTree)this.subtree.clone();
@@ -123,18 +121,21 @@ public class IncludeController extends GenericController implements ReplaceableC
         final String includePath = getIncludePath();
         HashTree tree = null;
         if (includePath != null && includePath.length() > 0) {
+            String fileName=prefix+includePath;
             try {
-                String fileName=prefix+includePath;
-                File file = new File(fileName);
+                File file = new File(fileName.trim());
                 final String absolutePath = file.getAbsolutePath();
                 log.info("loadIncludedElements -- try to load included module: "+absolutePath);
                 if(!file.exists() && !file.isAbsolute()){
                     log.info("loadIncludedElements -failed for: "+absolutePath);
                     file = new File(FileServer.getFileServer().getBaseDir(), includePath);
-                    log.info("loadIncludedElements -Attempting to read it from: "+absolutePath);
-                    if(!file.exists()){
-                        log.error("loadIncludedElements -failed for: "+absolutePath);
-                        throw new IOException("loadIncludedElements -failed for: "+absolutePath);
+                    log.info("loadIncludedElements -Attempting to read it from: " + file.getAbsolutePath());
+                    if(!file.canRead() || !file.isFile()){
+                        log.error("Include Controller \""
+                                + this.getName()+"\" can't load \"" 
+                                + fileName+"\" - see log for details");
+                        throw new IOException("loadIncludedElements -failed for: " + absolutePath +
+                                " and " + file.getAbsolutePath());
                     }
                 }
                 
@@ -145,23 +146,22 @@ public class IncludeController extends GenericController implements ReplaceableC
                 return tree;
             } catch (NoClassDefFoundError ex) // Allow for missing optional jars
             {
-                String msg = ex.getMessage();
-                if (msg == null) {
-                    msg = "Missing jar file - see log for details";
-                }
-                log.warn("Missing jar file", ex);
-                JMeterUtils.reportErrorToUser(msg);
+                String msg = "Including file \""+ fileName 
+                            + "\" failed for Include Controller \""+ this.getName()
+                            +"\", missing jar file";
+                log.warn(msg, ex);
+                JMeterUtils.reportErrorToUser(msg+" - see log for details");
             } catch (FileNotFoundException ex) {
-                String msg = ex.getMessage();
-                JMeterUtils.reportErrorToUser(msg);
-                log.warn(msg);
+                String msg = "File \""+ fileName 
+                        + "\" not found for Include Controller \""+ this.getName()+"\"";
+                JMeterUtils.reportErrorToUser(msg+" - see log for details");
+                log.warn(msg, ex);
             } catch (Exception ex) {
-                String msg = ex.getMessage();
-                if (msg == null) {
-                    msg = "Unexpected error - see log for details";
-                }
-                JMeterUtils.reportErrorToUser(msg);
-                log.warn("Unexpected error", ex);
+                String msg = "Including file \"" + fileName 
+                            + "\" failed for Include Controller \"" + this.getName()
+                            +"\", unexpected error";
+                JMeterUtils.reportErrorToUser(msg+" - see log for details");
+                log.warn(msg, ex);
             }
         }
         return tree;
@@ -173,9 +173,8 @@ public class IncludeController extends GenericController implements ReplaceableC
      * @return HashTree Subset within Test Fragment or Empty HashTree
      */
     private HashTree getProperBranch(HashTree tree) {
-        Iterator<Object> iter = new LinkedList<Object>(tree.list()).iterator();
-        while (iter.hasNext()) {
-            TestElement item = (TestElement) iter.next();
+        for (Object o : new LinkedList<>(tree.list())) {
+            TestElement item = (TestElement) o;
 
             //if we found a TestPlan, then we are on our way to the TestFragment
             if (item instanceof TestPlan)
@@ -194,14 +193,11 @@ public class IncludeController extends GenericController implements ReplaceableC
 
 
     private void removeDisabledItems(HashTree tree) {
-        Iterator<Object> iter = new LinkedList<Object>(tree.list()).iterator();
-        while (iter.hasNext()) {
-            TestElement item = (TestElement) iter.next();
+        for (Object o : new LinkedList<>(tree.list())) {
+            TestElement item = (TestElement) o;
             if (!item.isEnabled()) {
-                //log.info("Removing "+item.toString());
                 tree.remove(item);
             } else {
-                //log.info("Keeping "+item.toString());
                 removeDisabledItems(tree.getTree(item));// Recursive call
             }
         }

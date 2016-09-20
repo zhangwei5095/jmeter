@@ -90,7 +90,7 @@ public class FunctionHelper extends JDialog implements ActionListener, ChangeLis
         return rootPane;
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         parameterPanel = new ArgumentsPanel(JMeterUtils.getResString("function_params"), false); //$NON-NLS-1$
         initializeFunctionList();
         this.getContentPane().setLayout(new BorderLayout(10, 10));
@@ -142,8 +142,7 @@ public class FunctionHelper extends JDialog implements ActionListener, ChangeLis
             this.pack();
             this.validate();
             this.repaint();
-        } catch (InstantiationException e) {
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
         }
     }
 

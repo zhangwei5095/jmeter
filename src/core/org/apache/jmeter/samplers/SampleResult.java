@@ -23,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jmeter.assertions.AssertionResult;
+import org.apache.jmeter.gui.Searchable;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.jorphan.util.JOrphanUtils;
@@ -42,7 +44,7 @@ import org.apache.log.Logger;
  * sample of an entry.
  *
  */
-public class SampleResult implements Serializable, Cloneable {
+public class SampleResult implements Serializable, Cloneable, Searchable {
 
     private static final long serialVersionUID = 241L;
 
@@ -53,7 +55,7 @@ public class SampleResult implements Serializable, Cloneable {
      * The default encoding to be used if not overridden.
      * The value is ISO-8859-1.
      */
-    public static final String DEFAULT_HTTP_ENCODING = "ISO-8859-1";  // $NON-NLS-1$
+    public static final String DEFAULT_HTTP_ENCODING = StandardCharsets.ISO_8859_1.name();
 
     // Bug 33196 - encoding ISO-8859-1 is only suitable for Western countries
     // However the suggested System.getProperty("file.encoding") is Cp1252 on
@@ -73,7 +75,7 @@ public class SampleResult implements Serializable, Cloneable {
     private static final String DEFAULT_CHARSET = Charset.defaultCharset().name();
 
     /**
-     * Data type value indicating that the response data is text.
+     * Data type value ({@value}) indicating that the response data is text.
      *
      * @see #getDataType
      * @see #setDataType(java.lang.String)
@@ -81,7 +83,7 @@ public class SampleResult implements Serializable, Cloneable {
     public static final String TEXT = "text"; // $NON-NLS-1$
 
     /**
-     * Data type value indicating that the response data is binary.
+     * Data type value ({@value}) indicating that the response data is binary.
      *
      * @see #getDataType
      * @see #setDataType(java.lang.String)
@@ -101,8 +103,8 @@ public class SampleResult implements Serializable, Cloneable {
     private static final boolean GETBYTES_HEADERS_SIZE = 
         JMeterUtils.getPropDefault("sampleresult.getbytes.headers_size", true); // $NON-NLS-1$
     
-    private static final boolean GETBYTES_NETWORK_SIZE = 
-        GETBYTES_HEADERS_SIZE && GETBYTES_BODY_REALSIZE ? true : false;
+    private static final boolean GETBYTES_NETWORK_SIZE =
+            GETBYTES_HEADERS_SIZE && GETBYTES_BODY_REALSIZE;
 
     private SampleSaveConfiguration saveConfig;
 
@@ -159,6 +161,13 @@ public class SampleResult implements Serializable, Cloneable {
 
     private List<SampleResult> subResults;
 
+    /**
+     * The data type of the sample
+     * @see #getDataType()
+     * @see #setDataType(String)
+     * @see #TEXT
+     * @see #BINARY
+     */
     private String dataType=""; // Don't return null if not set
 
     private boolean success;
@@ -168,7 +177,7 @@ public class SampleResult implements Serializable, Cloneable {
     /** In Non GUI mode and when best config is used, size never exceeds 1, 
      * but as a compromise set it to 3 
      */
-    private final Set<String> files = new HashSet<String>(3);
+    private final Set<String> files = new HashSet<>(3);
 
     private String dataEncoding;// (is this really the character set?) e.g.
                                 // ISO-8895-1, UTF-8
@@ -393,7 +402,7 @@ public class SampleResult implements Serializable, Cloneable {
      * Allow users to create a sample with specific timestamp and elapsed times
      * for cloning purposes, but don't allow the times to be changed later
      *
-     * Currently used by OldSaveService, CSVSaveService and
+     * Currently used by CSVSaveService and
      * StatisticalSampleResult
      *
      * @param stamp
@@ -562,7 +571,7 @@ public class SampleResult implements Serializable, Cloneable {
 
     public void addAssertionResult(AssertionResult assertResult) {
         if (assertionResults == null) {
-            assertionResults = new ArrayList<AssertionResult>();
+            assertionResults = new ArrayList<>();
         }
         assertionResults.add(assertResult);
     }
@@ -588,7 +597,7 @@ public class SampleResult implements Serializable, Cloneable {
      */
     public void addSubResult(SampleResult subResult) {
         if(subResult == null) {
-            // see https://issues.apache.org/bugzilla/show_bug.cgi?id=54778
+            // see https://bz.apache.org/bugzilla/show_bug.cgi?id=54778
             return;
         }
         String tn = getThreadName();
@@ -629,7 +638,7 @@ public class SampleResult implements Serializable, Cloneable {
      */
     public void storeSubResult(SampleResult subResult) {
         if (subResults == null) {
-            subResults = new ArrayList<SampleResult>();
+            subResults = new ArrayList<>();
         }
         subResults.add(subResult);
         subResult.setParent(this);
@@ -756,13 +765,27 @@ public class SampleResult implements Serializable, Cloneable {
         return success;
     }
 
+    /**
+     * Sets the data type of the sample.
+     * @param dataType String containing {@link #BINARY} or {@link #TEXT}
+     * @see #BINARY
+     * @see #TEXT
+     */
     public void setDataType(String dataType) {
         this.dataType = dataType;
     }
 
+    /**
+     * Returns the data type of the sample.
+     * 
+     * @return String containing {@link #BINARY} or {@link #TEXT} or the empty string
+     * @see #BINARY
+     * @see #TEXT
+     */
     public String getDataType() {
         return dataType;
     }
+
     /**
      * Extract and save the DataEncoding and DataType from the parameter provided.
      * Does not save the full content Type.
@@ -809,7 +832,8 @@ public class SampleResult implements Serializable, Cloneable {
 
     // List of types that are known to be ascii, although they may appear to be binary
     private static final String[] NON_BINARY_TYPES = {
-        "video/f4m",       //$NON-NLS-1$ (Flash Media Manifest)
+        "audio/x-mpegurl",  //$NON-NLS-1$ (HLS Media Manifest)
+        "video/f4m"         //$NON-NLS-1$ (Flash Media Manifest)
         };
 
     /*
@@ -824,8 +848,8 @@ public class SampleResult implements Serializable, Cloneable {
                 return false;
             }
         }
-        for (int i = 0; i < BINARY_TYPES.length; i++){
-            if (ct.startsWith(BINARY_TYPES[i])){
+        for (String binaryType : BINARY_TYPES) {
+            if (ct.startsWith(binaryType)) {
                 return true;
             }
         }
@@ -1410,5 +1434,15 @@ public class SampleResult implements Serializable, Cloneable {
         } catch (CloneNotSupportedException e) {
             throw new IllegalStateException("This should not happen");
         }
+    }
+
+    @Override
+    public List<String> getSearchableTokens() throws Exception {
+        List<String> datasToSearch = new ArrayList<>(4);
+        datasToSearch.add(getSampleLabel());
+        datasToSearch.add(getResponseDataAsString());
+        datasToSearch.add(getRequestHeaders());
+        datasToSearch.add(getResponseHeaders());
+        return datasToSearch;
     }
 }

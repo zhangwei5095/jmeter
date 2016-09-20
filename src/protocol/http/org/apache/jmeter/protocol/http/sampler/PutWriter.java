@@ -26,7 +26,7 @@ import java.net.URLConnection;
 import org.apache.jmeter.protocol.http.util.HTTPArgument;
 import org.apache.jmeter.protocol.http.util.HTTPConstants;
 import org.apache.jmeter.protocol.http.util.HTTPFileArg;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 
 /**
  * Class for setting the necessary headers for a PUT request, and sending the
@@ -56,7 +56,7 @@ public class PutWriter extends PostWriter {
         String contentTypeHeader = connection.getRequestProperty(HTTPConstants.HEADER_CONTENT_TYPE);
         boolean hasContentTypeHeader = contentTypeHeader != null && contentTypeHeader.length() > 0;
 
-        HTTPFileArg files[] = sampler.getHTTPFiles();
+        HTTPFileArg[] files = sampler.getHTTPFiles();
 
         // If there are no arguments, we can send a file as the body of the request
          if(sampler.getArguments() != null && sampler.getArguments().getArgumentCount() == 0 && sampler.getSendFileAsPostBody()) {
@@ -88,11 +88,10 @@ public class PutWriter extends PostWriter {
 
             // Just append all the parameter values, and use that as the put body
             StringBuilder putBodyBuffer = new StringBuilder();
-            PropertyIterator args = sampler.getArguments().iterator();
-            while (args.hasNext()) {
-                HTTPArgument arg = (HTTPArgument) args.next().getObjectValue();
-                putBodyBuffer.append(arg.getEncodedValue(contentEncoding));
-            }
+             for (JMeterProperty jMeterProperty : sampler.getArguments()) {
+                 HTTPArgument arg = (HTTPArgument) jMeterProperty.getObjectValue();
+                 putBodyBuffer.append(arg.getEncodedValue(contentEncoding));
+             }
 
             bos.write(putBodyBuffer.toString().getBytes(contentEncoding));
             bos.flush();

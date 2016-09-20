@@ -18,6 +18,7 @@
 
 <!DOCTYPE document[
 <!ENTITY sect-num '2'>
+<!ENTITY hellip   "&#x02026;" >
 ]>
 
 <document prev="intro.html" next="build-test-plan.html" id="$Id$">
@@ -69,7 +70,7 @@ over your Test Plans.</p>
 <p>JMeter requires that your computing environment meets some minimum requirements.</p>
 
 <subsection name="&sect-num;.1.1 Java Version" anchor="java_versions">
-<note>JMeter requires a fully compliant JVM 6 or higher.  
+<note>JMeter requires a fully compliant JVM 7 or higher.  
 </note>
 <p>Because JMeter uses only standard Java APIs, please do not file bug reports if your JRE fails to run
 JMeter because of JRE implementation issues.</p>
@@ -90,7 +91,7 @@ on JMeter wiki.</p>
 
 
 <subsection name="&sect-num;.2.1 Java Compiler" anchor="opt_compiler">
-<p>If you want to build the JMeter source or develop JMeter plugins, then you will need a fully compliant JDK 6 or higher.</p>
+<p>If you want to build the JMeter source or develop JMeter plugins, then you will need a fully compliant JDK 7 or higher.</p>
 </subsection>
 
 <subsection name="&sect-num;.2.2 SAX XML Parser" anchor="opt_sax">
@@ -114,7 +115,7 @@ If your version of Java does not include SSL support, then it is possible to add
 Include the necessary encryption packages in JMeter's <a href="#classpath">classpath</a>.  
 Also, update <a href="#configuring_jmeter"><code>system.properties</code></a> to register the SSL Provider.</p>
 <p>
-JMeter HTTP defaults to protocol level TLS. This can be changed by editting the JMeter property 
+JMeter HTTP defaults to protocol level TLS. This can be changed by editing the JMeter property 
 <code>https.default.protocol</code> in <code>jmeter.properties</code> or <code>user.properties</code>.
 </p>
 <p><b>The JMeter HTTP samplers are configured to accept all certificates,
@@ -217,7 +218,7 @@ For example:
 </p>
 <source>
 set JVM_ARGS="-Xms1024m -Xmx1024m -Dpropname=propvalue"
-jmeter -t test.jmx ...
+jmeter -t test.jmx &hellip;
 </source>
 
 <p>
@@ -261,7 +262,7 @@ then define the property <code>user.classpath</code> or <code>plugin_dependency_
 in <code>jmeter.properties</code>. See below for an explanation of the differences.
 </p>
 <p>
-Other jars (such as JDBC, JMS implementations and any other support libaries needed by the JMeter code)
+Other jars (such as JDBC, JMS implementations and any other support libraries needed by the JMeter code)
 should be placed in the <code>lib</code> directory - not the <code>lib/ext</code> directory,
 or added to <code>user.classpath</code>.</p>
 <note>JMeter will only find <code>.jar</code> files, not <code>.zip</code>.</note>
@@ -270,13 +271,17 @@ property <code>user.classpath</code> in <code>jmeter.properties</code></p>
 <p>Note that setting the <code>CLASSPATH</code> environment variable will have no effect.
 This is because JMeter is started with "<code>java -jar</code>",
 and the java command silently ignores the <code>CLASSPATH</code> variable, and the <code>-classpath</code>/<code>-cp</code>
-options when <code>-jar</code> is used.
-[This occurs with all Java programs, not just JMeter.]</p>
+options when <code>-jar</code> is used.</p>
+<note>This occurs with all Java programs, not just JMeter.</note>
 </subsection>
 
 <subsection name="&sect-num;.4.2 Create Test Plan from Template" anchor="template">
 <p>You have the ability to create a new Test Plan from existing template.</p>
-<p>To do so you use the menu <b>File</b> &gt; <b>Templates...</b> or Templates icon:
+<p>To do so you use the menu
+<menuchoice>
+  <guimenuitem>File</guimenuitem>
+  <guimenuitem>Templates&hellip;</guimenuitem>
+</menuchoice> or Templates icon:
 <figure image="template_menu.png">Templates icon item</figure>
 </p>
 <p>A popup appears, you can then choose a template among the list:
@@ -290,11 +295,11 @@ options when <code>-jar</code> is used.
 the firewall/proxy server hostname and port number.  To do so, run the <code>jmeter[.bat]</code> file
 from a command line with the following parameters:</p>
 <dl>
-<dh><code>-H</code></dh><dd>[proxy server hostname or ip address]</dd>
-<dh><code>-P</code></dh><dd>[proxy server port]</dd>
-<dh><code>-N</code></dh><dd>[nonproxy hosts] (e.g. <code>*.apache.org|localhost</code>)</dd>
-<dh><code>-u</code></dh><dd>[username for proxy authentication - if required]</dd>
-<dh><code>-a</code></dh><dd>[password for proxy authentication - if required]</dd>
+<dt><code>-H</code></dt><dd>[proxy server hostname or ip address]</dd>
+<dt><code>-P</code></dt><dd>[proxy server port]</dd>
+<dt><code>-N</code></dt><dd>[nonproxy hosts] (e.g. <code>*.apache.org|localhost</code>)</dd>
+<dt><code>-u</code></dt><dd>[username for proxy authentication - if required]</dd>
+<dt><code>-a</code></dt><dd>[password for proxy authentication - if required]</dd>
 </dl>
 <b>Example</b>:
 <source>jmeter -H my.proxy.server -P 8000 -u username -a password -N localhost</source>
@@ -333,17 +338,20 @@ This is not to be confused with the proxy settings described above, which are us
 <p>For non-interactive testing, you may choose to run JMeter without the GUI. To do so, use
 the following command options:</p>
 <dl>
-<dh><code>-n</code></dh><dd>This specifies JMeter is to run in non-gui mode</dd>
-<dh><code>-t</code></dh><dd>[name of JMX file that contains the Test Plan].</dd>
-<dh><code>-l</code></dh><dd>[name of JTL file to log sample results to].</dd>
-<dh><code>-j</code></dh><dd>[name of JMeter run log file].</dd>
-<dh><code>-r</code></dh><dd>Run the test in the servers specified by the JMeter property "<code>remote_hosts</code>"</dd>
-<dh><code>-R</code></dh><dd>[list of remote servers] Run the test in the specified remote servers</dd>
+<dt><code>-n</code></dt><dd>This specifies JMeter is to run in non-gui mode</dd>
+<dt><code>-t</code></dt><dd>[name of JMX file that contains the Test Plan].</dd>
+<dt><code>-l</code></dt><dd>[name of JTL file to log sample results to].</dd>
+<dt><code>-j</code></dt><dd>[name of JMeter run log file].</dd>
+<dt><code>-r</code></dt><dd>Run the test in the servers specified by the JMeter property "<code>remote_hosts</code>"</dd>
+<dt><code>-R</code></dt><dd>[list of remote servers] Run the test in the specified remote servers</dd>
+<dt><code>-g</code></dt><dd>[path to CSV file] generate report dashboard only</dd>
+<dt><code>-e</code></dt><dd>generate report dashboard after load test</dd>
+<dt><code>-o</code></dt><dd>output folder where to generate the report dashboard after load test. Folder must not exist or be empty</dd>
 </dl>
 <p>The script also lets you specify the optional firewall/proxy server information:</p>
 <dl>
-<dh><code>-H</code></dh><dd>[proxy server hostname or ip address]</dd>
-<dh><code>-P</code></dh><dd>[proxy server port]</dd>
+<dt><code>-H</code></dt><dd>[proxy server hostname or ip address]</dd>
+<dt><code>-P</code></dt><dd>[proxy server port]</dd>
 </dl>
 <b>Example</b>
 <source>jmeter -n -t my_test.jmx -l log.jtl -H my.proxy.server -P 8000</source>
@@ -360,8 +368,8 @@ You can also use non-GUI mode to run remote tests.
 To start the server(s), run <code>jmeter-server[.bat]</code> on each server host.</p>
 <p>The script also lets you specify the optional firewall/proxy server information:</p>
 <dl>
-<dh><code>-H</code></dh><dd>[proxy server hostname or ip address]</dd>
-<dh><code>-P</code></dh><dd>[proxy server port]</dd>
+<dt><code>-H</code></dt><dd>[proxy server hostname or ip address]</dd>
+<dt><code>-P</code></dt><dd>[proxy server port]</dd>
 </dl>
 <b>Example</b>:
 <source>jmeter-server -H my.proxy.server -P 8000</source>
@@ -373,9 +381,9 @@ jmeter -n -t testplan.jmx -r [-Gprop=val] [-Gglobal.properties] [-X]
 </source>
 where:
 <dl>
-<dh><code>-G</code></dh><dd>is used to define JMeter properties to be set in the servers</dd>
-<dh><code>-X</code></dh><dd>means exit the servers at the end of the test</dd>
-<dh><code>-Rserver1,server2</code></dh><dd>can be used instead of <code>-r</code> to provide a list of servers to start.
+<dt><code>-G</code></dt><dd>is used to define JMeter properties to be set in the servers</dd>
+<dt><code>-X</code></dt><dd>means exit the servers at the end of the test</dd>
+<dt><code>-Rserver1,server2</code></dt><dd>can be used instead of <code>-r</code> to provide a list of servers to start.
 Overrides <code>remote_hosts</code>, but does not define the property.</dd>
 </dl>
 <p>
@@ -386,15 +394,15 @@ Normally this is not necessary.
 </subsection>
 
 <subsection name="&sect-num;.4.6 Overriding Properties Via The Command Line" anchor="override">
-<p>Java system properties, JMeter properties, and logging properties can be overriden directly on the command line
+<p>Java system properties, JMeter properties, and logging properties can be overridden directly on the command line
 (instead of modifying <code>jmeter.properties</code>).
 To do so, use the following options:</p>
 <dl>
-<dh><code>-D[prop_name]=[value]</code></dh><dd>defines a java system property value.</dd>
-<dh><code>-J[prop_name]=[value]</code></dh><dd>defines a local JMeter property.</dd>
-<dh><code>-G[prop_name]=[value]</code></dh><dd>defines a JMeter property to be sent to all remote servers.</dd>
-<dh><code>-G[propertyfile]</code></dh><dd>defines a file containing JMeter properties to be sent to all remote servers.</dd>
-<dh><code>-L[category]=[priority]</code></dh><dd>overrides a logging setting, setting a particular category to the given priority level.</dd>
+<dt><code>-D[prop_name]=[value]</code></dt><dd>defines a java system property value.</dd>
+<dt><code>-J[prop_name]=[value]</code></dt><dd>defines a local JMeter property.</dd>
+<dt><code>-G[prop_name]=[value]</code></dt><dd>defines a JMeter property to be sent to all remote servers.</dd>
+<dt><code>-G[propertyfile]</code></dt><dd>defines a file containing JMeter properties to be sent to all remote servers.</dd>
+<dt><code>-L[category]=[priority]</code></dt><dd>overrides a logging setting, setting a particular category to the given priority level.</dd>
 </dl>
 <p>The <code>-L</code> flag can also be used without the category name to set the root logging level.</p>
 <p><b>Examples</b>:
@@ -420,7 +428,8 @@ jmeter -Duser.dir=/home/mstover/jmeter_stuff \
         It defaults to <code>jmeter.log</code>, and will be found in the directory from which JMeter was launched.
         </p>
         <p>
-        The menu <b>Options > Log Viewer</b> displays the log file in a bottom pane on main JMeter window.
+        The menu <menuchoice><guimenuitem>Options</guimenuitem><guimenuitem>Log Viewer</guimenuitem></menuchoice>
+        displays the log file in a bottom pane on main JMeter window.
         </p>
         <p>
         In the GUI mode, the number of error/fatal messages logged in the log file is displayed at top-right.
@@ -436,7 +445,7 @@ jmeter -Duser.dir=/home/mstover/jmeter_stuff \
         e.g. for the test plan <code>Test27.jmx</code> the log file is set to <code>Test27.log</code>.
         </p>
         <p>When running on Windows, the file may appear as just <b>jmeter</b> unless you have set Windows to show file extensions.
-        [Which you should do anyway, to make it easier to detect viruses and other nasties that pretend to be text files...]
+        [Which you should do anyway, to make it easier to detect viruses and other nasties that pretend to be text files &hellip;]
         </p>
         <p>As well as recording errors, the <code>jmeter.log</code> file records some information about the test run. For example:</p>
 <source>
@@ -456,53 +465,60 @@ jmeter -Duser.dir=/home/mstover/jmeter_stuff \
 <p>Invoking JMeter as "<code>jmeter -?</code>" will print a list of all the command-line options. 
 These are shown below.</p>
 <source>
--h, --help
+    -h, --help
         print usage information and exit
--v, --version
+    -v, --version
         print the version information and exit
--p, --propfile {argument}
+    -p, --propfile &lt;argument&gt;
         the jmeter property file to use
--q, --addprop {argument}
-        additional property file(s)
--t, --testfile {argument}
+    -q, --addprop &lt;argument&gt;
+        additional JMeter property file(s)
+    -t, --testfile &lt;argument&gt;
         the jmeter test(.jmx) file to run
--j, --jmeterlogfile {argument}
-        the jmeter log file
--l, --logfile {argument}
+    -l, --logfile &lt;argument&gt;
         the file to log samples to
--n, --nongui
+    -j, --jmeterlogfile &lt;argument&gt;
+        jmeter run log file (jmeter.log)
+    -n, --nongui
         run JMeter in nongui mode
--s, --server
+    -s, --server
         run the JMeter server
--H, --proxyHost {argument}
+    -H, --proxyHost &lt;argument&gt;
         Set a proxy server for JMeter to use
--P, --proxyPort {argument}
+    -P, --proxyPort &lt;argument&gt;
         Set proxy server port for JMeter to use
--u, --username {argument}
+    -N, --nonProxyHosts &lt;argument&gt;
+        Set nonproxy host list (e.g. *.apache.org|localhost)
+    -u, --username &lt;argument&gt;
         Set username for proxy server that JMeter is to use
--a, --password {argument}
+    -a, --password &lt;argument&gt;
         Set password for proxy server that JMeter is to use
--J, --jmeterproperty {argument}={value}
+    -J, --jmeterproperty &lt;argument&gt;=&lt;value&gt;
         Define additional JMeter properties
--G, --globalproperty (argument)[=(value)]
+    -G, --globalproperty &lt;argument&gt;=&lt;value&gt;
         Define Global properties (sent to servers)
         e.g. -Gport=123
          or -Gglobal.properties
--D, --systemproperty {argument}={value}
-        Define additional System properties
--S, --systemPropertyFile {filename}
-        a property file to be added as System properties
--L, --loglevel {argument}={value}
-        Define loglevel: [category=]level 
-        e.g. jorphan=INFO or jmeter.util=DEBUG
--r, --runremote (non-GUI only)
-        Start remote servers (as defined by the jmeter property remote_hosts)
--R, --remotestart  server1,... (non-GUI only)
+    -D, --systemproperty &lt;argument&gt;=&lt;value&gt;
+        Define additional system properties
+    -S, --systemPropertyFile &lt;argument&gt;
+        additional system property file(s)
+    -L, --loglevel &lt;argument&gt;=&lt;value&gt;
+        [category=]level e.g. jorphan=INFO or jmeter.util=DEBUG
+    -r, --runremote
+        Start remote servers (as defined in remote_hosts)
+    -R, --remotestart &lt;argument&gt;
         Start these remote servers (overrides remote_hosts)
--d, --homedir {argument}
+    -d, --homedir &lt;argument&gt;
         the jmeter home directory to use
--X, --remoteexit
+    -X, --remoteexit
         Exit the remote servers at end of test (non-GUI)
+    -g, --reportonly &lt;argument&gt;
+        generate report dashboard only
+    -e, --reportatendofloadtests
+        generate report dashboard after load test
+    -o, --reportoutputfolder
+        output folder for report dashboard
 </source>
 <p>
 Note: the JMeter log file name is formatted as a SimpleDateFormat (applied to the current date) 
@@ -521,7 +537,7 @@ Prior to version 2.5.1, JMeter invoked <code>System.exit()</code> when a non-GUI
 This caused problems for applications that invoke JMeter directly, so JMeter no longer invokes <code>System.exit()</code>
 for a normal test completion. [Some fatal errors may still invoke <code>System.exit()</code>]
 JMeter will exit all the non-daemon threads it starts, but it is possible that some non-daemon threads
-may still remain; these will prevent the JVM from exitting.
+may still remain; these will prevent the JVM from exiting.
 To detect this situation, JMeter starts a new daemon thread just before it exits.
 This daemon thread waits a short while; if it returns from the wait, then clearly the
 JVM has not been able to exit, and the thread prints a message to say why.

@@ -61,7 +61,7 @@ public class FileListPanel extends JPanel implements ActionListener {
 
     private JButton delete = new JButton(JMeterUtils.getResString("delete")); // $NON-NLS-1$
 
-    private List<ChangeListener> listeners = new LinkedList<ChangeListener>();
+    private List<ChangeListener> listeners = new LinkedList<>();
 
     private String title;
 
@@ -101,7 +101,7 @@ public class FileListPanel extends JPanel implements ActionListener {
         listeners.add(l);
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         this.setLayout(new BorderLayout(0, 5));
         setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 5));
         JLabel jtitle = new JLabel(title);
@@ -115,6 +115,7 @@ public class FileListPanel extends JPanel implements ActionListener {
 
         this.initializeTableModel();
         files = new JTable(tableModel);
+        JMeterUtils.applyHiDPI(files);
         files.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         files.revalidate();
 
@@ -207,8 +208,8 @@ public class FileListPanel extends JPanel implements ActionListener {
             chooser.showOpenDialog(GuiPackage.getInstance().getMainFrame());
             File[] cfiles = chooser.getSelectedFiles();
             if (cfiles != null) {
-                for (int idx=0; idx < cfiles.length; idx++) {
-                    this.addFilename(cfiles[idx].getPath());
+                for (File cfile : cfiles) {
+                    this.addFilename(cfile.getPath());
                 }
                 fireFileChanged();
             }

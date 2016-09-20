@@ -18,6 +18,10 @@
 
 package org.apache.jmeter;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,6 +40,8 @@ import java.util.regex.Pattern;
 
 import org.apache.jmeter.junit.JMeterTestCase;
 import org.apache.jmeter.util.JMeterUtils;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Check the eclipse and Maven version definitions against build.properties
@@ -43,12 +49,11 @@ import org.apache.jmeter.util.JMeterUtils;
 public class JMeterVersionTest extends JMeterTestCase {
 
     // Convert between eclipse jar name and build.properties name
-    private static Map<String, String> JAR_TO_BUILD_PROP = new HashMap<String, String>();
+    private static Map<String, String> JAR_TO_BUILD_PROP = new HashMap<>();
     static {
         JAR_TO_BUILD_PROP.put("bsf", "apache-bsf");
         JAR_TO_BUILD_PROP.put("bsh", "beanshell");
         JAR_TO_BUILD_PROP.put("geronimo-jms_1.1_spec", "jms");
-        JAR_TO_BUILD_PROP.put("htmllexer", "htmlparser"); // two jars same version
         JAR_TO_BUILD_PROP.put("httpmime", "httpclient"); // two jars same version
         JAR_TO_BUILD_PROP.put("mail", "javamail");
         JAR_TO_BUILD_PROP.put("oro", "jakarta-oro");
@@ -58,16 +63,20 @@ public class JMeterVersionTest extends JMeterTestCase {
 
     private static final File JMETER_HOME = new File(JMeterUtils.getJMeterHome());
 
-    public JMeterVersionTest() {
-        super();
-    }
+    /**
+     * Versions of all libraries mentioned in build.properties (except checkstyle-all)
+     */
+    private final Map<String, String> versions = new HashMap<>();
 
-    public JMeterVersionTest(String arg0) {
-        super(arg0);
-    }
+    /**
+     * Names of library.version entries in build.properties, excluding jars not bundled (used for docs only)
+     */
+    private final Set<String> propNames = new HashSet<>();
 
-    private final Map<String, String> versions = new HashMap<String, String>();
-    private final Set<String> propNames = new HashSet<String>();
+    /**
+     * License file names found under license/bin (WITHOUT the .txt suffix)
+     */
+    private final Set<String> liceFiles = new HashSet<>();
 
     private File getFileFromHome(String relativeFile) {
         return new File(JMETER_HOME, relativeFile);
@@ -75,8 +84,8 @@ public class JMeterVersionTest extends JMeterTestCase {
 
     private Properties prop;
 
-    @Override
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         final Properties buildProp = new Properties();
         final FileInputStream bp = new FileInputStream(getFileFromHome("build.properties"));
         buildProp.load(bp);
@@ -94,15 +103,37 @@ public class JMeterVersionTest extends JMeterTestCase {
             }
         }
         // remove docs-only jars
+        propNames.remove("jdom");
         propNames.remove("velocity");
-        propNames.remove("commons-lang");
+        propNames.remove("commons-lang"); // lang3 is bundled, lang2 is doc-only
+        // remove optional checkstyle name
+        propNames.remove("checkstyle-all"); // not needed in Maven
+        buildProp.remove("checkstyle-all.loc"); // not a Maven download
+        versions.remove("checkstyle-all");
+        // remove option RAT jars
+        propNames.remove("rat");
+        versions.remove("rat");
+        propNames.remove("rat-tasks");
+        versions.remove("rat-tasks");
         prop = buildProp;
+        final File licencesDir = getFileFromHome("licenses/bin");
+        licencesDir.list(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                if (! name.equalsIgnoreCase("README.txt") 
+                        && !name.equals(".svn")) { // Allow for old-style SVN workspaces
+                    liceFiles.add(name.replace(".txt",""));
+                }
+                return false;
+            }
+        });
     }
 
     /**
      * Check eclipse.classpath contains the jars declared in build.properties
      * @throws Exception if something fails
      */
+    @Test
     public void testEclipse() throws Exception {
         final BufferedReader eclipse = new BufferedReader(
                 new FileReader(getFileFromHome("eclipse.classpath"))); // assume default charset is OK here
@@ -112,7 +143,7 @@ public class JMeterVersionTest extends JMeterTestCase {
         final Pattern p = Pattern.compile("\\s+<classpathentry kind=\"lib\" path=\"lib/(?:api/)?(.+?)-([^-]+(-b\\d+|-BETA\\d)?)\\.jar\"/>");
         final Pattern versionPat = Pattern.compile("\\$\\{(.+)\\.version\\}");
         String line;
-        final ArrayList<String> toRemove = new ArrayList<String>();
+        final ArrayList<String> toRemove = new ArrayList<>();
         while((line=eclipse.readLine()) != null){
             final Matcher m = p.matcher(line);
             if (m.matches()) {
@@ -161,6 +192,7 @@ public class JMeterVersionTest extends JMeterTestCase {
         }
     }
 
+    @Test
     public void testMaven() throws Exception {
         final BufferedReader maven = new BufferedReader(
                 new FileReader(getFileFromHome("res/maven/ApacheJMeter_parent.pom"))); // assume default charset is OK here
@@ -190,27 +222,77 @@ public class JMeterVersionTest extends JMeterTestCase {
         }
    }
 
+    @Test
     public void testLicences() {
-        Set<String> liceNames = new HashSet<String>();
+        Set<String> liceNames = new HashSet<>();
         for (Map.Entry<String, String> me : versions.entrySet()) {
         final String key = me.getKey();
-            liceNames.add(key+"-"+me.getValue()+".txt");
-            if (key.equals("htmlparser")) {
-                liceNames.add("htmllexer"+"-"+me.getValue()+".txt");
-            }
+            liceNames.add(key+"-"+me.getValue());
         }
-        File licencesDir = getFileFromHome("licenses/bin");
-        String [] lice = licencesDir.list(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return ! name.equalsIgnoreCase("README.txt") 
-                        && !name.equals(".svn"); // Allow for old-style SVN workspaces
-            }
-        });
-        assertTrue("Expected at least one license file",lice.length > 0);
-        for(String l : lice) {
+        assertTrue("Expected at least one license file", liceFiles.size() > 0);
+        for(String l : liceFiles) {
             if (!liceNames.remove(l)) {
                 fail("Mismatched version in license file " + l);
+            }
+        }
+    }
+
+    @Test
+    public void testLICENSE() throws Exception {
+        HashSet<String> buildOnly = new HashSet<>();
+        buildOnly.addAll(Arrays.asList(new String[]{"bcprov","bcmail","bcpkix"}));
+        // Build set of names expected to be mentioned in LICENSE
+        final HashSet<String> binaryJarNames = new HashSet<>();
+        for(Map.Entry<String, String> me : versions.entrySet()) {
+            final String key = me.getKey();
+            final String jarName = key + "-" + me.getValue();
+            if (propNames.contains(key) && !buildOnly.contains(key)) {
+              binaryJarNames.add(jarName);                
+            }
+        }
+        // Extract the jar names fron LICENSE
+        final BufferedReader license = new BufferedReader(
+                new FileReader(getFileFromHome("LICENSE"))); // assume default charset is OK here
+        final Pattern p = Pattern.compile("^\\* (\\S+?)\\.jar(.*)");
+
+        final HashSet<String> namesInLicenseFile = new HashSet<>(); // names documented in LICENSE
+        final HashSet<String> externalNamesinLicenseFile = new HashSet<>(); // names documented in LICENSE with licenses/bin entries
+
+        String line;
+        while((line=license.readLine()) != null){
+            final Matcher m = p.matcher(line);
+            if (m.matches()) {
+                final String name = m.group(1);
+                assertTrue("Duplicate jar in LICENSE file " + line, namesInLicenseFile.add(name));
+                if (!binaryJarNames.contains(name)) {
+                    fail("Unexpected entry in LICENCE file: " + line);                    
+                }
+                final String comment = m.group(2);
+                if (comment.length() > 0) { // must be in external list
+                    externalNamesinLicenseFile.add(name);
+                }
+            }
+        }
+        license.close();
+
+        // Check all build.properties entries are in LICENSE file
+        for(String s : binaryJarNames) {
+            if (!namesInLicenseFile.contains(s)) {
+                fail("LICENSE does not contain entry for " + s);
+            }
+        }
+
+        // Check that external license files are present
+        for(String s : externalNamesinLicenseFile) {
+            if (!liceFiles.contains(s)) {
+                fail("bin/licenses does not contain a file for " + s);
+            }
+        }
+
+        // Check that there are no license/bin files not mentioned in LICENSE
+        for(String s : liceFiles) {
+            if (!namesInLicenseFile.contains(s)) {
+                fail("LICENSE does not contain entry for " + s);
             }
         }
     }
@@ -218,6 +300,7 @@ public class JMeterVersionTest extends JMeterTestCase {
     /**
      * Check that all downloads use Maven Central
      */
+    @Test
     public void testMavenDownload() {
         int fails = 0;
         for (Entry<Object, Object> entry : prop.entrySet()) {

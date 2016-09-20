@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.BorderFactory;
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.ImageIcon;
@@ -45,6 +46,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTree;
+import javax.swing.border.Border;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -54,6 +56,7 @@ import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jmeter.JMeter;
 import org.apache.jmeter.assertions.AssertionResult;
 import org.apache.jmeter.gui.util.VerticalPanel;
 import org.apache.jmeter.samplers.Clearable;
@@ -79,6 +82,10 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
     public static final Color CLIENT_ERROR_COLOR = Color.blue;
 
     public static final Color REDIRECT_COLOR = Color.green;
+    
+    private static final Border RED_BORDER = BorderFactory.createLineBorder(Color.red);
+    
+    private static final Border BLUE_BORDER = BorderFactory.createLineBorder(Color.blue);
 
     private  JSplitPane mainSplit;
 
@@ -92,23 +99,26 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
 
     private JTabbedPane rightSide;
 
-    private JComboBox selectRenderPanel;
+    private JComboBox<ResultRenderer> selectRenderPanel;
 
     private int selectedTab;
 
     protected static final String COMBO_CHANGE_COMMAND = "change_combo"; // $NON-NLS-1$
 
+    private static final String iconSize = JMeterUtils.getPropDefault(JMeter.TREE_ICON_SIZE, JMeter.DEFAULT_TREE_ICON_SIZE);
+
     private static final ImageIcon imageSuccess = JMeterUtils.getImage(
             JMeterUtils.getPropDefault("viewResultsTree.success",  //$NON-NLS-1$
-                    "icon_success_sml.gif")); //$NON-NLS-1$
+                    "vrt/" + iconSize + "/security-high-2.png")); //$NON-NLS-1$ $NON-NLS-2$
 
     private static final ImageIcon imageFailure = JMeterUtils.getImage(
             JMeterUtils.getPropDefault("viewResultsTree.failure",  //$NON-NLS-1$
-                    "icon_warning_sml.gif")); //$NON-NLS-1$
+                    "vrt/" + iconSize + "/security-low-2.png")); //$NON-NLS-1$ $NON-NLS-2$
 
     // Maximum size that we will display
+    // Default limited to 10 megabytes
     private static final int MAX_DISPLAY_SIZE =
-        JMeterUtils.getPropDefault("view.results.tree.max_size", 200 * 1024); // $NON-NLS-1$
+        JMeterUtils.getPropDefault("view.results.tree.max_size", 10485760); // $NON-NLS-1$
 
     // default display order
     private static final String VIEWERS_ORDER =
@@ -131,7 +141,7 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
     /** {@inheritDoc} */
     @Override
     public void add(final SampleResult sample) {
-        JMeterUtils.runSafe(new Runnable() {
+        JMeterUtils.runSafe(false, new Runnable() {
             @Override
             public void run() {
                 updateGui(sample);
@@ -144,17 +154,15 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
      */
     private synchronized void updateGui(SampleResult res) {
         // Add sample
-        DefaultMutableTreeNode currNode = new DefaultMutableTreeNode(res);
+        DefaultMutableTreeNode currNode = new SearchableTreeNode(res, treeModel);
         treeModel.insertNodeInto(currNode, root, root.getChildCount());
         addSubResults(currNode, res);
         // Add any assertion that failed as children of the sample node
-        AssertionResult assertionResults[] = res.getAssertionResults();
+        AssertionResult[] assertionResults = res.getAssertionResults();
         int assertionIndex = currNode.getChildCount();
-        for (int j = 0; j < assertionResults.length; j++) {
-            AssertionResult item = assertionResults[j];
-
-            if (item.isFailure() || item.isError()) {
-                DefaultMutableTreeNode assertionNode = new DefaultMutableTreeNode(item);
+        for (AssertionResult assertionResult : assertionResults) {
+            if (assertionResult.isFailure() || assertionResult.isError()) {
+                DefaultMutableTreeNode assertionNode = new SearchableTreeNode(assertionResult, treeModel);
                 treeModel.insertNodeInto(assertionNode, currNode, assertionIndex++);
             }
         }
@@ -173,24 +181,20 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
 
         int leafIndex = 0;
 
-        for (int i = 0; i < subResults.length; i++) {
-            SampleResult child = subResults[i];
-
+        for (SampleResult child : subResults) {
             if (log.isDebugEnabled()) {
                 log.debug("updateGui1 : child sample result - " + child);
             }
-            DefaultMutableTreeNode leafNode = new DefaultMutableTreeNode(child);
+            DefaultMutableTreeNode leafNode = new SearchableTreeNode(child, treeModel);
 
             treeModel.insertNodeInto(leafNode, currNode, leafIndex++);
             addSubResults(leafNode, child);
             // Add any assertion that failed as children of the sample node
-            AssertionResult assertionResults[] = child.getAssertionResults();
+            AssertionResult[] assertionResults = child.getAssertionResults();
             int assertionIndex = leafNode.getChildCount();
-            for (int j = 0; j < assertionResults.length; j++) {
-                AssertionResult item = assertionResults[j];
-
+            for (AssertionResult item : assertionResults) {
                 if (item.isFailure() || item.isError()) {
-                    DefaultMutableTreeNode assertionNode = new DefaultMutableTreeNode(item);
+                    DefaultMutableTreeNode assertionNode = new SearchableTreeNode(item, treeModel);
                     treeModel.insertNodeInto(assertionNode, leafNode, assertionIndex++);
                 }
             }
@@ -217,7 +221,7 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
     /**
      * Initialize this visualizer
      */
-    protected void init() {
+    private void init() {  // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         log.debug("init() - pass");
         setLayout(new BorderLayout(0, 5));
         setBorder(makeBorder());
@@ -229,7 +233,12 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
 
         // Create the split pane
         mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftSide, rightSide);
-        add(mainSplit, BorderLayout.CENTER);
+        mainSplit.setOneTouchExpandable(true);
+
+        JSplitPane searchAndMainSP = new JSplitPane(JSplitPane.VERTICAL_SPLIT, 
+                new SearchTreePanel(root), mainSplit);
+        searchAndMainSP.setOneTouchExpandable(true);
+        add(searchAndMainSP, BorderLayout.CENTER);
         // init right side with first render
         resultsRender.setRightSide(rightSide);
         resultsRender.init();
@@ -280,7 +289,7 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
         SampleResult rootSampleResult = new SampleResult();
         rootSampleResult.setSampleLabel("Root");
         rootSampleResult.setSuccessful(true);
-        root = new DefaultMutableTreeNode(rootSampleResult);
+        root = new SearchableTreeNode(rootSampleResult, null);
 
         treeModel = new DefaultTreeModel(root);
         jTree = new JTree(treeModel);
@@ -307,9 +316,9 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
      * @return List of all render (implement ResultsRender)
      */
     private Component createComboRender() {
-        ComboBoxModel nodesModel = new DefaultComboBoxModel();
+        ComboBoxModel<ResultRenderer> nodesModel = new DefaultComboBoxModel<>();
         // drop-down list for renderer
-        selectRenderPanel = new JComboBox(nodesModel);
+        selectRenderPanel = new JComboBox<>(nodesModel);
         selectRenderPanel.setActionCommand(COMBO_CHANGE_COMMAND);
         selectRenderPanel.addActionListener(this);
 
@@ -322,7 +331,7 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
         }
         String textRenderer = JMeterUtils.getResString("view_results_render_text"); // $NON-NLS-1$
         Object textObject = null;
-        Map<String, ResultRenderer> map = new HashMap<String, ResultRenderer>(classesToAdd.size());
+        Map<String, ResultRenderer> map = new HashMap<>(classesToAdd.size());
         for (String clazz : classesToAdd) {
             try {
                 // Instantiate render classes
@@ -364,7 +373,7 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
     public void actionPerformed(ActionEvent event) {
         String command = event.getActionCommand();
         if (COMBO_CHANGE_COMMAND.equals(command)) {
-            JComboBox jcb = (JComboBox) event.getSource();
+            JComboBox<?> jcb = (JComboBox<?>) event.getSource();
 
             if (jcb != null) {
                 resultsRender = (ResultRenderer) jcb.getSelectedItem();
@@ -436,6 +445,16 @@ implements ActionListener, TreeSelectionListener, Clearable, ItemListener {
                 this.setIcon(imageFailure);
             } else {
                 this.setIcon(imageSuccess);
+            }
+            
+            // Handle search related rendering
+            SearchableTreeNode node = (SearchableTreeNode) value;
+            if(node.isNodeHasMatched()) {
+                setBorder(RED_BORDER);
+            } else if (node.isChildrenNodesHaveMatched()) {
+                setBorder(BLUE_BORDER);
+            } else {
+                setBorder(null);
             }
             return this;
         }

@@ -239,9 +239,9 @@ public class ReceiveSubscriber implements Closeable, MessageListener {
             subscriber = createSubscriber(session, dest, durableSubscriptionId, jmsSelector);
             if(useMessageListener) {
                 if (queueSize <=0) {
-                    queue = new LinkedBlockingQueue<Message>();
+                    queue = new LinkedBlockingQueue<>();
                 } else {
-                    queue = new LinkedBlockingQueue<Message>(queueSize);            
+                    queue = new LinkedBlockingQueue<>(queueSize);
                 }
                 subscriber.setMessageListener(this);
             } else {
@@ -378,6 +378,6 @@ public class ReceiveSubscriber implements Closeable, MessageListener {
      * @return True if input is null, an empty string, or a white space-only string
      */
     private boolean isEmpty(String s1) {
-        return (s1 == null || s1.trim().equals(""));
+        return (s1 == null || s1.trim().isEmpty());
     }
 }

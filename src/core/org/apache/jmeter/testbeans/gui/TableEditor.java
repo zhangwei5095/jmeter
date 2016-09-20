@@ -20,6 +20,7 @@ package org.apache.jmeter.testbeans.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
@@ -42,8 +43,10 @@ import javax.swing.ListSelectionModel;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 
+import org.apache.jmeter.gui.ClearGui;
 import org.apache.jmeter.testelement.property.TestElementProperty;
 import org.apache.jmeter.util.JMeterUtils;
+import org.apache.jorphan.gui.GuiUtils;
 import org.apache.jorphan.gui.ObjectTableModel;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.jorphan.reflect.Functor;
@@ -56,8 +59,8 @@ import org.apache.log.Logger;
  * <li>property type Collection of {@link String}s, where there is a single header entry</li>
  * </ul>
  */
-public class TableEditor extends PropertyEditorSupport implements FocusListener,TestBeanPropertyEditor,TableModelListener {
-    private static final Logger log = LoggingManager.getLoggerForClass();
+public class TableEditor extends PropertyEditorSupport implements FocusListener,TestBeanPropertyEditor,TableModelListener, ClearGui {
+    private static final Logger LOG = LoggingManager.getLoggerForClass();
 
     /** 
      * attribute name for class name of a table row;
@@ -78,15 +81,26 @@ public class TableEditor extends PropertyEditorSupport implements FocusListener,
     private ObjectTableModel model;
     private Class<?> clazz;
     private PropertyDescriptor descriptor;
-    private final JButton addButton,removeButton,clearButton;
+    private final JButton addButton;
+    private final JButton clipButton;
+    private final JButton removeButton;
+    private final JButton clearButton;
+    private final JButton upButton;
+    private final JButton downButton;
 
     public TableEditor() {
         addButton = new JButton(JMeterUtils.getResString("add")); // $NON-NLS-1$
         addButton.addActionListener(new AddListener());
+        clipButton = new JButton(JMeterUtils.getResString("add_from_clipboard")); // $NON-NLS-1$
+        clipButton.addActionListener(new ClipListener());
         removeButton = new JButton(JMeterUtils.getResString("remove")); // $NON-NLS-1$
         removeButton.addActionListener(new RemoveListener());
         clearButton = new JButton(JMeterUtils.getResString("clear")); // $NON-NLS-1$
         clearButton.addActionListener(new ClearListener());
+        upButton = new JButton(JMeterUtils.getResString("up")); // $NON-NLS-1$
+        upButton.addActionListener(new UpListener());
+        downButton = new JButton(JMeterUtils.getResString("down")); // $NON-NLS-1$
+        downButton.addActionListener(new DownListener());
     }
 
     @Override
@@ -102,16 +116,24 @@ public class TableEditor extends PropertyEditorSupport implements FocusListener,
         return pane;
     }
 
-    private JComponent makePanel()
-    {
+    private JComponent makePanel() {
         JPanel p = new JPanel(new BorderLayout());
         JScrollPane scroller = new JScrollPane(table);
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        scroller.setMinimumSize(new Dimension(100, 70));
         scroller.setPreferredSize(scroller.getMinimumSize());
         p.add(scroller,BorderLayout.CENTER);
         JPanel south = new JPanel();
         south.add(addButton);
+        south.add(clipButton);
+        removeButton.setEnabled(false);
         south.add(removeButton);
+        clearButton.setEnabled(false);
         south.add(clearButton);
+        upButton.setEnabled(false);
+        south.add(upButton);
+        downButton.setEnabled(false);
+        south.add(downButton);
         p.add(south,BorderLayout.SOUTH);
         return p;
     }
@@ -128,25 +150,37 @@ public class TableEditor extends PropertyEditorSupport implements FocusListener,
 
     @Override
     public void setValue(Object value) {
-        if(value != null)
-        {
+        if(value != null) {
             model.setRows(convertCollection((Collection<?>)value));
+        } else {
+            model.clearData();
         }
-        else model.clearData();
+        
+        if(model.getRowCount()>0) {
+            removeButton.setEnabled(true);
+            clearButton.setEnabled(true);
+        } else {
+            removeButton.setEnabled(false);
+            clearButton.setEnabled(false);
+        }
+        
+        if(model.getRowCount()>1) {
+            upButton.setEnabled(true);
+            downButton.setEnabled(true);
+        } else {
+            upButton.setEnabled(false);
+            downButton.setEnabled(false);
+        }
+        
         this.firePropertyChange();
     }
 
-    private Collection<Object> convertCollection(Collection<?> values)
-    {
-        List<Object> l = new LinkedList<Object>();
-        for(Object obj : values)
-        {
-            if(obj instanceof TestElementProperty)
-            {
+    private Collection<Object> convertCollection(Collection<?> values) {
+        List<Object> l = new LinkedList<>();
+        for(Object obj : values) {
+            if(obj instanceof TestElementProperty) {
                 l.add(((TestElementProperty)obj).getElement());
-            }
-            else
-            {
+            } else {
                 l.add(obj);
             }
         }
@@ -180,15 +214,12 @@ public class TableEditor extends PropertyEditorSupport implements FocusListener,
     void initializeModel()
     {
         Object hdrs = descriptor.getValue(HEADERS);
-        if (!(hdrs instanceof String[])){
+        if (!(hdrs instanceof String[])) {
             throw new RuntimeException("attribute HEADERS must be a String array");            
         }
-        if(clazz == String.class)
-        {
+        if(clazz == String.class) {
             model = new ObjectTableModel((String[])hdrs,new Functor[0],new Functor[0],new Class[]{String.class});
-        }
-        else
-        {
+        } else {
             Object value = descriptor.getValue(OBJECT_PROPERTIES);
             if (!(value instanceof String[])) {
                 throw new RuntimeException("attribute OBJECT_PROPERTIES must be a String array");
@@ -198,8 +229,7 @@ public class TableEditor extends PropertyEditorSupport implements FocusListener,
             Functor[] readers = new Functor[props.length];
             Class<?>[] editors = new Class[props.length];
             int count = 0;
-            for(String propName : props)
-            {
+            for(String propName : props) {
                 propName = propName.substring(0,1).toUpperCase(Locale.ENGLISH) + propName.substring(1);
                 writers[count] = createWriter(clazz,propName);
                 readers[count] = createReader(clazz,propName);
@@ -210,34 +240,30 @@ public class TableEditor extends PropertyEditorSupport implements FocusListener,
         }
         model.addTableModelListener(this);
         table = new JTable(model);
+        JMeterUtils.applyHiDPI(table);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.addFocusListener(this);
     }
 
-    Functor createWriter(Class<?> c,String propName)
-    {
+    Functor createWriter(Class<?> c,String propName) {
         String setter = "set" + propName; // $NON-NLS-1$
         return new Functor(setter);
     }
 
-    Functor createReader(Class<?> c,String propName)
-    {
+    Functor createReader(Class<?> c,String propName) {
         String getter = "get" + propName; // $NON-NLS-1$
-        try
-        {
+        try {
             c.getMethod(getter,new Class[0]);
             return new Functor(getter);
+        } catch(Exception e) {
+            return new Functor("is" + propName);
         }
-        catch(Exception e) { return new Functor("is" + propName); }
     }
 
-    Class<?> getArgForWriter(Class<?> c,String propName)
-    {
+    Class<?> getArgForWriter(Class<?> c,String propName) {
         String setter = "set" + propName; // $NON-NLS-1$
-        for(Method m : c.getMethods())
-        {
-            if(m.getName().equals(setter))
-            {
+        for(Method m : c.getMethods()) {
+            if(m.getName().equals(setter)) {
                 return m.getParameterTypes()[0];
             }
         }
@@ -259,55 +285,133 @@ public class TableEditor extends PropertyEditorSupport implements FocusListener,
         final int editingRow = table.getEditingRow();
         final int editingColumn = table.getEditingColumn();
         CellEditor ce = null;
-        if (editingRow != -1 && editingColumn != -1){
+        if (editingRow != -1 && editingColumn != -1) {
             ce = table.getCellEditor(editingRow,editingColumn);
         }
         Component editor = table.getEditorComponent();
-        if(ce != null && (editor == null || editor != e.getOppositeComponent()))
-        {
+        if(ce != null && (editor == null || editor != e.getOppositeComponent())) {
             ce.stopCellEditing();
-        }
-        else if(editor != null)
-        {
+        } else if(editor != null) {
             editor.addFocusListener(this);
         }
         this.firePropertyChange();
     }
 
-    private class AddListener implements ActionListener
-    {
+    private class AddListener implements ActionListener {
         @Override
-        public void actionPerformed(ActionEvent e)
-        {
-            try
-            {
+        public void actionPerformed(ActionEvent e) {
+            try {
                 model.addRow(clazz.newInstance());
-            }catch(Exception err)
-            {
-                log.error("The class type given to TableEditor was not instantiable. ",err);
+                
+                removeButton.setEnabled(true);
+                clearButton.setEnabled(true);
+            } catch(Exception err) {
+                LOG.error("The class type given to TableEditor was not instantiable. ", err);
+            }
+        }
+    }
+    
+    private class ClipListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            try {
+                String clipboardContent = GuiUtils.getPastedText();
+                if(clipboardContent == null) {
+                    return;
+                }
+
+                String[] clipboardLines = clipboardContent.split("\n"); // $NON-NLS-1$
+                for (String clipboardLine : clipboardLines) {
+                    String[] columns = clipboardLine.split("\t"); // $NON-NLS-1$
+
+                    model.addRow(clazz.newInstance());
+                    
+                    for (int i=0; i < columns.length; i++) {
+                        model.setValueAt(columns[i], model.getRowCount() - 1, i);
+                    }
+                }
+
+                if(model.getRowCount()>1) {
+                    upButton.setEnabled(true);
+                    downButton.setEnabled(true);
+                } else {
+                    upButton.setEnabled(false);
+                    downButton.setEnabled(false);
+                }
+            } catch (Exception err) {
+                LOG.error("The class type given to TableEditor was not instantiable. ", err);
             }
         }
     }
 
-    private class RemoveListener implements ActionListener
-    {
+    private class RemoveListener implements ActionListener {
         @Override
-        public void actionPerformed(ActionEvent e)
-        {
-            int row = table.getSelectedRow();
-            if (row >= 0) {
-                model.removeRow(row);
+        public void actionPerformed(ActionEvent e) {
+            int[] rows = table.getSelectedRows();
+            for(int i=0; i<rows.length; i++){
+              model.removeRow(rows[i]-i);
+            }
+            
+            if(model.getRowCount()>1) {
+                upButton.setEnabled(true);
+                downButton.setEnabled(true);
+            } else {
+                upButton.setEnabled(false);
+                downButton.setEnabled(false);
             }
         }
     }
 
-    private class ClearListener implements ActionListener
-    {
+    private class ClearListener implements ActionListener {
         @Override
-        public void actionPerformed(ActionEvent e)
-        {
+        public void actionPerformed(ActionEvent e) {
             model.clearData();
+            
+            upButton.setEnabled(false);
+            downButton.setEnabled(false);
+        }
+    }
+    
+    private class UpListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            GuiUtils.cancelEditing(table);
+
+            int[] rowsSelected = table.getSelectedRows();
+            if (rowsSelected.length > 0 && rowsSelected[0] > 0) {
+                table.clearSelection();
+                for (int rowSelected : rowsSelected) {
+                    model.moveRow(rowSelected, rowSelected + 1, rowSelected - 1);
+                }
+                for (int rowSelected : rowsSelected) {
+                    table.addRowSelectionInterval(rowSelected - 1, rowSelected - 1);
+                }
+            }            
+        }
+    }
+    
+    private class DownListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            GuiUtils.cancelEditing(table);
+            
+            int[] rowsSelected = table.getSelectedRows();
+            if (rowsSelected.length > 0 && rowsSelected[rowsSelected.length - 1] < table.getRowCount() - 1) {
+                table.clearSelection();
+                for (int i = rowsSelected.length - 1; i >= 0; i--) {
+                    int rowSelected = rowsSelected[i];
+                    model.moveRow(rowSelected, rowSelected + 1, rowSelected + 1);
+                }
+                for (int rowSelected : rowsSelected) {
+                    table.addRowSelectionInterval(rowSelected + 1, rowSelected + 1);
+                }
+            }
         }
     }
 
+    @Override
+    public void clearGui() {
+        this.model.clearData();
+    }
+    
 }

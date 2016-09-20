@@ -68,25 +68,21 @@ public class GenerateTreeGui extends AbstractConfigGui implements
 
     public GenerateTreeGui() {
         super();
-        new Throwable().printStackTrace();
         init();
     }
 
     @Override
     public String getLabelResource() {
-        new Throwable().printStackTrace();
         return "test_plan"; // $NON-NLS-1$
     }
 
     @Override
     public String getStaticLabel() {
-        new Throwable().printStackTrace();
         return "Test Generator"; // $NON-NLS-1$
     }
 
     @Override
     public String getDocAnchor() {
-        new Throwable().printStackTrace();
         return super.getDocAnchor();
     }
 
@@ -220,9 +216,7 @@ public class GenerateTreeGui extends AbstractConfigGui implements
         } else {
             try {
                 SwingUtilities.invokeAndWait(runnable);
-            } catch (InterruptedException e) {
-                throw new Error(e);
-            } catch (InvocationTargetException e) {
+            } catch (InterruptedException | InvocationTargetException e) {
                 throw new Error(e);
             }
         }

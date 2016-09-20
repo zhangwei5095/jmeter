@@ -23,12 +23,14 @@ import java.awt.Component;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
@@ -36,12 +38,19 @@ import javax.swing.JTable;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jmeter.config.Argument;
 import org.apache.jmeter.gui.util.HeaderAsPropertyRenderer;
 import org.apache.jmeter.gui.util.TextBoxDialoger.TextBoxDoubleClick;
+import org.apache.jmeter.protocol.http.config.MultipartUrlConfig;
 import org.apache.jmeter.protocol.http.sampler.HTTPSampleResult;
+import org.apache.jmeter.protocol.http.util.HTTPConstants;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jmeter.visualizers.RequestView;
 import org.apache.jmeter.visualizers.SamplerResultTab.RowResult;
+import org.apache.jmeter.visualizers.SearchTextExtension;
+import org.apache.jmeter.visualizers.SearchTextExtension.ISearchTextExtensionProvider;
 import org.apache.jorphan.gui.GuiUtils;
 import org.apache.jorphan.gui.ObjectTableModel;
 import org.apache.jorphan.gui.RendererUtils;
@@ -59,7 +68,7 @@ public class RequestViewHTTP implements RequestView {
 
     private static final String KEY_LABEL = "view_results_table_request_tab_http"; //$NON-NLS-1$
     
-    private static final String CHARSET_DECODE = "ISO-8859-1"; //$NON-NLS-1$
+    private static final String CHARSET_DECODE = StandardCharsets.ISO_8859_1.name();
     
     private static final String PARAM_CONCATENATE = "&"; //$NON-NLS-1$
 
@@ -107,6 +116,8 @@ public class RequestViewHTTP implements RequestView {
             null, // Value
     };
 
+    private SearchTextExtension searchTextExtension;
+
     /**
      * Pane to view HTTP request sample in view results tree
      */
@@ -141,6 +152,13 @@ public class RequestViewHTTP implements RequestView {
     public void init() {
         paneParsed = new JPanel(new BorderLayout(0, 5));
         paneParsed.add(createRequestPane());
+        this.searchTextExtension = new SearchTextExtension();
+        this.searchTextExtension.init(paneParsed);
+        JPanel searchPanel = this.searchTextExtension.createSearchTextExtensionPane();
+        searchPanel.setBorder(null);
+        this.searchTextExtension.setSearchProvider(new RequestViewHttpSearchProvider());
+        searchPanel.setVisible(true);
+        paneParsed.add(searchPanel, BorderLayout.PAGE_END);
     }
 
     /* (non-Javadoc)
@@ -159,6 +177,7 @@ public class RequestViewHTTP implements RequestView {
     @Override
     public void setSamplerResult(Object objectResult) {
 
+        this.searchTextExtension.resetTextToFind();
         if (objectResult instanceof HTTPSampleResult) {
             HTTPSampleResult sampleResult = (HTTPSampleResult) objectResult;
 
@@ -166,6 +185,12 @@ public class RequestViewHTTP implements RequestView {
             requestModel.addRow(new RowResult(
                     JMeterUtils.getResString("view_results_table_request_http_method"), //$NON-NLS-1$
                     sampleResult.getHTTPMethod()));
+
+            // Parsed request headers
+            LinkedHashMap<String, String> lhm = JMeterUtils.parseHeaders(sampleResult.getRequestHeaders());
+            for (Entry<String, String> entry : lhm.entrySet()) {
+                headersModel.addRow(new RowResult(entry.getKey(), entry.getValue()));
+            }
 
             URL hUrl = sampleResult.getURL();
             if (hUrl != null){ // can be null - e.g. if URL was invalid
@@ -184,22 +209,39 @@ public class RequestViewHTTP implements RequestView {
                         hUrl.getPath()));
     
                 String queryGet = hUrl.getQuery() == null ? "" : hUrl.getQuery(); //$NON-NLS-1$
+                boolean isMultipart = isMultipart(lhm);
+
                 // Concatenate query post if exists
                 String queryPost = sampleResult.getQueryString();
-                if (queryPost != null && queryPost.length() > 0) {
+                if (!isMultipart && StringUtils.isNotBlank(queryPost)) {
                     if (queryGet.length() > 0) {
-                        queryGet += PARAM_CONCATENATE; 
+                        queryGet += PARAM_CONCATENATE;
                     }
                     queryGet += queryPost;
                 }
-                queryGet = RequestViewHTTP.decodeQuery(queryGet);
-                if (queryGet != null) {
-                    Set<Entry<String, String>> keys = RequestViewHTTP.getQueryMap(queryGet).entrySet();
-                    for (Entry<String, String> entry : keys) {
-                        paramsModel.addRow(new RowResult(entry.getKey(),entry.getValue()));
+                
+                if (StringUtils.isNotBlank(queryGet)) {
+                    Set<Entry<String, String[]>> keys = RequestViewHTTP.getQueryMap(queryGet).entrySet();
+                    for (Entry<String, String[]> entry : keys) {
+                        for (String value : entry.getValue()) {
+                            paramsModel.addRow(new RowResult(entry.getKey(), value));
+                        }
+                    }
+                }
+
+                if(isMultipart && StringUtils.isNotBlank(queryPost)) {
+                    String contentType = lhm.get(HTTPConstants.HEADER_CONTENT_TYPE);
+                    String boundaryString = extractBoundary(contentType);
+                    MultipartUrlConfig urlconfig = new MultipartUrlConfig(boundaryString);
+                    urlconfig.parseArguments(queryPost);
+                    
+                    for(JMeterProperty prop : urlconfig.getArguments()) {
+                        Argument arg = (Argument) prop.getObjectValue();
+                        paramsModel.addRow(new RowResult(arg.getName(), arg.getValue()));
                     }
                 }
             }
+            
             // Display cookie in headers table (same location on http protocol)
             String cookie = sampleResult.getCookies();
             if (cookie != null && cookie.length() > 0) {
@@ -207,14 +249,9 @@ public class RequestViewHTTP implements RequestView {
                         JMeterUtils.getParsedLabel("view_results_table_request_http_cookie"), //$NON-NLS-1$
                         sampleResult.getCookies()));
             }
-            // Parsed request headers
-            LinkedHashMap<String, String> lhm = JMeterUtils.parseHeaders(sampleResult.getRequestHeaders());
-            for (Iterator<Map.Entry<String, String>> iterator = lhm.entrySet().iterator(); iterator.hasNext();) {
-                Map.Entry<String, String> entry = iterator.next();
-                headersModel.addRow(new RowResult(entry.getKey(), entry.getValue()));   
-            }
 
-        } else {
+        }
+        else {
             // add a message when no http sample
             requestModel.addRow(new RowResult("", //$NON-NLS-1$
                     JMeterUtils.getResString("view_results_table_request_http_nohttp"))); //$NON-NLS-1$
@@ -222,39 +259,77 @@ public class RequestViewHTTP implements RequestView {
     }
 
     /**
-     * @param query
-     *            query to parse for param and value pairs
-     * @return Map params and Svalue
+     * Extract the multipart boundary
+     * @param contentType the content type header
+     * @return  the boundary string
+     */
+    private String extractBoundary(String contentType) {
+        // Get the boundary string for the multiparts from the content type
+        String boundaryString = contentType.substring(contentType.toLowerCase(java.util.Locale.ENGLISH).indexOf("boundary=") + "boundary=".length());
+        //TODO check in the RFC if other char can be used as separator
+        String[] split = boundaryString.split(";");
+        if(split.length > 1) {
+            boundaryString = split[0];
+        }
+        return boundaryString;
+    }
+    
+    /**
+     * check if the request is multipart
+     * @param headers the http request headers
+     * @return true if the request is multipart
+     */
+    private boolean isMultipart(LinkedHashMap<String, String> headers) {
+        String contentType = headers.get(HTTPConstants.HEADER_CONTENT_TYPE);
+        if (contentType != null && contentType.startsWith(HTTPConstants.MULTIPART_FORM_DATA)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @param query query to parse for param and value pairs
+     * @return Map params and values
      */
     //TODO: move to utils class (JMeterUtils?)
-    public static Map<String, String> getQueryMap(String query) {
+    public static Map<String, String[]> getQueryMap(String query) {
 
-        Map<String, String> map = new HashMap<String, String>();
-        if (query.trim().startsWith("<?")) { // $NON-NLS-1$
-            // SOAP request (generally)
-            map.put(" ", query); //blank name // $NON-NLS-1$
-            return map;
-        }
+        Map<String, String[]> map = new HashMap<>();
         String[] params = query.split(PARAM_CONCATENATE);
         for (String param : params) {
-            String[] paramSplit = param.split("="); // $NON-NLS-1$
-            if (paramSplit.length > 2 ) {// detected invalid syntax (Bug 52491)
-                // Return as for SOAP above
-                map.clear();
-                map.put(" ", query); //blank name // $NON-NLS-1$
+            String[] paramSplit = param.split("=");
+            String name = decodeQuery(paramSplit[0]);
+
+            // hack for SOAP request (generally)
+            if (name.trim().startsWith("<?")) { // $NON-NLS-1$
+                map.put(" ", new String[] {query}); //blank name // $NON-NLS-1$
                 return map;
             }
-            String name = null;
-            if (paramSplit.length > 0) {
-                name = paramSplit[0];
+            
+            // the post payload is not key=value
+            if((param.startsWith("=") && paramSplit.length == 1) || paramSplit.length > 2) {
+                map.put(" ", new String[] {query}); //blank name // $NON-NLS-1$
+                return map;
             }
-            String value = ""; // empty init // $NON-NLS-1$
-            if (paramSplit.length > 1) {
-                // We use substring to keep = sign (Bug 54055), we are sure = is present
-                value = param.substring(param.indexOf("=")+1); // $NON-NLS-1$
+
+            String value = "";
+            if(paramSplit.length>1) {
+                value = decodeQuery(paramSplit[1]);
             }
-            map.put(name, value);
+            
+            String[] known = map.get(name);
+            if(known == null) {
+                known = new String[] {value};
+            }
+            else {
+                String[] tmp = new String[known.length+1];
+                tmp[tmp.length-1] = value;
+                System.arraycopy(known, 0, tmp, 0, known.length);
+                known = tmp;
+            }
+            map.put(name, known);
         }
+        
         return map;
     }
 
@@ -263,22 +338,21 @@ public class RequestViewHTTP implements RequestView {
      * 
      * @param query
      *            to decode
-     * @return a decode query string
+     * @return the decoded query string, if it can be url-decoded. Otherwise the original
+     *            query will be returned.
      */
     public static String decodeQuery(String query) {
         if (query != null && query.length() > 0) {
             try {
-                query = URLDecoder.decode(query, CHARSET_DECODE); // better ISO-8859-1 than UTF-8
-            } catch(IllegalArgumentException e) {
-                log.warn("Error decoding query, maybe your request parameters should be encoded:" + query, e);
-                return null;
-            } catch (UnsupportedEncodingException uee) {
-                log.warn("Error decoding query, maybe your request parameters should be encoded:" + query, uee);
-                return null;
-            } 
-            return query;
+                return URLDecoder.decode(query, CHARSET_DECODE); // better  ISO-8859-1 than UTF-8
+            } catch (IllegalArgumentException | UnsupportedEncodingException e) {
+                log.warn(
+                        "Error decoding query, maybe your request parameters should be encoded:"
+                                + query, e);
+                return query;
+            }
         }
-        return null;
+        return "";
     }
 
     @Override
@@ -294,26 +368,29 @@ public class RequestViewHTTP implements RequestView {
     private Component createRequestPane() {
         // Set up the 1st table Result with empty headers
         tableRequest = new JTable(requestModel);
+        JMeterUtils.applyHiDPI(tableRequest);
         tableRequest.setToolTipText(JMeterUtils.getResString("textbox_tooltip_cell")); // $NON-NLS-1$
         tableRequest.addMouseListener(new TextBoxDoubleClick(tableRequest));
         
-        setFirstColumnPreferredSize(tableRequest);
+        setFirstColumnPreferredAndMaxWidth(tableRequest);
         RendererUtils.applyRenderers(tableRequest, RENDERERS_REQUEST);
 
         // Set up the 2nd table 
         tableParams = new JTable(paramsModel);
+        JMeterUtils.applyHiDPI(tableParams);
         tableParams.setToolTipText(JMeterUtils.getResString("textbox_tooltip_cell")); // $NON-NLS-1$
         tableParams.addMouseListener(new TextBoxDoubleClick(tableParams));
-        setFirstColumnPreferredSize(tableParams);
-        tableParams.getTableHeader().setDefaultRenderer(
-                new HeaderAsPropertyRenderer());
+        TableColumn column = tableParams.getColumnModel().getColumn(0);
+        column.setPreferredWidth(160);
+        tableParams.getTableHeader().setDefaultRenderer(new HeaderAsPropertyRenderer());
         RendererUtils.applyRenderers(tableParams, RENDERERS_PARAMS);
 
         // Set up the 3rd table 
         tableHeaders = new JTable(headersModel);
+        JMeterUtils.applyHiDPI(tableHeaders);
         tableHeaders.setToolTipText(JMeterUtils.getResString("textbox_tooltip_cell")); // $NON-NLS-1$
         tableHeaders.addMouseListener(new TextBoxDoubleClick(tableHeaders));
-        setFirstColumnPreferredSize(tableHeaders);
+        setFirstColumnPreferredAndMaxWidth(tableHeaders);
         tableHeaders.getTableHeader().setDefaultRenderer(
                 new HeaderAsPropertyRenderer());
         RendererUtils.applyRenderers(tableHeaders, RENDERERS_HEADERS);
@@ -338,7 +415,7 @@ public class RequestViewHTTP implements RequestView {
         return panel;
     }
 
-    private void setFirstColumnPreferredSize(JTable table) {
+    private void setFirstColumnPreferredAndMaxWidth(JTable table) {
         TableColumn column = table.getColumnModel().getColumn(0);
         column.setMaxWidth(300);
         column.setPreferredWidth(160);
@@ -350,5 +427,51 @@ public class RequestViewHTTP implements RequestView {
     @Override
     public String getLabel() {
         return JMeterUtils.getResString(KEY_LABEL);
+    }
+    
+    /**
+     * Search implementation for the http parameter table
+     */
+    private class RequestViewHttpSearchProvider implements ISearchTextExtensionProvider {
+
+        private int lastPosition = -1;
+        
+        @Override
+        public void resetTextToFind() {
+            lastPosition = -1;
+            if(tableParams != null) {
+                tableParams.clearSelection();
+            }
+        }
+
+        @Override
+        public boolean executeAndShowTextFind(Pattern pattern) {
+            boolean found =  false;
+            if(tableParams != null) {
+                tableParams.clearSelection();
+                outerloop:
+                for (int i = lastPosition+1; i < tableParams.getRowCount(); i++) {
+                    for (int j = 0; j < COLUMNS_PARAMS.length; j++) {
+                        Object o = tableParams.getModel().getValueAt(i, j);
+                        if(o instanceof String) {
+                            Matcher matcher = pattern.matcher((String) o);
+                            if ((matcher != null) && (matcher.find())) {
+                                found =  true;
+                                tableParams.setRowSelectionInterval(i, i);
+                                tableParams.scrollRectToVisible(tableParams.getCellRect(i, 0, true));
+                                lastPosition = i;
+                                break outerloop;
+                            }
+                        }
+                    }
+                }
+                
+                if(!found) {
+                    resetTextToFind();
+                }
+            }
+            return found;
+        }
+        
     }
 }

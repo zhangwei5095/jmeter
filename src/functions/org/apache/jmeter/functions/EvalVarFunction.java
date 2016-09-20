@@ -18,8 +18,6 @@
 
 package org.apache.jmeter.functions;
 
-// @see PackageTest for unit tests
-
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,7 +42,7 @@ public class EvalVarFunction extends AbstractFunction {
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private static final List<String> desc = new LinkedList<String>();
+    private static final List<String> desc = new LinkedList<>();
 
     private static final String KEY = "__evalVar"; //$NON-NLS-1$
 

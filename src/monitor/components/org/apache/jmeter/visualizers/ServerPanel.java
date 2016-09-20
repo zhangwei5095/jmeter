@@ -84,8 +84,6 @@ public class ServerPanel extends JPanel implements MonitorGuiListener {
 
     private static final ImageIcon LOAD_10 = JMeterUtils.getImage("monitor-load-10.gif");
 
-    // private MonitorModel DATA;
-
     /**
      * Creates a new server panel for a monitored server
      *
@@ -94,7 +92,6 @@ public class ServerPanel extends JPanel implements MonitorGuiListener {
      */
     public ServerPanel(MonitorModel model) {
         super();
-        // DATA = model;
         init(model);
     }
 
@@ -147,6 +144,9 @@ public class ServerPanel extends JPanel implements MonitorGuiListener {
         case Stats.DEAD:
             i = DEAD;
             break;
+        default:
+            // better than returning null ...
+            throw new IllegalStateException("Unexpected health value: " + health);
         }
         return i;
     }
@@ -189,8 +189,6 @@ public class ServerPanel extends JPanel implements MonitorGuiListener {
      */
     @Override
     public void updateGui(MonitorModel stat) {
-        // this.DATA = null;
-        // this.DATA = stat;
         loadIcon.setIcon(getLoadImageIcon(stat.getLoad()));
         healthIcon.setIcon(getHealthyImageIcon(stat.getHealth()));
         timestampField.setText(stat.getTimestampString());

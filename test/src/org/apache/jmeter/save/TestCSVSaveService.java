@@ -18,19 +18,22 @@
 
 package org.apache.jmeter.save;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 
 import org.apache.jmeter.junit.JMeterTestCase;
+import org.apache.jmeter.samplers.SampleEvent;
+import org.apache.jmeter.samplers.SampleResult;
+import org.apache.jmeter.samplers.SampleSaveConfiguration;
+import org.junit.Test;
 
 public class TestCSVSaveService extends JMeterTestCase {
 
-    public TestCSVSaveService(String name) {
-        super(name);
-    }
-    
-    private void checkSplitString(String input, char delim, String []expected) throws Exception {
+    private void checkSplitString(String input, char delim, String[] expected) throws Exception {
         String out[] = CSVSaveService.csvSplitString(input, delim);     
         checkStrings(expected, out);
     }
@@ -43,12 +46,14 @@ public class TestCSVSaveService extends JMeterTestCase {
     }
     
     // This is what JOrphanUtils.split() does
+    @Test
     public void testSplitEmpty() throws Exception {
         checkSplitString("",         ',', new String[]{});    
     }
     
     // These tests should agree with those for JOrphanUtils.split() as far as possible
     
+    @Test
     public void testSplitUnquoted() throws Exception {
         checkSplitString("a",         ',', new String[]{"a"});
         checkSplitString("a,bc,d,e", ',', new String[]{"a","bc","d","e"});
@@ -66,6 +71,7 @@ public class TestCSVSaveService extends JMeterTestCase {
         checkSplitString("a,b\u00e7,d,\u00e9", ',', new String[]{"a","b\u00e7","d","\u00e9"}); 
     }
 
+    @Test
     public void testSplitQuoted() throws Exception {
         checkSplitString("a,bc,d,e",     ',', new String[]{"a","bc","d","e"});
         checkSplitString(",bc,d,e",      ',', new String[]{"","bc","d","e"});
@@ -85,14 +91,16 @@ public class TestCSVSaveService extends JMeterTestCase {
         checkSplitString("\"a\",\"b\u00e7\",\"d\",\"\u00e9\"", ',', new String[]{"a","b\u00e7","d","\u00e9"}); 
     }
 
+    @Test
     public void testSplitBadQuote() throws Exception {
         try {
-            checkSplitString("a\"b",',',null);
+            checkSplitString("a\"b",',',new String[]{});
             fail("Should have generated IOException");
         } catch (IOException e) {
         }
     }
     
+    @Test
     public void testSplitMultiLine() throws Exception  {
         String line="a,,\"c\nd\",e\n,,f,g,\n\n";
         String[] out;
@@ -111,6 +119,7 @@ public class TestCSVSaveService extends JMeterTestCase {
         checkStrings(new String[]{}, out);
     }
 
+    @Test
     public void testBlankLine() throws Exception  {
         BufferedReader br = new BufferedReader(new StringReader("\n"));
         String[] out = CSVSaveService.csvReadFile(br, ',');
@@ -118,6 +127,7 @@ public class TestCSVSaveService extends JMeterTestCase {
         assertEquals("Expected to be at EOF",-1,br.read());
     }
 
+    @Test
     public void testBlankLineQuoted() throws Exception  {
         BufferedReader br = new BufferedReader(new StringReader("\"\"\n"));
         String[] out = CSVSaveService.csvReadFile(br, ',');
@@ -125,6 +135,7 @@ public class TestCSVSaveService extends JMeterTestCase {
         assertEquals("Expected to be at EOF",-1,br.read());
     }
 
+    @Test
     public void testEmptyFile() throws Exception  {
         BufferedReader br = new BufferedReader(new StringReader(""));
         String[] out = CSVSaveService.csvReadFile(br, ',');
@@ -132,10 +143,42 @@ public class TestCSVSaveService extends JMeterTestCase {
         assertEquals("Expected to be at EOF",-1,br.read());
     }
 
+    @Test
     public void testShortFile() throws Exception  {
         BufferedReader br = new BufferedReader(new StringReader("a"));
         String[] out = CSVSaveService.csvReadFile(br, ',');
         checkStrings(new String[]{"a"}, out);
         assertEquals("Expected to be at EOF",-1,br.read());
+    }
+
+    @Test
+    // header text should not change unexpectedly
+    // if this test fails, check whether the default was intentionally changed or not
+    public void testHeader() {
+        final String HDR = "timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,grpThreads,allThreads,Latency,IdleTime,Connect";
+        assertEquals("Header text has changed", HDR, CSVSaveService.printableFieldNamesToString());
+    }
+
+    @Test
+    // sample format should not change unexpectedly
+    // if this test fails, check whether the default was intentionally changed or not
+    public void testSample() {
+        final String RESULT = "1,2,3,4,5,6,7,true,,8,9,10,11,12,13";
+        SampleResult result = new SampleResult();
+        result.setSaveConfig(new SampleSaveConfiguration());
+        result.setStampAndTime(1, 2);
+        result.setSampleLabel("3");
+        result.setResponseCode("4");
+        result.setResponseMessage("5");
+        result.setThreadName("6");
+        result.setDataType("7");
+        result.setSuccessful(true);
+        result.setBytes(8);
+        result.setGroupThreads(9);
+        result.setAllThreads(10);
+        result.setLatency(11);
+        result.setIdleTime(12);
+        result.setConnectTime(13);
+        assertEquals("Result text has changed", RESULT, CSVSaveService.resultToDelimitedString(new SampleEvent(result,"")));
     }
 }

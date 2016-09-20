@@ -36,17 +36,15 @@ import org.apache.log.Logger;
 
 /*******************************************************************************
  *
+ * Ldap Client class is main class to create ,modify, search and delete all the
+ * LDAP functionality available
+ *
  * author Dolf Smits(Dolf.Smits@Siemens.com) created Aug 09 2003 11:00 AM
  * company Siemens Netherlands N.V..
  *
  * Based on the work of: author T.Elanjchezhiyan(chezhiyan@siptech.co.in)
  * created Apr 29 2003 11:00 AM company Sip Technologies and Exports Ltd.
  *
- ******************************************************************************/
-
-/*******************************************************************************
- * Ldap Client class is main class to create ,modify, search and delete all the
- * LDAP functionality available
  ******************************************************************************/
 public class LdapExtClient {
     private static final Logger log = LoggingManager.getLoggerForClass();
@@ -84,7 +82,7 @@ public class LdapExtClient {
     public static DirContext connect(String host, String port, String rootdn, String username, String password, String connTimeOut, boolean secure)
             throws NamingException {
         DirContext dirContext;
-        Hashtable<String, String> env = new Hashtable<String, String>();
+        Hashtable<String, String> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory"); // $NON-NLS-1$
         StringBuilder sb = new StringBuilder(80);
         if (secure) {
@@ -179,8 +177,8 @@ public class LdapExtClient {
                     " filter=" + searchFilter
                       );
         }
-        SearchControls searchcontrols = null;
-        searchcontrols = new SearchControls(scope, countlim, timelim, attrs, retobj, deref);
+        SearchControls searchcontrols = new SearchControls(scope, countlim,
+                timelim, attrs, retobj, deref);
         return dirContext.search(searchBase, searchFilter, searchcontrols);
     }
 

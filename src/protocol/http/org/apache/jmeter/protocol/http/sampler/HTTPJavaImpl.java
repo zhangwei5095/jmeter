@@ -40,7 +40,7 @@ import org.apache.jmeter.protocol.http.control.HeaderManager;
 import org.apache.jmeter.protocol.http.util.HTTPConstants;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.testelement.property.CollectionProperty;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jmeter.util.SSLManager;
 import org.apache.jorphan.logging.LoggingManager;
@@ -59,7 +59,7 @@ public class HTTPJavaImpl extends HTTPAbstractImpl {
 
     private static final int MAX_CONN_RETRIES =
         JMeterUtils.getPropDefault("http.java.sampler.retries" // $NON-NLS-1$
-                ,10); // Maximum connection retries
+                ,0); // Maximum connection retries
 
     static {
         log.info("Maximum connection retries = "+MAX_CONN_RETRIES); // $NON-NLS-1$
@@ -179,7 +179,7 @@ public class HTTPJavaImpl extends HTTPAbstractImpl {
             }
         }
 
-        // a well-bahaved browser is supposed to send 'Connection: close'
+        // a well-behaved browser is supposed to send 'Connection: close'
         // with the last request to an HTTP server. Instead, most browsers
         // leave it to the server to close the connection after their
         // timeout period. Leave it to the JMeter user to decide.
@@ -360,9 +360,8 @@ public class HTTPJavaImpl extends HTTPAbstractImpl {
         if (headerManager != null) {
             CollectionProperty headers = headerManager.getHeaders();
             if (headers != null) {
-                PropertyIterator i = headers.iterator();
-                while (i.hasNext()) {
-                    Header header = (Header) i.next().getObjectValue();
+                for (JMeterProperty jMeterProperty : headers) {
+                    Header header = (Header) jMeterProperty.getObjectValue();
                     String n = header.getName();
                     String v = header.getValue();
                     conn.addRequestProperty(n, v);
@@ -473,9 +472,9 @@ public class HTTPJavaImpl extends HTTPAbstractImpl {
         try {
             // Sampling proper - establish the connection and read the response:
             // Repeatedly try to connect:
-            int retry;
-            // Start with 0 so tries at least once, and retries at most MAX_CONN_RETRIES times
-            for (retry = 0; retry <= MAX_CONN_RETRIES; retry++) {
+            int retry = -1;
+            // Start with -1 so tries at least once, and retries at most MAX_CONN_RETRIES times
+            for (; retry < MAX_CONN_RETRIES; retry++) {
                 try {
                     conn = setupConnection(url, method, res);
                     // Attempt the connection:
@@ -493,7 +492,6 @@ public class HTTPJavaImpl extends HTTPAbstractImpl {
                         conn.disconnect();
                     }
                     setUseKeepAlive(false);
-                    continue; // try again
                 } catch (IOException e) {
                     log.debug("Connection failed, giving up");
                     throw e;
@@ -507,8 +505,7 @@ public class HTTPJavaImpl extends HTTPAbstractImpl {
             if (method.equals(HTTPConstants.POST)) {
                 String postBody = sendPostData(conn);
                 res.setQueryString(postBody);
-            }
-            else if (method.equals(HTTPConstants.PUT)) {
+            } else if (method.equals(HTTPConstants.PUT)) {
                 String putBody = sendPutData(conn);
                 res.setQueryString(putBody);
             }
@@ -522,7 +519,6 @@ public class HTTPJavaImpl extends HTTPAbstractImpl {
 
             res.setResponseData(responseData);
 
-            @SuppressWarnings("null") // Cannot be null here
             int errorLevel = conn.getResponseCode();
             String respMsg = conn.getResponseMessage();
             String hdr=conn.getHeaderField(0);

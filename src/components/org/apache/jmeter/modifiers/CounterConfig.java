@@ -68,7 +68,7 @@ public class CounterConfig extends AbstractTestElement
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         perTheadNumber = new ThreadLocal<Long>() {
             @Override
             protected Long initialValue() {
@@ -138,8 +138,6 @@ public class CounterConfig extends AbstractTestElement
             try {
                 DecimalFormat myFormatter = new DecimalFormat(format);
                 return myFormatter.format(value);
-            } catch (NumberFormatException ignored) {
-                log.warn("Error formating "+value + " at format:"+format+", using default");
             } catch (IllegalArgumentException ignored) {
                 log.warn("Error formating "+value + " at format:"+format+", using default");
             }

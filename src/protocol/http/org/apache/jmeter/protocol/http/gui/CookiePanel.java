@@ -39,7 +39,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
-import javax.swing.table.TableCellEditor;
 
 import org.apache.jmeter.config.gui.AbstractConfigGui;
 import org.apache.jmeter.gui.util.FileDialoger;
@@ -49,8 +48,9 @@ import org.apache.jmeter.protocol.http.control.Cookie;
 import org.apache.jmeter.protocol.http.control.CookieHandler;
 import org.apache.jmeter.protocol.http.control.CookieManager;
 import org.apache.jmeter.protocol.http.control.HC3CookieHandler;
+import org.apache.jmeter.protocol.http.control.HC4CookieHandler;
 import org.apache.jmeter.testelement.TestElement;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.gui.GuiUtils;
 import org.apache.jorphan.gui.JLabeledChoice;
@@ -83,15 +83,25 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
     private static final String HANDLER_COMMAND = "Handler"; // $NON-NLS-1$
     //--
 
+    /**
+     * The default implementation that is used when creating a new CookieManager
+     */
+    private static final String DEFAULT_IMPLEMENTATION = HC4CookieHandler.class.getName();
+
+    /**
+     * The default policy that is used when creating a new CookieManager
+     */
+    private static final String DEFAULT_POLICY = HC4CookieHandler.DEFAULT_POLICY_NAME;
+
     private JTable cookieTable;
 
     private PowerTableModel tableModel;
 
     private JCheckBox clearEachIteration;
 
-    private JComboBox selectHandlerPanel;
+    private JComboBox<String> selectHandlerPanel;
 
-    private HashMap<String, String> handlerMap = new HashMap<String, String>();
+    private HashMap<String, String> handlerMap = new HashMap<>();
 
     private static final String[] COLUMN_RESOURCE_NAMES = {
         ("name"),   //$NON-NLS-1$
@@ -117,20 +127,6 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
 
     private JButton saveButton;
 
-    /**
-     * List of cookie policies.
-     *
-     * These are used both for the display, and for setting the policy
-    */
-    private final String[] policies = new String[] {
-        "default",
-        "compatibility",
-        "rfc2109",
-        "rfc2965",
-        "ignorecookies",
-        "netscape"
-    };
-
     private JLabeledChoice policy;
 
     /**
@@ -153,11 +149,7 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
             if (tableModel.getRowCount() > 0) {
                 // If a table cell is being edited, we must cancel the editing
                 // before deleting the row.
-                if (cookieTable.isEditing()) {
-                    TableCellEditor cellEditor = cookieTable.getCellEditor(cookieTable.getEditingRow(),
-                            cookieTable.getEditingColumn());
-                    cellEditor.cancelCellEditing();
-                }
+                GuiUtils.cancelEditing(cookieTable);
 
                 int rowSelected = cookieTable.getSelectedRow();
 
@@ -234,7 +226,25 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
             } catch (IOException ex) {
                 JMeterUtils.reportErrorToUser(ex.getMessage(), "Error saving cookies");
             }
+        } else if (action.equals(HANDLER_COMMAND)) {
+            String currentPolicy = policy.getText();
+            policy.setValues(getPolicies(handlerMap.get(selectHandlerPanel.getSelectedItem())));
+            policy.setText(currentPolicy);
+         }
+    }
+
+    /**
+     * @param className CookieHandler class name
+     * @return cookie policies
+     */
+    private static String[] getPolicies(String className) {
+        // TODO it would be better if CookieHandler had a method getSupportedPolicies() and empty constructor 
+        if(HC3CookieHandler.class.getName().equals(className)) {
+            return HC3CookieHandler.AVAILABLE_POLICIES;
+        } else if(HC4CookieHandler.class.getName().equals(className)) {
+            return HC4CookieHandler.AVAILABLE_POLICIES;
         }
+        return HC4CookieHandler.AVAILABLE_POLICIES;
     }
 
     private void addCookieToTable(Cookie cookie) {
@@ -273,9 +283,9 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
 
         tableModel.clearData();
         clearEachIteration.setSelected(false);
-        policy.setText(CookieManager.DEFAULT_POLICY);
-        selectHandlerPanel.setSelectedItem(CookieManager.DEFAULT_IMPLEMENTATION
-                .substring(CookieManager.DEFAULT_IMPLEMENTATION.lastIndexOf('.') + 1));
+        selectHandlerPanel.setSelectedItem(DEFAULT_IMPLEMENTATION
+                .substring(DEFAULT_IMPLEMENTATION.lastIndexOf('.') + 1));
+        policy.setText(DEFAULT_POLICY);
         deleteButton.setEnabled(false);
         saveButton.setEnabled(false);
     }
@@ -293,9 +303,8 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
 
     private void populateTable(CookieManager manager) {
         tableModel.clearData();
-        PropertyIterator iter = manager.getCookies().iterator();
-        while (iter.hasNext()) {
-            addCookieToTable((Cookie) iter.next().getObjectValue());
+        for (JMeterProperty jMeterProperty : manager.getCookies()) {
+            addCookieToTable((Cookie) jMeterProperty.getObjectValue());
         }
     }
 
@@ -313,22 +322,22 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
         CookieManager cookieManager = (CookieManager) el;
         populateTable(cookieManager);
         clearEachIteration.setSelected((cookieManager).getClearEachIteration());
-        policy.setText(cookieManager.getPolicy());
         String fullImpl = cookieManager.getImplementation();
         selectHandlerPanel.setSelectedItem(fullImpl.substring(fullImpl.lastIndexOf('.') + 1));
+        // must set policy after setting handler (which may change the policy)
+        policy.setText(cookieManager.getPolicy());
     }
 
     /**
      * Shows the main cookie configuration panel.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         tableModel = new PowerTableModel(COLUMN_RESOURCE_NAMES, columnClasses);
         clearEachIteration = 
             new JCheckBox(JMeterUtils.getResString("clear_cookies_per_iter"), false); //$NON-NLS-1$
         policy = new JLabeledChoice(
                 JMeterUtils.getResString("cookie_manager_policy"), //$NON-NLS-1$
-                policies);
-        policy.setText(CookieManager.DEFAULT_POLICY);
+                getPolicies(DEFAULT_IMPLEMENTATION));
         setLayout(new BorderLayout());
         setBorder(makeBorder());
         JPanel northPanel = new JPanel();
@@ -342,9 +351,9 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
         optionsPane.add(clearEachIteration);
         JPanel policyTypePane = new JPanel();
         policyTypePane.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        policyTypePane.add(policy);
         policyTypePane.add(GuiUtils.createLabelCombo(
                 JMeterUtils.getResString("cookie_implementation_choose"), createComboHandler())); // $NON-NLS-1$
+        policyTypePane.add(policy);
         optionsPane.add(policyTypePane);
         northPanel.add(optionsPane);
         add(northPanel, BorderLayout.NORTH);
@@ -354,6 +363,7 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
     public JPanel createCookieTablePanel() {
         // create the JTable that holds one cookie per row
         cookieTable = new JTable(tableModel);
+        JMeterUtils.applyHiDPI(cookieTable);
         cookieTable.getTableHeader().setDefaultRenderer(new HeaderAsPropertyRenderer());
         cookieTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         cookieTable.setPreferredScrollableViewportSize(new Dimension(100, 70));
@@ -398,10 +408,10 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
      * Create the drop-down list to changer render
      * @return List of all render (implement ResultsRender)
      */
-    private JComboBox createComboHandler() {
-        ComboBoxModel nodesModel = new DefaultComboBoxModel();
+    private JComboBox<String> createComboHandler() {
+        ComboBoxModel<String> nodesModel = new DefaultComboBoxModel<>();
         // drop-down list for renderer
-        selectHandlerPanel = new JComboBox(nodesModel);
+        selectHandlerPanel = new JComboBox<>(nodesModel);
         selectHandlerPanel.setActionCommand(HANDLER_COMMAND);
         selectHandlerPanel.addActionListener(this);
 
@@ -415,7 +425,7 @@ public class CookiePanel extends AbstractConfigGui implements ActionListener {
         String tmpName = null;
         for (String clazz : classesToAdd) {
             String shortClazz = clazz.substring(clazz.lastIndexOf('.') + 1);
-            if (HC3CookieHandler.class.getName().equals(clazz)) {
+            if (DEFAULT_IMPLEMENTATION.equals(clazz)) {
                 tmpName = shortClazz;
             }
             selectHandlerPanel.addItem(shortClazz);

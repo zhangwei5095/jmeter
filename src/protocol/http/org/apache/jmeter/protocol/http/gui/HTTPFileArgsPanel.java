@@ -35,8 +35,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
-import javax.swing.table.TableCellEditor;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jmeter.gui.util.FileDialoger;
 import org.apache.jmeter.gui.util.HeaderAsPropertyRenderer;
 import org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase;
@@ -61,6 +61,7 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
     private static final long serialVersionUID = 240L;
 
     /** The title label for this component. */
+    @Deprecated
     private JLabel tableLabel;
 
     /** The table containing the list of files. */
@@ -77,7 +78,7 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
 
     /** A button for removing files from the table. */
     private JButton delete;
-
+    
     /** Command for adding a row to the table. */
     private static final String ADD = "add"; // $NON-NLS-1$
 
@@ -95,17 +96,22 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
     /** The mime type column title of file table. */
     private static final String MIMETYPE = "send_file_mime_label"; //$NON-NLS-1$
 
-    public HTTPFileArgsPanel() {
-        this(""); // required for unit tests
-    }
 
+    /**
+     * Create a new HTTPFileArgsPanel as an embedded component
+     */
+    public HTTPFileArgsPanel() {
+        init();
+    }
+    
     /**
      * Create a new HTTPFileArgsPanel as an embedded component, using the
      * specified title.
      *
-     * @param label
-     *  the title for the component.
+     * @param label the title for the component.
+     * @deprecated will be removed in the next version
      */
+    @Deprecated
     public HTTPFileArgsPanel(String label) {
         tableLabel = new JLabel(label);
         init();
@@ -130,7 +136,7 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
     }
 
     public static boolean testFunctors(){
-        HTTPFileArgsPanel instance = new HTTPFileArgsPanel(""); //$NON-NLS-1$
+        HTTPFileArgsPanel instance = new HTTPFileArgsPanel();
         instance.initializeTableModel();
         return instance.tableModel.checkFunctors(null,instance.getClass());
     }
@@ -159,13 +165,17 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
             @SuppressWarnings("unchecked") // we only put HTTPFileArgs in it
             Iterator<HTTPFileArg> modelData = (Iterator<HTTPFileArg>) tableModel.iterator();
             HTTPFileArg[] files = new HTTPFileArg[rows];
-            int row=0;
+            int row = 0;
             while (modelData.hasNext()) {
                 HTTPFileArg file = modelData.next();
-                files[row++]=file;
+                files[row++] = file;
             }
             base.setHTTPFiles(files);
         }
+    }
+    
+    public boolean hasData() {
+        return tableModel.iterator().hasNext();
     }
 
     /**
@@ -229,21 +239,17 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
     }
 
     /**
-     * runs specified command on currently selected file.
+     * Runs specified command on currently selected file.
      *
      * @param command specifies which process will be done on selected
-     * file. it's coming from action command currently catched by
+     * file. it's coming from action command currently caught by
      * action listener.
-     *
-     * @see runCommandOnRow
      */
     private void runCommandOnSelectedFile(String command) {
         // If a table cell is being edited, we must cancel the editing before
         // deleting the row
-        if (table.isEditing()) {
-            TableCellEditor cellEditor = table.getCellEditor(table.getEditingRow(), table.getEditingColumn());
-            cellEditor.cancelCellEditing();
-        }
+        GuiUtils.cancelEditing(table);
+
         int rowSelected = table.getSelectedRow();
         if (rowSelected >= 0) {
             runCommandOnRow(command, rowSelected);
@@ -266,7 +272,7 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
      * runs specified command on currently selected table row.
      *
      * @param command specifies which process will be done on selected
-     * file. it's coming from action command currently catched by
+     * file. it's coming from action command currently caught by
      * action listener.
      *
      * @param rowSelected index of selected row.
@@ -276,7 +282,9 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
             tableModel.removeRow(rowSelected);
         } else if (BROWSE.equals(command)) {
             String path = browseAndGetFilePath();
-            tableModel.setValueAt(path, rowSelected, 0);
+            if(StringUtils.isNotBlank(path)) {
+                tableModel.setValueAt(path, rowSelected, 0);                
+            }
         }
     }
 
@@ -290,9 +298,7 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
 
         tableModel.addRow(new HTTPFileArg(path));
 
-        // Enable DELETE (which may already be enabled, but it won't hurt)
-        delete.setEnabled(true);
-        browse.setEnabled(true);
+        checkDeleteAndBrowseStatus();
 
         // Highlight (select) the appropriate row.
         int rowToSelect = tableModel.getRowCount() - 1;
@@ -333,6 +339,7 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
     private Component makeMainPanel() {
         initializeTableModel();
         table = new JTable(tableModel);
+        JMeterUtils.applyHiDPI(table);
         table.getTableHeader().setDefaultRenderer(new HeaderAsPropertyRenderer());
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         return makeScrollPane(table);
@@ -340,11 +347,11 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
 
     /**
      * Create a panel containing the title label for the table.
-     *
      * @return a panel containing the title label
      */
+    @Deprecated
     private Component makeLabelPanel() {
-        JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         labelPanel.add(tableLabel);
         return labelPanel;
     }
@@ -381,12 +388,15 @@ public class HTTPFileArgsPanel extends JPanel implements ActionListener {
     /**
      * Initialize the components and layout of this component.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         JPanel p = this;
 
         p.setLayout(new BorderLayout());
 
-        p.add(makeLabelPanel(), BorderLayout.NORTH);
+        // retro compatibility, will be removed in the next version
+        if(tableLabel != null) {
+            p.add(makeLabelPanel(), BorderLayout.NORTH);
+        }
         p.add(makeMainPanel(), BorderLayout.CENTER);
         // Force a minimum table height of 70 pixels
         p.add(Box.createVerticalStrut(70), BorderLayout.WEST);

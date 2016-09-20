@@ -34,7 +34,7 @@ import org.apache.log.Logger;
  */
 public class InitialContextFactory {
 
-    private static final ConcurrentHashMap<String, Context> MAP = new ConcurrentHashMap<String, Context>();
+    private static final ConcurrentHashMap<String, Context> MAP = new ConcurrentHashMap<>();
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
@@ -65,9 +65,7 @@ public class InitialContextFactory {
             }
             try {
                 ctx = new InitialContext(props);
-            } catch (NoClassDefFoundError e){
-                throw new NamingException(e.toString());
-            } catch (Exception e) {
+            } catch (NoClassDefFoundError | Exception e){
                 throw new NamingException(e.toString());
             }
             // we want to return the context that is actually in the map
@@ -151,9 +149,7 @@ public class InitialContextFactory {
         if (useProps) {
             try {
                 return new InitialContext();
-            } catch (NoClassDefFoundError e){
-                throw new NamingException(e.toString());
-            } catch (Exception e) {
+            } catch (NoClassDefFoundError | Exception e){
                 throw new NamingException(e.toString());
             }
         } else {

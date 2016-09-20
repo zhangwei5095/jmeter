@@ -46,9 +46,8 @@ import org.apache.log.Logger;
  */
 public class BSFSampler extends BSFTestElement implements Sampler, TestBean, ConfigMergabilityIndicator {
 
-    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<String>(
-            Arrays.asList(new String[]{
-                    "org.apache.jmeter.config.gui.SimpleConfigGui"}));
+    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<>(
+            Arrays.asList("org.apache.jmeter.config.gui.SimpleConfigGui"));
 
     private static final long serialVersionUID = 240L;
 
@@ -84,11 +83,6 @@ public class BSFSampler extends BSFTestElement implements Sampler, TestBean, Con
         try {
             initManager(mgr);
             mgr.declareBean("SampleResult", res, res.getClass()); // $NON-NLS-1$
-
-            // These are not useful yet, as have not found how to get updated values back
-            //mgr.declareBean("ResponseCode", "200", String.class); // $NON-NLS-1$
-            //mgr.declareBean("ResponseMessage", "OK", String.class); // $NON-NLS-1$
-            //mgr.declareBean("IsSuccess", Boolean.TRUE, Boolean.class); // $NON-NLS-1$
 
             // N.B. some engines (e.g. Javascript) cannot handle certain declareBean() calls
             // after the engine has been initialised, so create the engine last

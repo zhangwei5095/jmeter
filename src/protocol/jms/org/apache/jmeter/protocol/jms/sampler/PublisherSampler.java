@@ -26,6 +26,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.jms.DeliveryMode;
 import javax.jms.JMSException;
@@ -94,6 +95,9 @@ public class PublisherSampler extends BaseJMSSampler implements TestStateListene
     private Serializable object_msg_file_contents = null;
     // Cache for bytes-message, only used when parsing from a file 
     private byte[] bytes_msg_file_contents = null;
+
+    // Cached file name
+    private String cachedFileName;
 
     public PublisherSampler() {
     }
@@ -214,7 +218,7 @@ public class PublisherSampler extends BaseJMSSampler implements TestStateListene
     }
 
     private Map<String, Object> getMapContent() throws ClassNotFoundException, SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
-        Map<String,Object> m = new HashMap<String,Object>();
+        Map<String,Object> m = new HashMap<>();
         String text = getMessageContent();
         String[] lines = text.split("\n");
         for (String line : lines){
@@ -250,7 +254,9 @@ public class PublisherSampler extends BaseJMSSampler implements TestStateListene
         if (getConfigChoice().equals(JMSPublisherGui.USE_FILE_RSC)) {
             // in the case the test uses a file, we set it locally and
             // prevent loading the file repeatedly
-            if (file_contents == null) {
+            // if the file name changes we reload it
+            if (file_contents == null || !Objects.equals(cachedFileName, getInputFile())) {
+                cachedFileName = getInputFile();
                 file_contents = getFileContent(getInputFile());
             }
             return file_contents;
@@ -288,7 +294,9 @@ public class PublisherSampler extends BaseJMSSampler implements TestStateListene
         if (getConfigChoice().equals(JMSPublisherGui.USE_FILE_RSC)) {
             // in the case the test uses a file, we set it locally and
             // prevent loading the file repeatedly
-            if (object_msg_file_contents == null) {
+            // if the file name changes we reload it
+            if (object_msg_file_contents == null || !Objects.equals(cachedFileName, getInputFile())) {
+                cachedFileName = getInputFile();
                 object_msg_file_contents = getFileObjectContent(getInputFile());
             }
 
@@ -317,7 +325,9 @@ public class PublisherSampler extends BaseJMSSampler implements TestStateListene
         if (getConfigChoice().equals(JMSPublisherGui.USE_FILE_RSC)) {
             // in the case the test uses a file, we set it locally and
             // prevent loading the file repeatedly
-            if (bytes_msg_file_contents == null) {
+            // if the file name changes we reload it
+            if (bytes_msg_file_contents == null || !Objects.equals(cachedFileName, getInputFile())) {
+                cachedFileName = getInputFile();
                 bytes_msg_file_contents = getFileBytesContent(getInputFile());
             }
 
@@ -349,7 +359,7 @@ public class PublisherSampler extends BaseJMSSampler implements TestStateListene
             return IOUtils.toByteArray(inputStream, (int)file.length());
         } catch (Exception e) {
             log.error(e.getLocalizedMessage(), e);
-            throw new IllegalStateException("Unable to load file", e);
+            throw new IllegalStateException("Unable to load file:'"+path+"'", e);
         } finally {
             JOrphanUtils.closeQuietly(inputStream);
         }
@@ -372,7 +382,7 @@ public class PublisherSampler extends BaseJMSSampler implements TestStateListene
         readObject = (Serializable) xstream.fromXML(inputStream, readObject);
       } catch (Exception e) {
           log.error(e.getLocalizedMessage(), e);
-          throw new IllegalStateException("Unable to load object instance from file", e);
+          throw new IllegalStateException("Unable to load object instance from file:'"+path+"'", e);
       } finally {
           JOrphanUtils.closeQuietly(inputStream);
       }
@@ -506,19 +516,37 @@ public class PublisherSampler extends BaseJMSSampler implements TestStateListene
     }
 
     public String getExpiration() {
-        return getPropertyAsString(JMS_EXPIRATION, Utils.DEFAULT_NO_EXPIRY);
+        String expiration = getPropertyAsString(JMS_EXPIRATION);
+        if (expiration.length() == 0) {
+            return Utils.DEFAULT_NO_EXPIRY;
+        } else {
+            return expiration;
+        }
     }
 
     public String getPriority() {
-        return getPropertyAsString(JMS_PRIORITY, Utils.DEFAULT_PRIORITY_4);
+        String priority = getPropertyAsString(JMS_PRIORITY);
+        if (priority.length() == 0) {
+            return Utils.DEFAULT_PRIORITY_4;
+        } else {
+            return priority;
+        }
     }
     
     public void setPriority(String s) {
-        setProperty(JMS_PRIORITY, s, Utils.DEFAULT_PRIORITY_4);
+        // Bug 59173
+        if (Utils.DEFAULT_PRIORITY_4.equals(s)) {
+            s = ""; // $NON-NLS-1$ make sure the default is not saved explicitly
+        }
+        setProperty(JMS_PRIORITY, s); // always need to save the field
     }
     
     public void setExpiration(String s) {
-        setProperty(JMS_EXPIRATION, s, Utils.DEFAULT_NO_EXPIRY);
+        // Bug 59173
+        if (Utils.DEFAULT_NO_EXPIRY.equals(s)) {
+            s = ""; // $NON-NLS-1$ make sure the default is not saved explicitly
+        }
+        setProperty(JMS_EXPIRATION, s); // always need to save the field
     }
     
     /**

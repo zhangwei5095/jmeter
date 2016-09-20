@@ -11,6 +11,14 @@
   language governing permissions and limitations under the License. -->
 <!-- Content Stylesheet for "jmeter-site" -->
 
+<!DOCTYPE xsl:stylesheet [
+  <!ENTITY copy  "&#x000A9;">
+  <!ENTITY nbsp  "&#160;">
+  <!ENTITY ndash "&#x02013;">
+  <!ENTITY para  "&#x000B6;">
+  <!ENTITY rarr  "&#x02192;">
+  <!ENTITY trade "&#x02122;">
+]>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
   version="3.0"
 >
@@ -22,7 +30,7 @@
   <xsl:param name="sshotdir" select="concat($imgdir, '/screenshots')" />
   <xsl:param name="cssdir" select="concat($relative-path, '/css')" />
   <xsl:param name="jakarta-site" select="'http://jakarta.apache.org'" />
-  <xsl:param name="year" select="'2015'" />
+  <xsl:param name="year" select="'2016'" />
   <xsl:param name="max-img-width" select="'600'" />
 
   <!-- Output method -->
@@ -54,9 +62,18 @@
           href='http://fonts.googleapis.com/css?family=Merriweather:400normal'
           rel='stylesheet' type='text/css'
         ></link>
+        <link
+          href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css"
+          rel="stylesheet" type='text/css'
+        ></link>
         <link rel="stylesheet" type="text/css"
           href="{concat($cssdir, '/new-style.css')}"
         ></link>
+        <link rel="apple-touch-icon-precomposed" href="{$imgdir}/apple-touch-icon.png"></link>
+        <link rel="icon" href="{$imgdir}/favicon.png"></link>
+        <meta name="msapplication-TileColor" content="#ffffff" />
+        <meta name="msapplication-TileImage" content="{$imgdir}/mstile-144x144.png" />
+        <meta name="theme-color" content="#ffffff" />
       </head>
       <body role="document">
         <a href="#content" class="hidden" >Main content</a>
@@ -66,8 +83,8 @@
           </xsl:comment>
           <div>
             <a href="http://www.apache.org">
-              <img title="Apache Software Foundation" width="290"
-                height="75" src="{$imgdir}/asf-logo.png" alt="Logo ASF" />
+              <img title="Apache Software Foundation" class="asf-logo logo"
+                  src="{$imgdir}/asf-logo.svg" alt="Logo ASF" />
             </a>
           </div>
           <xsl:if test="$project/logo">
@@ -86,48 +103,10 @@
             </xsl:comment>
             <div>
               <a href="{$home}">
-                <img src="{$src}" alt="{$alt}" />
+                <img class="logo" src="{$src}" alt="{$alt}"/>
               </a>
             </div>
           </xsl:if>
-          <div class="twitter">
-            <div>
-              <a href="https://twitter.com/share" class="twitter-share-button"
-                data-text="Powerful Load Testing with Apache #JMeter"
-                data-via="ApacheJMeter" data-lang="en-gb" data-size="large"
-              >Tweet</a>
-              <script><![CDATA[
-            (function(d,s,id){
-              var js,
-                  fjs=d.getElementsByTagName(s)[0],
-                  p=/^http:/.test(d.location)?'http':'https';
-              if (!d.getElementById(id)) {
-                  js=d.createElement(s);
-                  js.id=id;
-                  js.src=p+'://platform.twitter.com/widgets.js';
-                  fjs.parentNode.insertBefore(js,fjs);
-              }
-            })(document, 'script', 'twitter-wjs');]]>
-              </script>
-            </div>
-            <div>
-              <a href="https://twitter.com/ApacheJMeter" class="twitter-follow-button"
-                data-show-count="false" data-lang="en-gb" data-size="large"
-              >Follow</a>
-              <script><![CDATA[(function(d,s,id){
-                var js,
-                    fjs=d.getElementsByTagName(s)[0],
-                    p=/^http:/.test(d.location)?'http':'https';
-                if (!d.getElementById(id)) {
-                    js=d.createElement(s);
-                    js.id=id;
-                    js.src=p+'://platform.twitter.com/widgets.js';
-                    fjs.parentNode.insertBefore(js,fjs);
-                }
-            })(document, 'script', 'twitter-wjs');]]>
-              </script>
-            </div>
-          </div>
           <div class="banner">
             <iframe src="http://www.apache.org/ads/bannerbar.html"
               style="border-width:0;" frameborder="0" scrolling="no"
@@ -136,20 +115,22 @@
           </div>
         </div>
         <div class="nav">
-          <xsl:apply-templates select="$project/body/menu" />
+            <xsl:apply-templates select="$project/body/menu" />
         </div>
         <div class="main" id="content">
+          <xsl:call-template name="social-media-links" />
           <xsl:call-template name="pagelinks" />
           <xsl:if test="@index">
             <xsl:call-template name="section-index" />
           </xsl:if>
           <xsl:apply-templates select="body/section"></xsl:apply-templates>
           <xsl:call-template name="pagelinks" />
+          <xsl:call-template name="share-links" />
         </div>
         <div class="footer">
           <div class="copyright">
-            Copyright &amp;copy;
-            1999 &amp;ndash;
+            Copyright &copy;
+            1999 &ndash;
             <xsl:value-of select="$year" />
             , Apache Software Foundation
           </div>
@@ -159,8 +140,43 @@
             Apache Software Foundation.
           </div>
         </div>
+        <script><![CDATA[(function(){
+            // fill in the current location into social links on this page.
+            "use strict";
+            var as = document.getElementsByTagName('a');
+            var loc = document.location.href;
+            if (!loc.toLowerCase().startsWith('http')) {
+                return;
+            }
+            for (var i=0; i<as.length; i++) {
+                var href = as[i].getAttribute('data-social-url');
+                if (href !== null) {
+                    as[i].href = href + encodeURIComponent(loc);
+                }
+            }
+        })();]]></script>
       </body>
     </html>
+  </xsl:template>
+
+  <xsl:template name="social-media-links">
+    <div class="social-media">
+      <ul class="social-media-links">
+        <li class="twitter"><a href="https://twitter.com/ApacheJMeter" title="Follow us on Twitter"><i class="fa fa-twitter" aria-hidden="true"></i>Twitter</a></li>
+        <li class="github"><a href="https://github.com/apache/jmeter" title="Fork us on github"><i class="fa fa-github" aria-hidden="true"></i>github</a></li>
+      </ul>
+    </div>
+  </xsl:template>
+
+  <xsl:template name="share-links">
+    <div class="share-links">
+      Share this page:
+      <ul>
+        <li class="fb"><a data-social-url="https://facebook.com/sharer/sharer.php?u=" title="Share on facebook"><i class="fa fa-facebook" aria-hidden="true"></i>share</a></li>
+        <li class="twitter"><a data-social-url="https://twitter.com/intent/tweet?url=" title="Tweet on twitter"><i class="fa fa-twitter" aria-hidden="true"></i>tweet</a></li>
+        <li class="gplus"><a data-social-url="https://plus.google.com/share?url=" title="Share on Google+"><i class="fa fa-google-plus" aria-hidden="true"></i>share</a></li>
+      </ul>
+    </div>
   </xsl:template>
 
   <xsl:template name="pagelinks">
@@ -284,9 +300,9 @@
   </xsl:template>
 
   <xsl:template match="ch_title">
-    <h2 class="ch_title">
+    <h3 class="ch_title">
       <xsl:apply-templates />
-    </h2>
+    </h3>
   </xsl:template>
 
   <xsl:template match="ch_category">
@@ -358,18 +374,22 @@
           instead ***
         </div>
       </xsl:if>
+      <xsl:apply-templates select="description" />
       <xsl:if test="@screenshot != ''">
         <div class="screenshot">
-          <xsl:call-template name="image">
-            <xsl:with-param name="srcdir" select="$sshotdir" />
-            <xsl:with-param name="image" select="@screenshot" />
-            <xsl:with-param name="width" select="@width" />
-            <xsl:with-param name="height" select="@height" />
-            <xsl:with-param name="alt" select="concat('Screenshot for ', @name)" />
-          </xsl:call-template>
+          <figure>
+            <xsl:call-template name="image">
+              <xsl:with-param name="srcdir" select="$sshotdir" />
+              <xsl:with-param name="image" select="@screenshot" />
+              <xsl:with-param name="width" select="@width" />
+              <xsl:with-param name="height" select="@height" />
+              <xsl:with-param name="alt" select="concat('Screenshot for Control-Panel of ', @name)" />
+            </xsl:call-template>
+            <figcaption>Screenshot of Control-Panel of <xsl:value-of select="@name"/></figcaption>
+          </figure>
         </div>
       </xsl:if>
-      <xsl:apply-templates />
+      <xsl:apply-templates select="*[not(self::description)]" />
       <div class="go-top">
         <a href="#">^</a>
       </div>
@@ -380,7 +400,7 @@
     <xsl:param name="anchor" />
     <a class="sectionlink" href="#{translate(normalize-space($anchor), ' ', '_')}"
       title="Link to here"
-    >&amp;para;</a>
+    >&para;</a>
   </xsl:template>
 
   <xsl:template match="properties">
@@ -475,16 +495,23 @@
   </xsl:template>
 
   <xsl:template match="bugzilla">
-    <a href="http://bz.apache.org/bugzilla/show_bug.cgi?id={./text()}">
+    <a href="https://bz.apache.org/bugzilla/show_bug.cgi?id={./text()}">
       Bug
       <xsl:value-of select="./text()" />
     </a>
   </xsl:template>
 
   <xsl:template match="bug">
-    <a href="http://bz.apache.org/bugzilla/show_bug.cgi?id={./text()}">
+    <a href="https://bz.apache.org/bugzilla/show_bug.cgi?id={./text()}">
       Bug
       <xsl:value-of select="./text()" />
+    </a>
+    -
+  </xsl:template>
+
+  <xsl:template match="pr">
+    <a href="https://github.com/apache/jmeter/pull/{./text()}">
+      Pull request #<xsl:value-of select="./text()" />
     </a>
     -
   </xsl:template>
@@ -566,6 +593,31 @@
     <xsl:copy>
       <xsl:apply-templates select="@*|*|text()" />
     </xsl:copy>
+  </xsl:template>
+
+  <xsl:template match="guimenuitem">
+    <span class="guimenuitem"><xsl:apply-templates /></span>
+    <xsl:if test="following-sibling::guimenuitem">&nbsp;&rarr;&nbsp;</xsl:if>
+  </xsl:template>
+
+  <xsl:template match="keysym">
+    <span class="keysym"><xsl:apply-templates /></span>
+    <xsl:if test="following-sibling::keysym and parent::keycombo">&nbsp;+&nbsp;</xsl:if>
+  </xsl:template>
+
+  <xsl:template match="keycombo">
+    <span class="keycombo"><xsl:apply-templates select="keysym" /></span>
+  </xsl:template>
+
+  <xsl:template match="shortcut">
+    (<xsl:apply-templates select="keycombo"/>)
+  </xsl:template>
+
+  <xsl:template match="menuchoice">
+    <span class="menuchoice">
+      <xsl:apply-templates select="guimenuitem"/>
+      <xsl:apply-templates select="shortcut"/>
+    </span>
   </xsl:template>
 
 </xsl:stylesheet>

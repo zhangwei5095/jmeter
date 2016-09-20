@@ -18,7 +18,6 @@
 
 package org.apache.jmeter.functions;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,14 +49,14 @@ final class XPathWrapper {
      */
     //@GuardedBy("fileContainers")
     private static final Map<String, XPathFileContainer> fileContainers =
-        new HashMap<String, XPathFileContainer>();
+            new HashMap<>();
 
     /* The cache of file packs - for faster local access */
     private static final ThreadLocal<Map<String, XPathFileContainer>> filePacks =
         new ThreadLocal<Map<String, XPathFileContainer>>() {
         @Override
         protected Map<String, XPathFileContainer> initialValue() {
-            return new HashMap<String, XPathFileContainer>();
+            return new HashMap<>();
         }
     };
 
@@ -71,15 +70,8 @@ final class XPathWrapper {
         XPathFileContainer frcc=null;
         try {
             frcc = new XPathFileContainer(file, xpathString);
-        } catch (FileNotFoundException e) {
-            log.warn(e.getLocalizedMessage());
-        } catch (IOException e) {
-            log.warn(e.getLocalizedMessage());
-        } catch (ParserConfigurationException e) {
-            log.warn(e.getLocalizedMessage());
-        } catch (SAXException e) {
-            log.warn(e.getLocalizedMessage());
-        } catch (TransformerException e) {
+        } catch (TransformerException | SAXException
+                | ParserConfigurationException | IOException e) {
             log.warn(e.getLocalizedMessage());
         }
         return frcc;

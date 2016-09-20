@@ -365,9 +365,7 @@ public class RespTimeGraphChart extends JPanel {
                     legendProperties, _width, _height );
             axisChart.setGraphics2D((Graphics2D) g);
             axisChart.render();
-        } catch (ChartDataException e) {
-            log.warn("", e);
-        } catch (PropertyException e) {
+        } catch (ChartDataException | PropertyException e) {
             log.warn("", e);
         }
     }
@@ -402,11 +400,10 @@ public class RespTimeGraphChart extends JPanel {
      * @param datas array of positive or NaN doubles
      * @return double
      */
-    private double findMax(double datas[][]) {
+    private double findMax(double[][] datas) {
         double max = 0;
-        for (int i = 0; i < datas.length; i++) {
-            for (int j = 0; j < datas[i].length; j++) {
-                final double value = datas[i][j]; 
+        for (double[] data : datas) {
+            for (final double value : data) {
                 if ((!Double.isNaN(value)) && (value > max)) {
                     max = value;
                 }

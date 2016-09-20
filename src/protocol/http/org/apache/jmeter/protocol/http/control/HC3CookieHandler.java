@@ -26,15 +26,27 @@ import org.apache.commons.httpclient.cookie.CookieSpec;
 import org.apache.commons.httpclient.cookie.MalformedCookieException;
 import org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase;
 import org.apache.jmeter.testelement.property.CollectionProperty;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
 
 /**
  * HTTPClient 3.1 implementation
+ * @deprecated since 3.0, will be removed in next version
  */
+@Deprecated
 public class HC3CookieHandler implements CookieHandler {
    private static final Logger log = LoggingManager.getLoggerForClass();
+
+   static final String DEFAULT_POLICY_NAME = "compatibility";
+   public static final String[] AVAILABLE_POLICIES = new String[] {
+       DEFAULT_POLICY_NAME,
+       "default",
+       "rfc2109",
+       "rfc2965",
+       "ignorecookies",
+       "netscape"
+   };
 
     private final transient CookieSpec cookieSpec;
 
@@ -80,11 +92,11 @@ public class HC3CookieHandler implements CookieHandler {
             CollectionProperty cookiesCP,
             URL url, 
             boolean allowVariableCookie){
-        org.apache.commons.httpclient.Cookie cookies[]=
+        org.apache.commons.httpclient.Cookie[] cookies =
             new org.apache.commons.httpclient.Cookie[cookiesCP.size()];
-        int i=0;
-        for (PropertyIterator iter = cookiesCP.iterator(); iter.hasNext();) {
-            Cookie jmcookie = (Cookie) iter.next().getObjectValue();
+        int i = 0;
+        for (JMeterProperty jMeterProperty : cookiesCP) {
+            Cookie jmcookie = (Cookie) jMeterProperty.getObjectValue();
             // Set to running version, to allow function evaluation for the cookie values (bug 28715)
             if (allowVariableCookie) {
                 jmcookie.setRunningVersion(true);
@@ -150,9 +162,7 @@ public class HC3CookieHandler implements CookieHandler {
         org.apache.commons.httpclient.Cookie[] cookies= null;
         try {
             cookies = cookieSpec.parse(host, port, path, isSecure, cookieHeader);
-        } catch (MalformedCookieException e) {
-            log.warn(cookieHeader+e.getLocalizedMessage());
-        } catch (IllegalArgumentException e) {
+        } catch (MalformedCookieException | IllegalArgumentException e) {
             log.warn(cookieHeader+e.getLocalizedMessage());
         }
         if (cookies == null) {
@@ -196,5 +206,10 @@ public class HC3CookieHandler implements CookieHandler {
             }
         }
 
+    }
+
+    @Override
+    public String getDefaultPolicy() {
+        return DEFAULT_POLICY_NAME; 
     }
 }

@@ -22,20 +22,23 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.util.Arrays;
 import java.util.Collection;
+
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.ButtonGroup;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-
 import javax.swing.JPopupMenu;
 import javax.swing.JRadioButton;
 
 import org.apache.jmeter.gui.AbstractJMeterGuiComponent;
 import org.apache.jmeter.gui.action.ActionNames;
+import org.apache.jmeter.gui.action.ActionRouter;
 import org.apache.jmeter.gui.util.MenuFactory;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.testelement.property.StringProperty;
 import org.apache.jmeter.threads.AbstractThreadGroup;
+import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jmeter.util.JMeterUtils;
 
 public abstract class AbstractThreadGroupGui extends AbstractJMeterGuiComponent {
@@ -60,7 +63,7 @@ public abstract class AbstractThreadGroupGui extends AbstractJMeterGuiComponent 
 
     @Override
     public Collection<String> getMenuCategories() {
-        return Arrays.asList(new String[] { MenuFactory.THREADS });
+        return Arrays.asList(MenuFactory.THREADS);
     }
 
     @Override
@@ -78,6 +81,30 @@ public abstract class AbstractThreadGroupGui extends AbstractJMeterGuiComponent 
                 },
                 JMeterUtils.getResString("add"), // $NON-NLS-1$
                 ActionNames.ADD));
+        
+        if(this.isEnabled() && 
+                // Check test is not started already
+                JMeterContextService.getTestStartTime()==0) {
+            pop.addSeparator();
+            JMenuItem runTg = new JMenuItem(JMeterUtils.getResString("run_threadgroup"));
+            runTg.setName("run_threadgroup");
+            runTg.addActionListener(ActionRouter.getInstance());
+            runTg.setActionCommand(ActionNames.RUN_TG);
+            pop.add(runTg);
+    
+            JMenuItem runTgNotimers = new JMenuItem(JMeterUtils.getResString("run_threadgroup_no_timers"));
+            runTgNotimers.setName("run_threadgroup_no_timers");
+            runTgNotimers.addActionListener(ActionRouter.getInstance());
+            runTgNotimers.setActionCommand(ActionNames.RUN_TG_NO_TIMERS);
+            pop.add(runTgNotimers);
+
+            JMenuItem validateTg = new JMenuItem(JMeterUtils.getResString("validate_threadgroup"));
+            validateTg.setName("validate_threadgroup");
+            validateTg.addActionListener(ActionRouter.getInstance());
+            validateTg.setActionCommand(ActionNames.VALIDATE_TG);
+            pop.add(validateTg);
+        }
+        
         MenuFactory.addEditMenu(pop, true);
         MenuFactory.addFileMenu(pop, false);
         return pop;
@@ -94,7 +121,7 @@ public abstract class AbstractThreadGroupGui extends AbstractJMeterGuiComponent 
         initGui();
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout(0, 5));
         setBorder(makeBorder());
 

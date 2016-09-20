@@ -64,9 +64,8 @@ public class SmtpSampler extends AbstractSampler {
 
     private static final long serialVersionUID = 1L;
 
-    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<String>(
-            Arrays.asList(new String[]{
-                    "org.apache.jmeter.config.gui.SimpleConfigGui"}));
+    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<>(
+            Arrays.asList("org.apache.jmeter.config.gui.SimpleConfigGui"));
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
@@ -178,7 +177,7 @@ public class SmtpSampler extends AbstractSampler {
                 instance.setMailBody(getPropertyAsString(MESSAGE));
                 instance.setPlainBody(getPropertyAsBoolean(PLAIN_BODY));
                 final String filesToAttach = getPropertyAsString(ATTACH_FILE);
-                if (!filesToAttach.equals("")) {
+                if (!filesToAttach.isEmpty()) {
                     String[] attachments = filesToAttach.split(FILENAME_SEPARATOR);
                     for (String attachment : attachments) {
                         File file = new File(attachment);
@@ -220,10 +219,7 @@ public class SmtpSampler extends AbstractSampler {
         try {
             res.setRequestHeaders(getRequestHeaders(message));
             res.setSamplerData(getSamplerData(message));
-        } catch (MessagingException e1) {
-            res.setSamplerData("Error occurred trying to save request info: "+e1);
-            log.warn("Error occurred trying to save request info",e1);
-        } catch (IOException e1) {
+        } catch (MessagingException | IOException e1) {
             res.setSamplerData("Error occurred trying to save request info: "+e1);
             log.warn("Error occurred trying to save request info",e1);
         }
@@ -294,9 +290,7 @@ public class SmtpSampler extends AbstractSampler {
             }
             // TODO - charset?
             res.setResponseData(sb.toString().getBytes()); // TODO this should really be request data, but there is none
-        } catch (IOException ex) {
-            log.warn("",ex);
-        } catch (MessagingException ex) {
+        } catch (IOException | MessagingException ex) {
             log.warn("",ex);
         }
 
@@ -377,7 +371,7 @@ public class SmtpSampler extends AbstractSampler {
      */
     private List<InternetAddress> getPropNameAsAddresses(String propValue) throws AddressException{
         if (propValue.length() > 0){ // we have at least one potential address
-            List<InternetAddress> addresses = new ArrayList<InternetAddress>();
+            List<InternetAddress> addresses = new ArrayList<>();
             for (String address : propValue.split(";")){
                 addresses.add(new InternetAddress(address.trim()));
             }

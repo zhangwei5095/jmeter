@@ -75,14 +75,14 @@ public class JMSSubscriberGui extends AbstractSamplerGui implements ChangeListen
     private final JLabeledTextField jmsPwd =
         new JLabeledPasswordField(JMeterUtils.getResString("jms_pwd")); // $NON-NLS-1$
 
-    private final JLabeledTextField iterations =
+    private final JLabeledTextField samplesToAggregate =
         new JLabeledTextField(JMeterUtils.getResString("jms_itertions")); // $NON-NLS-1$
 
     private final JCheckBox useAuth =
         new JCheckBox(JMeterUtils.getResString("jms_use_auth"), false); //$NON-NLS-1$
 
-    private final JCheckBox readResponse =
-        new JCheckBox(JMeterUtils.getResString("jms_read_response"), true); // $NON-NLS-1$
+    private final JCheckBox storeResponse =
+        new JCheckBox(JMeterUtils.getResString("jms_store_response"), true); // $NON-NLS-1$
 
     private final JLabeledTextField timeout = 
         new JLabeledTextField(JMeterUtils.getResString("jms_timeout")); //$NON-NLS-1$
@@ -142,7 +142,7 @@ public class JMSSubscriberGui extends AbstractSamplerGui implements ChangeListen
     @Override
     public void modifyTestElement(TestElement s) {
         SubscriberSampler sampler = (SubscriberSampler) s;
-        this.configureTestElement(sampler);
+        super.configureTestElement(sampler);
         sampler.setUseJNDIProperties(String.valueOf(useProperties.isSelected()));
         sampler.setJNDIIntialContextFactory(jndiICF.getText());
         sampler.setProviderUrl(urlField.getText());
@@ -154,8 +154,8 @@ public class JMSSubscriberGui extends AbstractSamplerGui implements ChangeListen
         sampler.setUsername(jmsUser.getText());
         sampler.setPassword(jmsPwd.getText());
         sampler.setUseAuth(useAuth.isSelected());
-        sampler.setIterations(iterations.getText());
-        sampler.setReadResponse(String.valueOf(readResponse.isSelected()));
+        sampler.setIterations(samplesToAggregate.getText());
+        sampler.setReadResponse(String.valueOf(storeResponse.isSelected()));
         sampler.setClientChoice(clientChoice.getText());
         sampler.setStopBetweenSamples(stopBetweenSamples.isSelected());
         sampler.setTimeout(timeout.getText());
@@ -167,7 +167,7 @@ public class JMSSubscriberGui extends AbstractSamplerGui implements ChangeListen
      * init() adds jndiICF to the mainPanel. The class reuses logic from
      * SOAPSampler, since it is common.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout());
         setBorder(makeBorder());
         add(makeTitlePanel(), BorderLayout.NORTH);
@@ -190,9 +190,9 @@ public class JMSSubscriberGui extends AbstractSamplerGui implements ChangeListen
         mainPanel.add(useAuth);
         mainPanel.add(jmsUser);
         mainPanel.add(jmsPwd);
-        mainPanel.add(iterations);
+        mainPanel.add(samplesToAggregate);
 
-        mainPanel.add(readResponse);
+        mainPanel.add(storeResponse);
         mainPanel.add(timeout);
         
         JPanel choice = new HorizontalPanel();
@@ -222,11 +222,11 @@ public class JMSSubscriberGui extends AbstractSamplerGui implements ChangeListen
         jmsSelector.setText(sampler.getJmsSelector());
         jmsUser.setText(sampler.getUsername());
         jmsPwd.setText(sampler.getPassword());
-        iterations.setText(sampler.getIterations());
+        samplesToAggregate.setText(sampler.getIterations());
         useAuth.setSelected(sampler.isUseAuth());
         jmsUser.setEnabled(useAuth.isSelected());
         jmsPwd.setEnabled(useAuth.isSelected());
-        readResponse.setSelected(sampler.getReadResponseAsBoolean());
+        storeResponse.setSelected(sampler.getReadResponseAsBoolean());
         clientChoice.setText(sampler.getClientChoice());
         stopBetweenSamples.setSelected(sampler.isStopBetweenSamples());
         timeout.setText(sampler.getTimeout());
@@ -247,13 +247,13 @@ public class JMSSubscriberGui extends AbstractSamplerGui implements ChangeListen
         jmsSelector.setText(""); // $NON-NLS-1$
         jmsUser.setText(""); // $NON-NLS-1$
         jmsPwd.setText(""); // $NON-NLS-1$
-        iterations.setText("1"); // $NON-NLS-1$
+        samplesToAggregate.setText("1"); // $NON-NLS-1$
         timeout.setText(""); // $NON-NLS-1$
         separator.setText(""); // $NON-NLS-1$
         useAuth.setSelected(false);
         jmsUser.setEnabled(false);
         jmsPwd.setEnabled(false);
-        readResponse.setSelected(true);
+        storeResponse.setSelected(true);
         clientChoice.setText(RECEIVE_RSC);
         stopBetweenSamples.setSelected(false);
         destSetup.setText(DEST_SETUP_STATIC);

@@ -65,9 +65,8 @@ public class MailReaderSampler extends AbstractSampler implements Interruptible 
 
     private static final long serialVersionUID = 240L;
 
-    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<String>(
-            Arrays.asList(new String[]{
-                    "org.apache.jmeter.config.gui.SimpleConfigGui"}));
+    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<>(
+            Arrays.asList("org.apache.jmeter.config.gui.SimpleConfigGui"));
 
     //+ JMX attributes - do not change the values
     private static final String SERVER_TYPE = "host_type"; // $NON-NLS-1$
@@ -221,7 +220,7 @@ public class MailReaderSampler extends AbstractSampler implements Interruptible 
             }
 
             // Get directory
-            Message messages[] = folder.getMessages(1,n);
+            Message[] messages = folder.getMessages(1,n);
             StringBuilder pdata = new StringBuilder();
             pdata.append(messages.length);
             pdata.append(" messages found\n");
@@ -290,7 +289,7 @@ public class MailReaderSampler extends AbstractSampler implements Interruptible 
             parent.setResponseCodeOK();
             parent.setResponseMessageOK();
             isOK = true;
-        } catch (NoClassDefFoundError ex) {
+        } catch (NoClassDefFoundError | IOException ex) {
             log.debug("",ex);// No need to log normally, as we set the status
             parent.setResponseCode("500"); // $NON-NLS-1$
             parent.setResponseMessage(ex.toString());
@@ -298,10 +297,6 @@ public class MailReaderSampler extends AbstractSampler implements Interruptible 
             log.debug("", ex);// No need to log normally, as we set the status
             parent.setResponseCode("500"); // $NON-NLS-1$
             parent.setResponseMessage(ex.toString() + "\n" + samplerString); // $NON-NLS-1$
-        } catch (IOException ex) {
-            log.debug("", ex);// No need to log normally, as we set the status
-            parent.setResponseCode("500"); // $NON-NLS-1$
-            parent.setResponseMessage(ex.toString());
         } finally {
             busy = false;
         }
@@ -484,21 +479,21 @@ public class MailReaderSampler extends AbstractSampler implements Interruptible 
     }
 
     /**
-     * @param num_messages -
+     * @param numMessages -
      *            The number of messages to retrieve from the mail server. Set
      *            this value to -1 to retrieve all messages.
      */
-    public void setNumMessages(int num_messages) {
-        setProperty(new IntegerProperty(NUM_MESSAGES, num_messages));
+    public void setNumMessages(int numMessages) {
+        setProperty(new IntegerProperty(NUM_MESSAGES, numMessages));
     }
 
     /**
-     * @param num_messages -
+     * @param numMessages -
      *            The number of messages to retrieve from the mail server. Set
      *            this value to -1 to retrieve all messages.
      */
-    public void setNumMessages(String num_messages) {
-        setProperty(new StringProperty(NUM_MESSAGES, num_messages));
+    public void setNumMessages(String numMessages) {
+        setProperty(new StringProperty(NUM_MESSAGES, numMessages));
     }
 
     /**

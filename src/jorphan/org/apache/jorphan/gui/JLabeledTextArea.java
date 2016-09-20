@@ -49,8 +49,7 @@ public class JLabeledTextArea extends JPanel implements JLabeledField, FocusList
 
     private final JTextArea mTextArea;
 
-    // Maybe move to vector if MT problems occur
-    private final ArrayList<ChangeListener> mChangeListeners = new ArrayList<ChangeListener>(3);
+    private final ArrayList<ChangeListener> mChangeListeners = new ArrayList<>(3);
 
     // A temporary cache for the focus listener
     private String oldValue = "";
@@ -94,7 +93,7 @@ public class JLabeledTextArea extends JPanel implements JLabeledField, FocusList
      */
     @Override
     public List<JComponent> getComponentList() {
-        List<JComponent> comps = new LinkedList<JComponent>();
+        List<JComponent> comps = new LinkedList<>();
         comps.add(mLabel);
         comps.add(mTextArea);
         return comps;
@@ -107,7 +106,7 @@ public class JLabeledTextArea extends JPanel implements JLabeledField, FocusList
     /**
      * Initialises all of the components on this panel.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout());
 
         mTextArea.setRows(4);
@@ -243,8 +242,8 @@ public class JLabeledTextArea extends JPanel implements JLabeledField, FocusList
      */
     private void notifyChangeListeners() {
         ChangeEvent ce = new ChangeEvent(this);
-        for (int index = 0; index < mChangeListeners.size(); index++) {
-            mChangeListeners.get(index).stateChanged(ce);
+        for (ChangeListener mChangeListener : mChangeListeners) {
+            mChangeListener.stateChanged(ce);
         }
     }
     

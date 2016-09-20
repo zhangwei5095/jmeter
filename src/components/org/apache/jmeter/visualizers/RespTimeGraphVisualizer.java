@@ -51,11 +51,13 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jmeter.gui.action.ActionNames;
 import org.apache.jmeter.gui.action.ActionRouter;
 import org.apache.jmeter.gui.action.SaveGraphics;
@@ -79,7 +81,9 @@ public class RespTimeGraphVisualizer extends AbstractVisualizer implements Actio
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private final Font FONT_SMALL = new Font("SansSerif", Font.PLAIN, 10);
+    private static final Font FONT_DEFAULT = UIManager.getDefaults().getFont("TextField.font"); //$NON-NLS-1$
+
+    private static final Font FONT_SMALL = new Font("SansSerif", Font.PLAIN, (int) Math.round(FONT_DEFAULT.getSize() * 0.8)); //$NON-NLS-1$
 
     //+ JMX property names; do not change
 
@@ -207,23 +211,23 @@ public class RespTimeGraphVisualizer extends AbstractVisualizer implements Actio
 
     private final JCheckBox regexpChkBox = new JCheckBox(JMeterUtils.getResString("search_text_chkbox_regexp"), true); // $NON-NLS-1$
 
-    private final JComboBox titleFontNameList = new JComboBox(StatGraphProperties.getFontNameMap().keySet().toArray());
+    private final JComboBox<String> titleFontNameList = new JComboBox<>(StatGraphProperties.getFontNameMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private final JComboBox titleFontSizeList = new JComboBox(StatGraphProperties.fontSize);
+    private final JComboBox<String> titleFontSizeList = new JComboBox<>(StatGraphProperties.fontSize);
 
-    private final JComboBox titleFontStyleList = new JComboBox(StatGraphProperties.getFontStyleMap().keySet().toArray());
+    private final JComboBox<String> titleFontStyleList = new JComboBox<>(StatGraphProperties.getFontStyleMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private final JComboBox fontNameList = new JComboBox(StatGraphProperties.getFontNameMap().keySet().toArray());
+    private final JComboBox<String> fontNameList = new JComboBox<>(StatGraphProperties.getFontNameMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private final JComboBox fontSizeList = new JComboBox(StatGraphProperties.fontSize);
+    private final JComboBox<String> fontSizeList = new JComboBox<>(StatGraphProperties.fontSize);
 
-    private final JComboBox fontStyleList = new JComboBox(StatGraphProperties.getFontStyleMap().keySet().toArray());
+    private final JComboBox<String> fontStyleList = new JComboBox<>(StatGraphProperties.getFontStyleMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private final JComboBox legendPlacementList = new JComboBox(StatGraphProperties.getPlacementNameMap().keySet().toArray());
+    private final JComboBox<String> legendPlacementList = new JComboBox<>(StatGraphProperties.getPlacementNameMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
     
-    private final JComboBox pointShapeLine = new JComboBox(StatGraphProperties.getPointShapeMap().keySet().toArray());
+    private final JComboBox<String> pointShapeLine = new JComboBox<>(StatGraphProperties.getPointShapeMap().keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY));
 
-    private final JComboBox strokeWidthList = new JComboBox(StatGraphProperties.strokeWidth);
+    private final JComboBox<String> strokeWidthList = new JComboBox<>(StatGraphProperties.strokeWidth);
 
     private final JCheckBox numberShowGrouping = new JCheckBox(JMeterUtils.getResString("aggregate_graph_number_grouping"), // $NON-NLS-1$
             DEFAULT_NUMBER_SHOW_GROUPING); // Default checked
@@ -260,12 +264,12 @@ public class RespTimeGraphVisualizer extends AbstractVisualizer implements Actio
     /**
      * We want to retain insertion order, so LinkedHashMap is necessary
      */
-    private final Map<String, RespTimeGraphLineBean> seriesNames = new LinkedHashMap<String, RespTimeGraphLineBean>();
+    private final Map<String, RespTimeGraphLineBean> seriesNames = new LinkedHashMap<>();
 
     /**
      * We want to retain insertion order, so LinkedHashMap is necessary
      */
-    private final Map<String, Map<Long, StatCalculatorLong>> pList = new LinkedHashMap<String, Map<Long, StatCalculatorLong>>();
+    private final Map<String, Map<Long, StatCalculatorLong>> pList = new LinkedHashMap<>();
 
     private long durationTest = 0;
     
@@ -277,7 +281,7 @@ public class RespTimeGraphVisualizer extends AbstractVisualizer implements Actio
 
     private final List<Color> listColors = Colors.getColors();
 
-    private final List<RespTimeGraphDataBean> internalList = new ArrayList<RespTimeGraphDataBean>(); // internal list of all results
+    private final List<RespTimeGraphDataBean> internalList = new ArrayList<>(); // internal list of all results
 
     public RespTimeGraphVisualizer() {
         init();
@@ -298,7 +302,7 @@ public class RespTimeGraphVisualizer extends AbstractVisualizer implements Actio
         if ((matcher == null) || (matcher.find())) {
             final long startTimeMS = sampleResult.getStartTime();
             final long startTimeInterval = startTimeMS / intervalValue;
-            JMeterUtils.runSafe(new Runnable() {
+            JMeterUtils.runSafe(false, new Runnable() {
                 @Override
                 public void run() {
                     synchronized (lock) {
@@ -330,7 +334,7 @@ public class RespTimeGraphVisualizer extends AbstractVisualizer implements Actio
                             value.addValue(respTime, 1);
                         } else {
                             // We want to retain insertion order, so LinkedHashMap is necessary
-                            Map<Long, StatCalculatorLong> newSubList = new LinkedHashMap<Long, StatCalculatorLong>(5);
+                            Map<Long, StatCalculatorLong> newSubList = new LinkedHashMap<>(5);
                             StatCalculatorLong helper = new StatCalculatorLong();
                             helper.addValue(Long.valueOf(sampleResult.getTime()),1);
                             newSubList.put(startTimeIntervalLong,  helper);
@@ -402,7 +406,7 @@ public class RespTimeGraphVisualizer extends AbstractVisualizer implements Actio
 
         double nanLast = 0;
         double nanBegin = 0;
-        List<Double> nanList = new ArrayList<Double>();
+        List<Double> nanList = new ArrayList<>();
         int s = 0;
         for (Map<Long, StatCalculatorLong> subList : pList.values()) {
             int idx = 0;
@@ -459,7 +463,7 @@ public class RespTimeGraphVisualizer extends AbstractVisualizer implements Actio
     /**
      * Initialize the GUI.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         this.setLayout(new BorderLayout());
 
         // MAIN PANEL
@@ -556,7 +560,7 @@ public class RespTimeGraphVisualizer extends AbstractVisualizer implements Actio
                 // Reload data form internal list of results
                 synchronized (lockInterval) {
                     if (internalList.size() >= 2) {
-                        List<RespTimeGraphDataBean> tempList = new ArrayList<RespTimeGraphDataBean>();
+                        List<RespTimeGraphDataBean> tempList = new ArrayList<>();
                         tempList.addAll(internalList);
                         this.clearData();
                         for (RespTimeGraphDataBean data : tempList) {
@@ -590,8 +594,12 @@ public class RespTimeGraphVisualizer extends AbstractVisualizer implements Actio
 
     @Override
     public JComponent getPrintableComponent() {
-        if (saveGraphToFile == true) {
+        if (saveGraphToFile) {
             saveGraphToFile = false;
+            // (re)draw the graph first to take settings into account (Bug 58329)
+            if (getData().length > 0 && getData()[0].length>0) {
+                makeGraph();
+            }
             graphPanel.setBounds(graphPanel.getLocation().x,graphPanel.getLocation().y,
                     graphPanel.width,graphPanel.height);
             return graphPanel;

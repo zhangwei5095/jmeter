@@ -39,6 +39,7 @@ import org.apache.jmeter.testelement.AbstractTestElement;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.testelement.property.TestElementProperty;
+import org.apache.jmeter.visualizers.backend.graphite.GraphiteBackendListenerClient;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
 
@@ -111,8 +112,8 @@ public class BackendListener extends AbstractTestElement
      * per server. But we need the total to be shared.
      */
     //@GuardedBy("LOCK") - needed to ensure consistency between this and instanceCount
-    private static final Map<String, ListenerClientData> queuesByTestElementName = 
-            new ConcurrentHashMap<String, ListenerClientData>();
+    private static final Map<String, ListenerClientData> queuesByTestElementName =
+            new ConcurrentHashMap<>();
 
     /**
      * Create a BackendListener.
@@ -136,13 +137,14 @@ public class BackendListener extends AbstractTestElement
         return clone;
     }
 
-    private void initClass() {
+    private Class<?> initClass() {
         String name = getClassname().trim();
         try {
-            clientClass = Class.forName(name, false, Thread.currentThread().getContextClassLoader());
+            return Class.forName(name, false, Thread.currentThread().getContextClassLoader());
         } catch (Exception e) {
             LOGGER.error(whoAmI() + "\tException initialising: " + name, e);
         }
+        return null;
     }
 
     /**
@@ -208,7 +210,7 @@ public class BackendListener extends AbstractTestElement
         @Override
         public void run() {
             boolean isDebugEnabled = LOGGER.isDebugEnabled();
-            List<SampleResult> sampleResults = new ArrayList<SampleResult>(listenerClientData.queue.size());
+            List<SampleResult> sampleResults = new ArrayList<>(listenerClientData.queue.size());
             try {
                 try {
 
@@ -259,8 +261,9 @@ public class BackendListener extends AbstractTestElement
      * @param context {@link BackendListenerContext}
      * @param sampleResults List of {@link SampleResult}
      */
-    static final void sendToListener(final BackendListenerClient backendListenerClient, 
-            final BackendListenerContext context, 
+    static void sendToListener(
+            final BackendListenerClient backendListenerClient,
+            final BackendListenerContext context,
             final List<SampleResult> sampleResults) {
         if (sampleResults.size() > 0) {
             backendListenerClient.handleSampleResults(sampleResults, context);
@@ -317,12 +320,12 @@ public class BackendListener extends AbstractTestElement
             if (listenerClientData == null){
                 // We need to do this to ensure in Distributed testing 
                 // that only 1 instance of BackendListenerClient is used
-                initClass();
+                clientClass = initClass(); // may be null
                 BackendListenerClient backendListenerClient = createBackendListenerClientImpl(clientClass);
                 BackendListenerContext context = new BackendListenerContext((Arguments)getArguments().clone());
 
                 listenerClientData = new ListenerClientData();
-                listenerClientData.queue = new ArrayBlockingQueue<SampleResult>(queueSize); 
+                listenerClientData.queue = new ArrayBlockingQueue<>(queueSize);
                 listenerClientData.queueWaits = new AtomicLong(0L);
                 listenerClientData.queueWaitTime = new AtomicLong(0L);
                 listenerClientData.latch = new CountDownLatch(1);
@@ -433,6 +436,9 @@ public class BackendListener extends AbstractTestElement
      *            the new arguments. These replace any existing arguments.
      */
     public void setArguments(Arguments args) {
+        // Bug 59173 - don't save new default argument
+        args.removeArgument(GraphiteBackendListenerClient.USE_REGEXP_FOR_SAMPLERS_LIST, 
+                GraphiteBackendListenerClient.USE_REGEXP_FOR_SAMPLERS_LIST_DEFAULT);
         setProperty(new TestElementProperty(ARGUMENTS, args));
     }
 

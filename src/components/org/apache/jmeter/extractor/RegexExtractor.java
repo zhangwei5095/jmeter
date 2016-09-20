@@ -46,7 +46,7 @@ import org.apache.oro.text.regex.Perl5Matcher;
 
 public class RegexExtractor extends AbstractScopedTestElement implements PostProcessor, Serializable {
 
-    private static final long serialVersionUID = 240L;
+    private static final long serialVersionUID = 241L;
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
@@ -78,12 +78,16 @@ public class RegexExtractor extends AbstractScopedTestElement implements PostPro
     private static final String MATCH_NUMBER = "RegexExtractor.match_number"; // $NON-NLS-1$
 
     private static final String DEFAULT = "RegexExtractor.default"; // $NON-NLS-1$
+    
+    private static final String DEFAULT_EMPTY_VALUE = "RegexExtractor.default_empty_value"; // $NON-NLS-1$
 
     private static final String TEMPLATE = "RegexExtractor.template"; // $NON-NLS-1$
 
     private static final String REF_MATCH_NR = "_matchNr"; // $NON-NLS-1$
 
     private static final String UNDERSCORE = "_";  // $NON-NLS-1$
+
+    private static final boolean DEFAULT_VALUE_FOR_DEFAULT_EMPTY_VALUE = false;
 
     private transient List<Object> template;
 
@@ -109,9 +113,10 @@ public class RegexExtractor extends AbstractScopedTestElement implements PostPro
         int matchNumber = getMatchNumber();
 
         final String defaultValue = getDefaultValue();
-        if (defaultValue.length() > 0){// Only replace default if it is provided
+        if (defaultValue.length() > 0 || isEmptyDefaultValue()) {// Only replace default if it is provided or empty default value is explicitly requested
             vars.put(refName, defaultValue);
         }
+        
         Perl5Matcher matcher = JMeterUtils.getMatcher();
         String regex = getRegex();
         Pattern pattern = null;
@@ -192,7 +197,7 @@ public class RegexExtractor extends AbstractScopedTestElement implements PostPro
         }
 
         Perl5Matcher matcher = JMeterUtils.getMatcher();
-        List<MatchResult> matches = new ArrayList<MatchResult>();
+        List<MatchResult> matches = new ArrayList<>();
         int found = 0;
 
         if (isScopeVariable()){
@@ -315,7 +320,7 @@ public class RegexExtractor extends AbstractScopedTestElement implements PostPro
             return;
         }
         // Contains Strings and Integers
-        List<Object> combined = new ArrayList<Object>();
+        List<Object> combined = new ArrayList<>();
         String rawTemplate = getTemplate();
         PatternMatcher matcher = JMeterUtils.getMatcher();
         Pattern templatePattern = JMeterUtils.getPatternCache().getPattern("\\$(\\d+)\\$"  // $NON-NLS-1$
@@ -439,6 +444,15 @@ public class RegexExtractor extends AbstractScopedTestElement implements PostPro
     public void setDefaultValue(String defaultValue) {
         setProperty(DEFAULT, defaultValue);
     }
+    
+    /**
+     * Set default value to "" value when if it's empty
+     *
+     * @param defaultEmptyValue The default value for the variable
+     */
+    public void setDefaultEmptyValue(boolean defaultEmptyValue) {
+        setProperty(DEFAULT_EMPTY_VALUE, defaultEmptyValue, DEFAULT_VALUE_FOR_DEFAULT_EMPTY_VALUE);
+    }
 
     /**
      * Get the default value for the variable, which should be used, if no
@@ -448,6 +462,13 @@ public class RegexExtractor extends AbstractScopedTestElement implements PostPro
      */
     public String getDefaultValue() {
         return getPropertyAsString(DEFAULT);
+    }
+    
+    /**
+     * Do we set default value to "" value when if it's empty
+     */
+    public boolean isEmptyDefaultValue() {
+        return getPropertyAsBoolean(DEFAULT_EMPTY_VALUE, DEFAULT_VALUE_FOR_DEFAULT_EMPTY_VALUE);
     }
 
     public void setTemplate(String template) {

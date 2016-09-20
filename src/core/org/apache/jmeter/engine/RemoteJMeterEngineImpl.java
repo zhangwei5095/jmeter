@@ -26,7 +26,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.ServerNotActiveException;
-import java.util.Iterator;
 import java.util.Properties;
 
 import org.apache.jmeter.services.FileServer;
@@ -89,8 +88,10 @@ public final class RemoteJMeterEngineImpl extends java.rmi.server.UnicastRemoteO
         String host = System.getProperties().getProperty("java.rmi.server.hostname"); // $NON-NLS-1$
         try {
             if( host==null ) {
+                log.info("System property 'java.rmi.server.hostname' is not defined, using localHost address");
                 localHost = InetAddress.getLocalHost();
             } else {
+                log.info("Resolving by name the value of System property 'java.rmi.server.hostname':"+host);
                 localHost = InetAddress.getByName(host);
             }
         } catch (UnknownHostException e1) {
@@ -194,8 +195,16 @@ public final class RemoteJMeterEngineImpl extends java.rmi.server.UnicastRemoteO
      */
     @Override
     public void rexit() throws RemoteException {
-        log.info("Exitting");
-        backingEngine.exit();
+        log.info("Exiting");
+        // Bug 59400 - allow rexit() to return
+        Thread et = new Thread() {
+            @Override
+            public void run() {
+                log.info("Stopping the backing engine");
+                backingEngine.exit();
+            }  
+        };
+        et.setDaemon(false);
         // Tidy up any objects we created
         Registry reg = LocateRegistry.getRegistry(this.rmiPort);        
         try {
@@ -206,6 +215,7 @@ public final class RemoteJMeterEngineImpl extends java.rmi.server.UnicastRemoteO
         log.info("Unbound from registry");
         // Help with garbage control
         JMeterUtils.helpGC();
+        et.start();
     }
 
     @Override
@@ -214,8 +224,7 @@ public final class RemoteJMeterEngineImpl extends java.rmi.server.UnicastRemoteO
         if(remotelySetProperties != null) {
             Properties jmeterProperties = JMeterUtils.getJMeterProperties();
             log.info("Cleaning previously set properties "+remotelySetProperties);
-            for (Iterator<?> iterator = remotelySetProperties.keySet().iterator(); iterator.hasNext();) {
-                String key = (String) iterator.next();
+            for (Object key  : remotelySetProperties.keySet()) {
                 jmeterProperties.remove(key);
             }
         }

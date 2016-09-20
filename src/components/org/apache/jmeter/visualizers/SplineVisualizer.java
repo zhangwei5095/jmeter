@@ -43,7 +43,9 @@ import org.apache.jorphan.gui.layout.VerticalLayout;
  * Spline interpolated curve. Currently, it tries to look mostly like the
  * GraphVisualizer.
  *
+ * @deprecated since 3.0
  */
+@Deprecated
 public class SplineVisualizer extends AbstractVisualizer implements ImageVisualizer, GraphListener {
 
     private static final long serialVersionUID = 240L;
@@ -94,7 +96,7 @@ public class SplineVisualizer extends AbstractVisualizer implements ImageVisuali
 
     @Override
     public void add(final SampleResult res) {
-        JMeterUtils.runSafe(new Runnable() {            
+        JMeterUtils.runSafe(false, new Runnable() {
             @Override
             public void run() {
                 model.add(res);
@@ -318,14 +320,11 @@ public class SplineVisualizer extends AbstractVisualizer implements ImageVisuali
                 return;
             }
 
-            // boolean resized = true;
 
             if (width == lastWidth && height == lastHeight) {
                 // dimension of the SplineGraph is the same
-                // resized = false;
             } else {
                 // dimension changed
-                // resized = true;
                 lastWidth = width;
                 lastHeight = height;
             }

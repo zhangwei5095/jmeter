@@ -35,7 +35,7 @@ import org.apache.log.Logger;
 
 public class DataSourceElementBeanInfo extends BeanInfoSupport {
     private static final Logger log = LoggingManager.getLoggerForClass();
-    private static Map<String,Integer> TRANSACTION_ISOLATION_MAP = new HashMap<String, Integer>(5);
+    private static Map<String,Integer> TRANSACTION_ISOLATION_MAP = new HashMap<>(5);
     static {
         // Will use default isolation
         TRANSACTION_ISOLATION_MAP.put("DEFAULT", Integer.valueOf(-1));
@@ -109,7 +109,7 @@ public class DataSourceElementBeanInfo extends BeanInfoSupport {
      * <dl>
      * <dt>DEFAULT</dt><dd>-1</dd>
      * <dt>TRANSACTION_NONE</dt><dd>{@value java.sql.Connection#TRANSACTION_NONE}</dd>
-     * <dt>TRANSACTION_REAd_COMMITTED</dt><dd>{@value java.sql.Connection#TRANSACTION_READ_COMMITTED}</dd>
+     * <dt>TRANSACTION_READ_COMMITTED</dt><dd>{@value java.sql.Connection#TRANSACTION_READ_COMMITTED}</dd>
      * <dt>TRANSACTION_READ_UNCOMMITTED</dt><dd>{@value java.sql.Connection#TRANSACTION_READ_UNCOMMITTED}</dd>
      * <dt>TRANSACTION_REPEATABLE_READ</dt><dd>{@value java.sql.Connection#TRANSACTION_REPEATABLE_READ}</dd>
      * <dt>TRANSACTION_SERIALIZABLE</dt><dd>{@value java.sql.Connection#TRANSACTION_SERIALIZABLE}</dd>
@@ -126,6 +126,8 @@ public class DataSourceElementBeanInfo extends BeanInfoSupport {
                 } catch (NumberFormatException e) {
                     log.warn("Illegal transaction isolation configuration '" + tag + "'");
                 }
+            } else {
+                return isolationMode.intValue();
             }
         }
         return -1;

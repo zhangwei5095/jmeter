@@ -64,7 +64,7 @@ public class JMSSamplerGui extends AbstractSamplerGui {
 
     private JLabeledTextField jmsSelector = new JLabeledTextField(JMeterUtils.getResString("jms_selector")); //$NON-NLS-1$
 
-    private JSyntaxTextArea messageContent = new JSyntaxTextArea(10, 50); //$NON-NLS-1$
+    private JSyntaxTextArea messageContent = JSyntaxTextArea.getInstance(10, 50); //$NON-NLS-1$
 
     private JLabeledTextField initialContextFactory = new JLabeledTextField(
             JMeterUtils.getResString("jms_initial_context_factory")); //$NON-NLS-1$
@@ -99,7 +99,7 @@ public class JMSSamplerGui extends AbstractSamplerGui {
         queueConnectionFactory.setText(""); // $NON-NLS-1$
         sendQueue.setText(""); // $NON-NLS-1$
         receiveQueue.setText(""); // $NON-NLS-1$
-        ((JComboBox) oneWay.getComponentList().get(1)).setSelectedItem(JMeterUtils.getResString("jms_request")); //$NON-NLS-1$
+        ((JComboBox<?>) oneWay.getComponentList().get(1)).setSelectedItem(JMeterUtils.getResString("jms_request")); //$NON-NLS-1$
         timeout.setText("");  // $NON-NLS-1$
         expiration.setText("");  // $NON-NLS-1$
         priority.setText("");  // $NON-NLS-1$
@@ -114,7 +114,7 @@ public class JMSSamplerGui extends AbstractSamplerGui {
     @Override
     public TestElement createTestElement() {
         JMSSampler sampler = new JMSSampler();
-        this.configureTestElement(sampler);
+        super.configureTestElement(sampler);
         transfer(sampler);
         return sampler;
     }
@@ -152,8 +152,8 @@ public class JMSSamplerGui extends AbstractSamplerGui {
      */
     @Override
     public void modifyTestElement(TestElement element) {
-        this.configureTestElement(element);
-        if (!(element instanceof JMSSampler)) return;
+        super.configureTestElement(element);
+        if (!(element instanceof JMSSampler)) { return; }
         JMSSampler sampler = (JMSSampler) element;
         transfer(sampler);
     }
@@ -161,13 +161,13 @@ public class JMSSamplerGui extends AbstractSamplerGui {
     @Override
     public void configure(TestElement el) {
         super.configure(el);
-        if (!(el instanceof JMSSampler)) return;
+        if (!(el instanceof JMSSampler)) { return; }
         JMSSampler sampler = (JMSSampler) el;
         queueConnectionFactory.setText(sampler.getQueueConnectionFactory());
         sendQueue.setText(sampler.getSendQueue());
         receiveQueue.setText(sampler.getReceiveQueue());
 
-        JComboBox box = (JComboBox) oneWay.getComponentList().get(1);
+        JComboBox<?> box = (JComboBox<?>) oneWay.getComponentList().get(1);
         String selected = null;
         if (sampler.isOneway()) {
             selected = JMeterUtils.getResString("jms_request"); //$NON-NLS-1$
@@ -201,7 +201,7 @@ public class JMSSamplerGui extends AbstractSamplerGui {
      * Initializes the configuration screen.
      *
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout());
         setBorder(makeBorder());
         add(makeTitlePanel(), BorderLayout.NORTH);
@@ -257,7 +257,7 @@ public class JMSSamplerGui extends AbstractSamplerGui {
 
         JPanel messageContentPanel = new JPanel(new BorderLayout());
         messageContentPanel.add(new JLabel(JMeterUtils.getResString("jms_msg_content")), BorderLayout.NORTH);
-        messageContentPanel.add(new JTextScrollPane(messageContent), BorderLayout.CENTER);
+        messageContentPanel.add(JTextScrollPane.getInstance(messageContent), BorderLayout.CENTER);
         messagePanel.add(messageContentPanel, BorderLayout.CENTER);
 
         jmsPropertiesPanel = new JMSPropertiesPanel(); //$NON-NLS-1$

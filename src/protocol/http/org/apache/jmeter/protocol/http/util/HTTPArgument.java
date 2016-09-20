@@ -27,7 +27,7 @@ import java.util.List;
 import org.apache.jmeter.config.Argument;
 import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.testelement.property.BooleanProperty;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
 
@@ -252,10 +252,9 @@ public class HTTPArgument extends Argument implements Serializable {
      * @param args collection of {@link Argument} and/or {@link HTTPArgument} entries
      */
     public static void convertArgumentsToHTTP(Arguments args) {
-        List<Argument> newArguments = new LinkedList<Argument>();
-        PropertyIterator iter = args.getArguments().iterator();
-        while (iter.hasNext()) {
-            Argument arg = (Argument) iter.next().getObjectValue();
+        List<Argument> newArguments = new LinkedList<>();
+        for (JMeterProperty jMeterProperty : args.getArguments()) {
+            Argument arg = (Argument) jMeterProperty.getObjectValue();
             if (!(arg instanceof HTTPArgument)) {
                 newArguments.add(new HTTPArgument(arg));
             } else {

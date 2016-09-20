@@ -30,7 +30,6 @@ import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.gui.layout.VerticalLayout;
 
 public class IncludeControllerGui extends AbstractControllerGui
-       // implements UnsharedComponent
 {
 
     private static final long serialVersionUID = 240L;
@@ -105,7 +104,7 @@ public class IncludeControllerGui extends AbstractControllerGui
         return menu;
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new VerticalLayout(5, VerticalLayout.BOTH, VerticalLayout.TOP));
         setBorder(makeBorder());
         add(makeTitlePanel());

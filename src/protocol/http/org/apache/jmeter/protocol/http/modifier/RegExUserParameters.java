@@ -27,7 +27,7 @@ import org.apache.jmeter.processor.PreProcessor;
 import org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase;
 import org.apache.jmeter.samplers.Sampler;
 import org.apache.jmeter.testelement.AbstractTestElement;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.threads.JMeterVariables;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
@@ -72,9 +72,8 @@ public class RegExUserParameters extends AbstractTestElement implements Serializ
         }
 
         HTTPSamplerBase sampler = (HTTPSamplerBase) entry;
-        PropertyIterator iter = sampler.getArguments().iterator();
-        while (iter.hasNext()) {
-            Argument arg = (Argument) iter.next().getObjectValue();
+        for (JMeterProperty jMeterProperty : sampler.getArguments()) {
+            Argument arg = (Argument) jMeterProperty.getObjectValue();
             String oldValue = arg.getValue();
             // if parameter name exists in http request
             // then change its value with value obtained with regular expression
@@ -82,8 +81,8 @@ public class RegExUserParameters extends AbstractTestElement implements Serializ
             if (val != null) {
                 arg.setValue(val);
             }
-            if (log.isDebugEnabled()){
-                log.debug("RegExUserParameters element:"+getName()+" => changed parameter: "+arg.getName() +" = "+ arg.getValue()+", was:"+oldValue);
+            if (log.isDebugEnabled()) {
+                log.debug("RegExUserParameters element:" + getName() + " => changed parameter: " + arg.getName() + " = " + arg.getValue() + ", was:" + oldValue);
             }
         }
     }
@@ -100,7 +99,7 @@ public class RegExUserParameters extends AbstractTestElement implements Serializ
             return null;
         }
         int n = Integer.parseInt(jmvars.get(regExRefName + MATCH_NR));
-        Map<String, String> map = new HashMap<String, String>(n);
+        Map<String, String> map = new HashMap<>(n);
         for(int i=1; i<=n; i++){
             map.put(jmvars.get(regExRefName + i + REGEX_GROUP_SUFFIX + grNames), 
                     jmvars.get(regExRefName + i + REGEX_GROUP_SUFFIX + grValues));

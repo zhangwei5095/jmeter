@@ -39,6 +39,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.KeyStroke;
 import javax.swing.MenuElement;
+
 import org.apache.jmeter.control.Controller;
 import org.apache.jmeter.gui.GuiPackage;
 import org.apache.jmeter.gui.JMeterGUIComponent;
@@ -90,10 +91,9 @@ public final class MenuFactory {
 
     public static final String LISTENERS = "menu_listener"; //$NON-NLS-1$
 
-    private static final Map<String, List<MenuInfo>> menuMap =
-        new HashMap<String, List<MenuInfo>>();
+    private static final Map<String, List<MenuInfo>> menuMap = new HashMap<>();
 
-    private static final Set<String> elementsToSkip = new HashSet<String>();
+    private static final Set<String> elementsToSkip = new HashSet<>();
 
     // MENU_ADD_xxx - controls which items are in the ADD menu
     // MENU_PARENT_xxx - controls which items are in the Insert Parent menu
@@ -128,17 +128,17 @@ public final class MenuFactory {
         postProcessors, preProcessors;
 
     static {
-        threads = new LinkedList<MenuInfo>();
-        fragments = new LinkedList<MenuInfo>();
-        timers = new LinkedList<MenuInfo>();
-        controllers = new LinkedList<MenuInfo>();
-        samplers = new LinkedList<MenuInfo>();
-        configElements = new LinkedList<MenuInfo>();
-        assertions = new LinkedList<MenuInfo>();
-        listeners = new LinkedList<MenuInfo>();
-        postProcessors = new LinkedList<MenuInfo>();
-        preProcessors = new LinkedList<MenuInfo>();
-        nonTestElements = new LinkedList<MenuInfo>();
+        threads = new LinkedList<>();
+        fragments = new LinkedList<>();
+        timers = new LinkedList<>();
+        controllers = new LinkedList<>();
+        samplers = new LinkedList<>();
+        configElements = new LinkedList<>();
+        assertions = new LinkedList<>();
+        listeners = new LinkedList<>();
+        postProcessors = new LinkedList<>();
+        preProcessors = new LinkedList<>();
+        nonTestElements = new LinkedList<>();
         menuMap.put(THREADS, threads);
         menuMap.put(FRAGMENTS, fragments);
         menuMap.put(TIMERS, timers);
@@ -153,8 +153,8 @@ public final class MenuFactory {
         try {
             String[] classesToSkip =
                 JOrphanUtils.split(JMeterUtils.getPropDefault("not_in_menu", ""), ","); //$NON-NLS-1$
-            for (int i = 0; i < classesToSkip.length; i++) {
-                elementsToSkip.add(classesToSkip[i].trim());
+            for (String aClassesToSkip : classesToSkip) {
+                elementsToSkip.add(aClassesToSkip.trim());
             }
 
             initializeMenus();
@@ -270,8 +270,8 @@ public final class MenuFactory {
 
     public static JMenu makeMenus(String[] categories, String label, String actionCommand) {
         JMenu addMenu = new JMenu(label);
-        for (int i = 0; i < categories.length; i++) {
-            addMenu.add(makeMenu(categories[i], actionCommand));
+        for (String category : categories) {
+            addMenu.add(makeMenu(category, actionCommand));
         }
         GuiUtils.makeScrollableMenu(addMenu);
         return addMenu;
@@ -315,6 +315,8 @@ public final class MenuFactory {
 
     public static JPopupMenu getDefaultVisualizerMenu() {
         JPopupMenu pop = new JPopupMenu();
+        pop.add(
+                MenuFactory.makeMenuItemRes("clear", ActionNames.CLEAR)); //$NON-NLS-1$
         MenuFactory.addEditMenu(pop, true);
         MenuFactory.addFileMenu(pop);
         return pop;
@@ -598,7 +600,7 @@ public final class MenuFactory {
      *            - array of nodes that are to be added
      * @return whether it is OK to add the dragged nodes to this parent
      */
-    public static boolean canAddTo(JMeterTreeNode parentNode, JMeterTreeNode nodes[]) {
+    public static boolean canAddTo(JMeterTreeNode parentNode, JMeterTreeNode[] nodes) {
         if (null == parentNode) {
             return false;
         }
@@ -648,11 +650,10 @@ public final class MenuFactory {
     }
 
     // Is any node an instance of one of the classes?
-    private static boolean foundClass(JMeterTreeNode nodes[],Class<?> classes[]){
-        for (int i = 0; i < nodes.length; i++) {
-            JMeterTreeNode node = nodes[i];
-            for (int j=0; j < classes.length; j++) {
-                if (classes[j].isInstance(node.getUserObject())){
+    private static boolean foundClass(JMeterTreeNode[] nodes, Class<?>[] classes) {
+        for (JMeterTreeNode node : nodes) {
+            for (Class<?> aClass : classes) {
+                if (aClass.isInstance(node.getUserObject())) {
                     return true;
                 }
             }
@@ -661,13 +662,12 @@ public final class MenuFactory {
     }
 
     // Is any node an instance of one of the classes, but not an exception?
-    private static boolean foundClass(JMeterTreeNode nodes[],Class<?> classes[], Class<?> except){
-        for (int i = 0; i < nodes.length; i++) {
-            JMeterTreeNode node = nodes[i];
+    private static boolean foundClass(JMeterTreeNode[] nodes, Class<?>[] classes, Class<?> except) {
+        for (JMeterTreeNode node : nodes) {
             Object userObject = node.getUserObject();
             if (!except.isInstance(userObject)) {
-                for (int j=0; j < classes.length; j++) {
-                    if (classes[j].isInstance(userObject)){
+                for (Class<?> aClass : classes) {
+                    if (aClass.isInstance(userObject)) {
                         return true;
                     }
                 }

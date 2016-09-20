@@ -20,25 +20,25 @@ package org.apache.jmeter.protocol.http.control.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 
 import org.apache.jmeter.gui.util.HorizontalPanel;
 import org.apache.jmeter.gui.util.VerticalPanel;
-import org.apache.jmeter.protocol.http.config.gui.MultipartUrlConfigGui;
+import org.apache.jmeter.protocol.http.config.gui.UrlConfigGui;
 import org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase;
 import org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy;
 import org.apache.jmeter.samplers.gui.AbstractSamplerGui;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.util.JMeterUtils;
+import org.apache.jorphan.gui.JLabeledTextField;
 
 //For unit tests, @see TestHttpTestSampleGui
 
@@ -47,15 +47,12 @@ import org.apache.jmeter.util.JMeterUtils;
  *
  */
 public class HttpTestSampleGui extends AbstractSamplerGui {
-    private static final long serialVersionUID = 240L;
     
-    private static final Font FONT_VERY_SMALL = new Font("SansSerif", Font.PLAIN, 9);
+    private static final long serialVersionUID = 241L;
     
-    private static final Font FONT_SMALL = new Font("SansSerif", Font.PLAIN, 12);
+    private UrlConfigGui urlConfigGui;
 
-    private MultipartUrlConfigGui urlConfigGui;
-
-    private JCheckBox getImages;
+    private JCheckBox retrieveEmbeddedResources;
     
     private JCheckBox concurrentDwn;
     
@@ -65,13 +62,11 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
 
     private JCheckBox useMD5;
 
-    private JLabel labelEmbeddedRE = new JLabel(JMeterUtils.getResString("web_testing_embedded_url_pattern")); // $NON-NLS-1$
-
-    private JTextField embeddedRE; // regular expression used to match against embedded resource URLs
+    private JLabeledTextField embeddedRE; // regular expression used to match against embedded resource URLs
 
     private JTextField sourceIpAddr; // does not apply to Java implementation
     
-    private JComboBox sourceIpType = new JComboBox(HTTPSamplerBase.getSourceTypeList());
+    private JComboBox<String> sourceIpType = new JComboBox<>(HTTPSamplerBase.getSourceTypeList());
 
     private final boolean isAJP;
     
@@ -94,7 +89,7 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
         super.configure(element);
         final HTTPSamplerBase samplerBase = (HTTPSamplerBase) element;
         urlConfigGui.configure(element);
-        getImages.setSelected(samplerBase.isImageParser());
+        retrieveEmbeddedResources.setSelected(samplerBase.isImageParser());
         concurrentDwn.setSelected(samplerBase.isConcurrentDwn());
         concurrentPool.setText(samplerBase.getConcurrentPool());
         isMon.setSelected(samplerBase.isMonitor());
@@ -105,7 +100,7 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
             sourceIpType.setSelectedIndex(samplerBase.getIpSourceType());
         }
     }
-
+    
     /**
      * {@inheritDoc}
      */
@@ -126,8 +121,8 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
         sampler.clear();
         urlConfigGui.modifyTestElement(sampler);
         final HTTPSamplerBase samplerBase = (HTTPSamplerBase) sampler;
-        samplerBase.setImageParser(getImages.isSelected());
-        enableConcurrentDwn(getImages.isSelected());
+        samplerBase.setImageParser(retrieveEmbeddedResources.isSelected());
+        enableConcurrentDwn(retrieveEmbeddedResources.isSelected());
         samplerBase.setConcurrentDwn(concurrentDwn.isSelected());
         samplerBase.setConcurrentPool(concurrentPool.getText());
         samplerBase.setMonitor(isMon.isSelected());
@@ -137,7 +132,7 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
             samplerBase.setIpSource(sourceIpAddr.getText());
             samplerBase.setIpSourceType(sourceIpType.getSelectedIndex());
         }
-        this.configureTestElement(sampler);
+        super.configureTestElement(sampler);
     }
 
     /**
@@ -152,33 +147,34 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
         setLayout(new BorderLayout(0, 5));
         setBorder(makeBorder());
 
-        add(makeTitlePanel(), BorderLayout.NORTH);
-
         // URL CONFIG
-        urlConfigGui = new MultipartUrlConfigGui(true, !isAJP);
-        add(urlConfigGui, BorderLayout.CENTER);
+        urlConfigGui = new UrlConfigGui(true, !isAJP, true, true);
+        
+        // AdvancedPanel (embedded resources, source address and optional tasks)
+        JPanel advancedPanel = new VerticalPanel();
+        advancedPanel.add(createEmbeddedRsrcPanel());
+        advancedPanel.add(createSourceAddrPanel());
+        advancedPanel.add(createOptionalTasksPanel());
+        
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.add(JMeterUtils
+                .getResString("web_testing_basic"), urlConfigGui);
+        tabbedPane.add(JMeterUtils
+                .getResString("web_testing_advanced"), advancedPanel);
 
-        // Bottom (embedded resources, source address and optional tasks)
-        JPanel bottomPane = new VerticalPanel();
-        bottomPane.add(createEmbeddedRsrcPanel());
-        JPanel optionAndSourcePane = new HorizontalPanel();
-        optionAndSourcePane.add(createSourceAddrPanel());
-        optionAndSourcePane.add(createOptionalTasksPanel());
-        bottomPane.add(optionAndSourcePane);
-        add(bottomPane, BorderLayout.SOUTH);
+        JPanel emptyPanel = new JPanel();
+        emptyPanel.setMaximumSize(new Dimension());
+
+        add(makeTitlePanel(), BorderLayout.NORTH);
+        add(tabbedPane, BorderLayout.CENTER);
+        add(emptyPanel, BorderLayout.SOUTH);
     }
 
     protected JPanel createEmbeddedRsrcPanel() {
-        final JPanel embeddedRsrcPanel = new VerticalPanel();
-        embeddedRsrcPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), JMeterUtils
-                .getResString("web_testing_retrieve_title"))); // $NON-NLS-1$
-
-        final JPanel checkBoxPanel = new HorizontalPanel();
-        // RETRIEVE IMAGES
-        getImages = new JCheckBox(JMeterUtils.getResString("web_testing_retrieve_images")); // $NON-NLS-1$
-        getImages.setFont(FONT_SMALL);
+        // retrieve Embedded resources
+        retrieveEmbeddedResources = new JCheckBox(JMeterUtils.getResString("web_testing_retrieve_images")); // $NON-NLS-1$
         // add a listener to activate or not concurrent dwn.
-        getImages.addItemListener(new ItemListener() {
+        retrieveEmbeddedResources.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(final ItemEvent e) {
                 if (e.getStateChange() == ItemEvent.SELECTED) { enableConcurrentDwn(true); }
@@ -187,48 +183,44 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
         });
         // Download concurrent resources
         concurrentDwn = new JCheckBox(JMeterUtils.getResString("web_testing_concurrent_download")); // $NON-NLS-1$
-        concurrentDwn.setFont(FONT_SMALL);
         concurrentDwn.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(final ItemEvent e) {
-                if (getImages.isSelected() && e.getStateChange() == ItemEvent.SELECTED) { concurrentPool.setEnabled(true); }
+                if (retrieveEmbeddedResources.isSelected() && e.getStateChange() == ItemEvent.SELECTED) { concurrentPool.setEnabled(true); }
                 else { concurrentPool.setEnabled(false); }
             }
         });
         concurrentPool = new JTextField(2); // 2 column size
-        concurrentPool.setFont(FONT_SMALL);
-        concurrentPool.setMaximumSize(new Dimension(30,20));
+        concurrentPool.setMinimumSize(new Dimension(10, (int) concurrentPool.getPreferredSize().getHeight()));
+        concurrentPool.setMaximumSize(new Dimension(30, (int) concurrentPool.getPreferredSize().getHeight()));
 
-        checkBoxPanel.add(getImages);
-        checkBoxPanel.add(concurrentDwn);
-        checkBoxPanel.add(concurrentPool);
-        embeddedRsrcPanel.add(checkBoxPanel);
+        final JPanel embeddedRsrcPanel = new HorizontalPanel();
+        embeddedRsrcPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), JMeterUtils
+                .getResString("web_testing_retrieve_title"))); // $NON-NLS-1$
+        embeddedRsrcPanel.add(retrieveEmbeddedResources);
+        embeddedRsrcPanel.add(concurrentDwn);
+        embeddedRsrcPanel.add(concurrentPool);
 
         // Embedded URL match regex
-        labelEmbeddedRE.setFont(FONT_SMALL);
-        checkBoxPanel.add(labelEmbeddedRE);
-        embeddedRE = new JTextField(10);
-        checkBoxPanel.add(embeddedRE);
-        embeddedRsrcPanel.add(checkBoxPanel);
-
+        embeddedRE = new JLabeledTextField(JMeterUtils.getResString("web_testing_embedded_url_pattern"),20); // $NON-NLS-1$
+        embeddedRsrcPanel.add(embeddedRE);
+        
         return embeddedRsrcPanel;
     }
 
     protected JPanel createOptionalTasksPanel() {
         // OPTIONAL TASKS
-        final JPanel checkBoxPanel = new HorizontalPanel();
+        final JPanel checkBoxPanel = new VerticalPanel();
         checkBoxPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), JMeterUtils
                 .getResString("optional_tasks"))); // $NON-NLS-1$
 
-        // Is monitor
-        isMon = new JCheckBox(JMeterUtils.getResString("monitor_is_title")); // $NON-NLS-1$
-        isMon.setFont(FONT_SMALL);
         // Use MD5
         useMD5 = new JCheckBox(JMeterUtils.getResString("response_save_as_md5")); // $NON-NLS-1$
-        useMD5.setFont(FONT_SMALL);
 
-        checkBoxPanel.add(isMon);
+        // Is monitor
+        isMon = new JCheckBox(JMeterUtils.getResString("monitor_is_title")); // $NON-NLS-1$
         checkBoxPanel.add(useMD5);
+        checkBoxPanel.add(isMon);
 
         return checkBoxPanel;
     }
@@ -241,7 +233,6 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
         if (!isAJP) {
             // Add a new field source ip address (for HC implementations only)
             sourceIpType.setSelectedIndex(HTTPSamplerBase.SourceType.HOSTNAME.ordinal()); //default: IP/Hostname
-            sourceIpType.setFont(FONT_VERY_SMALL);
             sourceAddrPanel.add(sourceIpType);
 
             sourceIpAddr = new JTextField();
@@ -257,14 +248,14 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
     public Dimension getPreferredSize() {
         return getMinimumSize();
     }
-
+    
     /**
      * {@inheritDoc}
      */
     @Override
     public void clearGui() {
         super.clearGui();
-        getImages.setSelected(false);
+        retrieveEmbeddedResources.setSelected(false);
         concurrentDwn.setSelected(false);
         concurrentPool.setText(String.valueOf(HTTPSamplerBase.CONCURRENT_POOL_SIZE));
         enableConcurrentDwn(false);
@@ -281,7 +272,6 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
     private void enableConcurrentDwn(boolean enable) {
         if (enable) {
             concurrentDwn.setEnabled(true);
-            labelEmbeddedRE.setEnabled(true);
             embeddedRE.setEnabled(true);
             if (concurrentDwn.isSelected()) {
                 concurrentPool.setEnabled(true);
@@ -289,7 +279,6 @@ public class HttpTestSampleGui extends AbstractSamplerGui {
         } else {
             concurrentDwn.setEnabled(false);
             concurrentPool.setEnabled(false);
-            labelEmbeddedRE.setEnabled(false);
             embeddedRE.setEnabled(false);
         }
     }

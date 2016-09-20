@@ -82,20 +82,6 @@ public class MultipartUrlConfig implements Serializable {
         return files;
     }
 
-// NOT USED
-//    /**
-//     * @deprecated values in a multipart/form-data are not urlencoded,
-//     * so it does not make sense to add a value as a encoded value
-//     */
-//  public void addEncodedArgument(String name, String value) {
-//      Arguments myArgs = getArguments();
-//      HTTPArgument arg = new HTTPArgument(name, value, true);
-//      if (arg.getName().equals(arg.getEncodedName()) && arg.getValue().equals(arg.getEncodedValue())) {
-//          arg.setAlwaysEncoded(false);
-//      }
-//      myArgs.addArgument(arg);
-//  }
-
     /**
      * Add a value that is not URL encoded, and make sure it
      * appears in the GUI that it will not be encoded when
@@ -122,11 +108,11 @@ public class MultipartUrlConfig implements Serializable {
      */
     public void parseArguments(String queryString) {
         String[] parts = JOrphanUtils.split(queryString, "--" + getBoundary()); //$NON-NLS-1$
-        for (int i = 0; i < parts.length; i++) {
-            String contentDisposition = getHeaderValue("Content-disposition", parts[i]); //$NON-NLS-1$
-            String contentType = getHeaderValue("Content-type", parts[i]); //$NON-NLS-1$
+        for (String part : parts) {
+            String contentDisposition = getHeaderValue("Content-disposition", part); //$NON-NLS-1$
+            String contentType = getHeaderValue("Content-type", part); //$NON-NLS-1$
             // Check if it is form data
-            if (contentDisposition != null && contentDisposition.indexOf("form-data") > -1) { //$NON-NLS-1$
+            if (contentDisposition != null && contentDisposition.contains("form-data")) { //$NON-NLS-1$
                 // Get the form field name
                 final String namePrefix = "name=\""; //$NON-NLS-1$
                 int index = contentDisposition.indexOf(namePrefix) + namePrefix.length();
@@ -134,16 +120,15 @@ public class MultipartUrlConfig implements Serializable {
 
                 // Check if it is a file being uploaded
                 final String filenamePrefix = "filename=\""; //$NON-NLS-1$
-                if (contentDisposition.indexOf(filenamePrefix) > -1) {
+                if (contentDisposition.contains(filenamePrefix)) {
                     // Get the filename
                     index = contentDisposition.indexOf(filenamePrefix) + filenamePrefix.length();
                     String path = contentDisposition.substring(index, contentDisposition.indexOf('\"', index)); //$NON-NLS-1$
-                    if(path != null && path.length() > 0) {
+                    if (path != null && path.length() > 0) {
                         // Set the values retrieved for the file upload
                         files.addHTTPFileArg(path, name, contentType);
                     }
-                }
-                else {
+                } else {
                     // Find the first empty line of the multipart, it signals end of headers for multipart
                     // Agents are supposed to terminate lines in CRLF:
                     final String CRLF = "\r\n";
@@ -151,13 +136,13 @@ public class MultipartUrlConfig implements Serializable {
                     // Code also allows for LF only (not sure why - perhaps because the test code uses it?)
                     final String LF = "\n";
                     final String LFLF = "\n\n";
-                    int indexEmptyCrLfCrLfLinePos = parts[i].indexOf(CRLFCRLF); //$NON-NLS-1$
-                    int indexEmptyLfLfLinePos = parts[i].indexOf(LFLF); //$NON-NLS-1$
+                    int indexEmptyCrLfCrLfLinePos = part.indexOf(CRLFCRLF); //$NON-NLS-1$
+                    int indexEmptyLfLfLinePos = part.indexOf(LFLF); //$NON-NLS-1$
                     String value = null;
-                    if(indexEmptyCrLfCrLfLinePos > -1) {// CRLF blank line found
-                        value = parts[i].substring(indexEmptyCrLfCrLfLinePos+CRLFCRLF.length(),parts[i].lastIndexOf(CRLF));
-                    } else if(indexEmptyLfLfLinePos > -1) { // LF blank line found
-                        value = parts[i].substring(indexEmptyLfLfLinePos+LFLF.length(),parts[i].lastIndexOf(LF));
+                    if (indexEmptyCrLfCrLfLinePos > -1) {// CRLF blank line found
+                        value = part.substring(indexEmptyCrLfCrLfLinePos + CRLFCRLF.length(), part.lastIndexOf(CRLF));
+                    } else if (indexEmptyLfLfLinePos > -1) { // LF blank line found
+                        value = part.substring(indexEmptyLfLfLinePos + LFLF.length(), part.lastIndexOf(LF));
                     }
                     this.addNonEncodedArgument(name, value);
                 }

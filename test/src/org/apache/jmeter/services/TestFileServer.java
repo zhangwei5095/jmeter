@@ -22,33 +22,36 @@
      
 package org.apache.jmeter.services;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 
 import org.apache.jmeter.junit.JMeterTestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestFileServer extends JMeterTestCase {
 
     private static final FileServer FS = FileServer.getFileServer();
     
-    public TestFileServer() {
-        super();
-    }
 
-    public TestFileServer(String arg0) {
-        super(arg0);
-    }
-
-    @Override
+    @Before
     public void setUp() throws IOException {
         FS.resetBase();        
     }
 
-    @Override
+    @After
     public void tearDown() throws IOException{
         FS.closeFiles();
     }
     
+    @Test
     public void testopen() throws Exception {
         try {
             FS.readLine("test");
@@ -103,6 +106,7 @@ public class TestFileServer extends JMeterTestCase {
         FS.closeFiles();
     }
     
+    @Test
     public void testRelative() throws Exception {
         final String base = FileServer.getDefaultBase();
         final File basefile = new File(base);
@@ -117,6 +121,7 @@ public class TestFileServer extends JMeterTestCase {
         assertEquals("abcd",FS.getBaseDirRelative().toString());
     }
 
+    @Test
     public void testHeaderMissingFile() throws Exception {
         final String missing = "no-such-file";
         final String alias = "missing";
@@ -124,19 +129,28 @@ public class TestFileServer extends JMeterTestCase {
 
         try {
             FS.reserveFile(missing,charsetName,alias,true);
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertTrue("Expected FNF", e.getCause() instanceof java.io.FileNotFoundException);
+            fail("Bad filename passed to FileService.reserveFile -> IllegalArgumentException: Could not read file header line for file no-such-file");
+        } catch (IllegalArgumentException ignored) {
+            assertEquals("Bad filename passed to FileService.reserveFile -> exception",
+                    "Could not read file header line for file no-such-file",
+                    ignored.getMessage());
+            assertEquals("Bad filename passed to FileService.reserveFile -> exception",
+                    "File no-such-file must exist and be readable", ignored.getCause().getMessage());
         }
         // Ensure second invocation gets same behaviour
         try {
             FS.reserveFile(missing,charsetName,alias,true);
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertTrue("Expected FNF", e.getCause() instanceof java.io.FileNotFoundException);
+            fail("Bad filename passed to FileService.reserveFile -> IllegalArgumentException: Could not read file header line for file no-such-file");
+        } catch (IllegalArgumentException ignored) {
+            assertEquals("Bad filename passed to FileService.reserveFile -> exception",
+                    "Could not read file header line for file no-such-file",
+                    ignored.getMessage());
+            assertEquals("Bad filename passed to FileService.reserveFile -> exception",
+                    "File no-such-file must exist and be readable", ignored.getCause().getMessage());
         }
     }
 
+    @Test
     public void testHeaderEmptyFile() throws Exception {
         final String empty = findTestPath("testfiles/empty.csv");
         final String alias = "empty";
@@ -155,5 +169,19 @@ public class TestFileServer extends JMeterTestCase {
         } catch (IllegalArgumentException e) {
             assertTrue("Expected EOF", e.getCause() instanceof java.io.EOFException);
         }
+    }
+
+    @Test
+    public void testResolvingPaths() {
+        final File anchor = new File(findTestPath("testfiles/empty.csv"));
+
+        // absolute
+        assertTrue(FS.getResolvedFile(anchor.getAbsolutePath()).exists());
+
+        // relative
+        assertTrue(FS.getResolvedFile(anchor.getParentFile().getPath() + "/../testfiles/empty.csv").exists());
+        // test-plan-relative
+        FS.setBaseForScript(anchor);
+        assertTrue(FS.getResolvedFile(anchor.getName()).exists());
     }
 }

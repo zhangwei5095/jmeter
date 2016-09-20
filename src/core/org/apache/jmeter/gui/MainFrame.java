@@ -19,10 +19,10 @@
 package org.apache.jmeter.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.Insets;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
@@ -47,11 +47,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DropMode;
 import javax.swing.ImageIcon;
+import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
@@ -63,6 +66,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTree;
+import javax.swing.KeyStroke;
 import javax.swing.MenuElement;
 import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -74,21 +78,26 @@ import javax.swing.tree.TreePath;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jmeter.gui.action.ActionNames;
 import org.apache.jmeter.gui.action.ActionRouter;
+import org.apache.jmeter.gui.action.KeyStrokes;
 import org.apache.jmeter.gui.action.LoadDraggedFile;
 import org.apache.jmeter.gui.tree.JMeterCellRenderer;
 import org.apache.jmeter.gui.tree.JMeterTreeListener;
+import org.apache.jmeter.gui.tree.JMeterTreeNode;
 import org.apache.jmeter.gui.tree.JMeterTreeTransferHandler;
 import org.apache.jmeter.gui.util.EscapeDialog;
 import org.apache.jmeter.gui.util.JMeterMenuBar;
 import org.apache.jmeter.gui.util.JMeterToolBar;
+import org.apache.jmeter.gui.util.MenuFactory;
 import org.apache.jmeter.samplers.Clearable;
 import org.apache.jmeter.samplers.Remoteable;
+import org.apache.jmeter.save.SaveService;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.gui.ComponentUtil;
 import org.apache.jorphan.logging.LoggingManager;
+import org.apache.jorphan.util.JOrphanUtils;
 import org.apache.log.LogEvent;
 import org.apache.log.LogTarget;
 import org.apache.log.Logger;
@@ -114,17 +123,9 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
     private static final String DEFAULT_TITLE = DEFAULT_APP_NAME +
             " (" + JMeterUtils.getJMeterVersion() + ")"; // $NON-NLS-1$ $NON-NLS-2$
 
-    // Allow display/hide toolbar
-    private static final boolean DISPLAY_TOOLBAR =
-            JMeterUtils.getPropDefault("jmeter.toolbar.display", true); // $NON-NLS-1$
-
     // Allow display/hide LoggerPanel
     private static final boolean DISPLAY_LOGGER_PANEL =
             JMeterUtils.getPropDefault("jmeter.loggerpanel.display", false); // $NON-NLS-1$
-
-    // Allow display/hide Log Error/Fatal counter
-    private static final boolean DISPLAY_ERROR_FATAL_COUNTER =
-            JMeterUtils.getPropDefault("jmeter.errorscounter.display", true); // $NON-NLS-1$
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
@@ -143,20 +144,22 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
     /** The test tree. */
     private JTree tree;
 
+    private final String iconSize = JMeterUtils.getPropDefault(JMeterToolBar.TOOLBAR_ICON_SIZE, JMeterToolBar.DEFAULT_TOOLBAR_ICON_SIZE); 
+
     /** An image which is displayed when a test is running. */
-    private final ImageIcon runningIcon = JMeterUtils.getImage("thread.enabled.gif");// $NON-NLS-1$
+    private final ImageIcon runningIcon = JMeterUtils.getImage("status/" + iconSize +"/user-online-2.png");// $NON-NLS-1$
 
     /** An image which is displayed when a test is not currently running. */
-    private final ImageIcon stoppedIcon = JMeterUtils.getImage("thread.disabled.gif");// $NON-NLS-1$
-
+    private final ImageIcon stoppedIcon = JMeterUtils.getImage("status/" + iconSize +"/user-offline-2.png");// $NON-NLS-1$
+    
     /** An image which is displayed to indicate FATAL, ERROR or WARNING. */
-    private final ImageIcon warningIcon = JMeterUtils.getImage("warning.png");// $NON-NLS-1$
+    private final ImageIcon warningIcon = JMeterUtils.getImage("status/" + iconSize +"/pictogram-din-w000-general.png");// $NON-NLS-1$
 
     /** The button used to display the running/stopped image. */
     private JButton runningIndicator;
 
     /** The set of currently running hosts. */
-    private final Set<String> hosts = new HashSet<String>();
+    private final Set<String> hosts = new HashSet<>();
 
     /** A message dialog shown while JMeter threads are stopping. */
     private JDialog stoppingMessage;
@@ -165,6 +168,11 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
     private JLabel activeThreads;
 
     private JMeterToolBar toolbar;
+
+    /**
+     * Label at top right showing test duration
+     */
+    private JLabel testTimeDuration;
 
     /**
      * Indicator for Log errors and Fatals
@@ -178,6 +186,14 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
      * LogTarget that receives ERROR or FATAL
      */
     private transient ErrorsAndFatalsCounterLogTarget errorsAndFatalsCounterLogTarget;
+    
+    private javax.swing.Timer computeTestDurationTimer = new javax.swing.Timer(1000, new java.awt.event.ActionListener() {
+        
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            computeTestDuration();
+        }
+    });
 
     /**
      * Create a new JMeter frame.
@@ -191,8 +207,14 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
 
         // TODO: Make the running indicator its own class instead of a JButton
         runningIndicator = new JButton(stoppedIcon);
+        runningIndicator.setFocusable(false);
+        runningIndicator.setBorderPainted(false);
+        runningIndicator.setContentAreaFilled(false);
         runningIndicator.setMargin(new Insets(0, 0, 0, 0));
-        runningIndicator.setBorder(BorderFactory.createEmptyBorder());
+
+        testTimeDuration = new JLabel("00:00:00"); //$NON-NLS-1$
+        testTimeDuration.setToolTipText(JMeterUtils.getResString("duration_tooltip")); //$NON-NLS-1$
+        testTimeDuration.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
 
         totalThreads = new JLabel("0"); // $NON-NLS-1$
         totalThreads.setToolTipText(JMeterUtils.getResString("total_threads_tooltip")); // $NON-NLS-1$
@@ -219,6 +241,14 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
         init();
         initTopLevelDndHandler();
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+    }
+
+    protected void computeTestDuration() {
+        long startTime = JMeterContextService.getTestStartTime();
+        if (startTime > 0) {
+            long elapsedSec = (System.currentTimeMillis()-startTime + 500) / 1000; // rounded seconds
+            testTimeDuration.setText(JOrphanUtils.formatDuration(elapsedSec));
+        }
     }
 
     /**
@@ -406,6 +436,7 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
     @Override
     public void testStarted(String host) {
         hosts.add(host);
+        computeTestDurationTimer.start();
         runningIndicator.setIcon(runningIcon);
         activeThreads.setText("0"); // $NON-NLS-1$
         totalThreads.setText("0"); // $NON-NLS-1$
@@ -441,6 +472,7 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
         if (hosts.size() == 0) {
             runningIndicator.setIcon(stoppedIcon);
             JMeterContextService.endTest();
+            computeTestDurationTimer.stop();
         }
         menuBar.setRunning(false, host);
         if (LOCAL.equals(host)) {
@@ -457,7 +489,7 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
     /**
      * Create the GUI components and layout.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         menuBar = new JMeterMenuBar();
         setJMenuBar(menuBar);
         JPanel all = new JPanel(new BorderLayout());
@@ -480,17 +512,11 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
         mainPanel = createMainPanel();
 
         logPanel = createLoggerPanel();
-        if (DISPLAY_ERROR_FATAL_COUNTER) {
-            errorsAndFatalsCounterLogTarget = new ErrorsAndFatalsCounterLogTarget();
-            LoggingManager.addLogTargetToRootLogger(new LogTarget[]{
+        errorsAndFatalsCounterLogTarget = new ErrorsAndFatalsCounterLogTarget();
+        LoggingManager.addLogTargetToRootLogger(new LogTarget[]{
                 logPanel,
                 errorsAndFatalsCounterLogTarget
-                 });
-        } else {
-            LoggingManager.addLogTargetToRootLogger(new LogTarget[]{
-                    logPanel
-                     });
-        }
+        });
 
         topAndDown.setTopComponent(mainPanel);
         topAndDown.setBottomComponent(logPanel);
@@ -542,20 +568,21 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
     private Component createToolBar() {
         Box toolPanel = new Box(BoxLayout.X_AXIS);
         // add the toolbar
-        this.toolbar = JMeterToolBar.createToolbar(DISPLAY_TOOLBAR);
+        this.toolbar = JMeterToolBar.createToolbar(true);
         GuiPackage guiInstance = GuiPackage.getInstance();
         guiInstance.setMainToolbar(toolbar);
-        guiInstance.getMenuItemToolbar().getModel().setSelected(DISPLAY_TOOLBAR);
         toolPanel.add(toolbar);
 
         toolPanel.add(Box.createRigidArea(new Dimension(10, 15)));
         toolPanel.add(Box.createGlue());
 
-        if (DISPLAY_ERROR_FATAL_COUNTER) {
-            toolPanel.add(errorsOrFatalsLabel);
-            toolPanel.add(warnIndicator);
-            toolPanel.add(Box.createRigidArea(new Dimension(20, 15)));
-        }
+        toolPanel.add(testTimeDuration);
+        toolPanel.add(Box.createRigidArea(new Dimension(20, 15)));
+
+        toolPanel.add(errorsOrFatalsLabel);
+        toolPanel.add(warnIndicator);
+        toolPanel.add(Box.createRigidArea(new Dimension(20, 15)));
+
         toolPanel.add(activeThreads);
         toolPanel.add(new JLabel(" / "));
         toolPanel.add(totalThreads);
@@ -647,7 +674,55 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
         treevar.setDropMode(DropMode.ON_OR_INSERT);
         treevar.setTransferHandler(new JMeterTreeTransferHandler());
 
+        addQuickComponentHotkeys(treevar);
+
         return treevar;
+    }
+
+    private void addQuickComponentHotkeys(JTree treevar) {
+        Action quickComponent = new AbstractAction("Quick Component") {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                String propname = "gui.quick_" + actionEvent.getActionCommand();
+                String comp = JMeterUtils.getProperty(propname);
+                log.debug("Event " + propname + ": " + comp);
+
+                if (comp == null) {
+                    log.warn("No component set through property: " + propname);
+                    return;
+                }
+
+                GuiPackage guiPackage = GuiPackage.getInstance();
+                try {
+                    guiPackage.updateCurrentNode();
+                    TestElement testElement = guiPackage.createTestElement(SaveService.aliasToClass(comp));
+                    JMeterTreeNode parentNode = guiPackage.getCurrentNode();
+                    while (!MenuFactory.canAddTo(parentNode, testElement)) {
+                        parentNode = (JMeterTreeNode) parentNode.getParent();
+                    }
+                    if (parentNode.getParent() == null) {
+                        log.debug("Cannot add element on very top level");
+                    } else {
+                        JMeterTreeNode node = guiPackage.getTreeModel().addComponent(testElement, parentNode);
+                        guiPackage.getMainFrame().getTree().setSelectionPath(new TreePath(node.getPath()));
+                    }
+                } catch (Exception err) {
+                    log.warn("Failed to perform quick component add: " + comp, err); // $NON-NLS-1$
+                }
+            }
+        };
+
+        InputMap inputMap = treevar.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        KeyStroke[] keyStrokes = new KeyStroke[]{KeyStrokes.CTRL_0,
+                KeyStrokes.CTRL_1, KeyStrokes.CTRL_2, KeyStrokes.CTRL_3,
+                KeyStrokes.CTRL_4, KeyStrokes.CTRL_5, KeyStrokes.CTRL_6,
+                KeyStrokes.CTRL_7, KeyStrokes.CTRL_8, KeyStrokes.CTRL_9,};
+        for (int n = 0; n < keyStrokes.length; n++) {
+            treevar.getActionMap().put(ActionNames.QUICK_COMPONENT + String.valueOf(n), quickComponent);
+            inputMap.put(keyStrokes[n], ActionNames.QUICK_COMPONENT + String.valueOf(n));
+        }
     }
 
     /**
@@ -657,7 +732,6 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
      */
     private TreeCellRenderer getCellRenderer() {
         DefaultTreeCellRenderer rend = new JMeterCellRenderer();
-        rend.setFont(new Font("Dialog", Font.PLAIN, 11));
         return rend;
     }
 
@@ -714,9 +788,7 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
                     return;
                 }
             }
-        } catch (UnsupportedFlavorException e) {
-            log.warn("Dnd failed" , e);
-        } catch (IOException e) {
+        } catch (UnsupportedFlavorException | IOException e) {
             log.warn("Dnd failed" , e);
         }
 
@@ -760,6 +832,7 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
+                        errorsOrFatalsLabel.setForeground(Color.RED);
                         errorsOrFatalsLabel.setText(Integer.toString(newValue));
                     }
                 });
@@ -772,6 +845,7 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
                 public void run() {
+                    errorsOrFatalsLabel.setForeground(Color.BLACK);
                     errorsOrFatalsLabel.setText(Integer.toString(errorOrFatal.get()));
                 }
             });
@@ -782,9 +856,7 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
     @Override
     public void clearData() {
         logPanel.clear();
-        if (DISPLAY_ERROR_FATAL_COUNTER) {
-            errorsAndFatalsCounterLogTarget.clearData();
-        }
+        errorsAndFatalsCounterLogTarget.clearData();
     }
 
     /**
@@ -807,10 +879,8 @@ public class MainFrame extends JFrame implements TestStateListener, Remoteable, 
                 final Field awtAppClassName = xtoolkit.getDeclaredField("awtAppClassName"); // $NON-NLS-1$
                 awtAppClassName.setAccessible(true);
                 awtAppClassName.set(null, DEFAULT_APP_NAME);
-            } catch (NoSuchFieldException nsfe) {
+            } catch (NoSuchFieldException | IllegalAccessException nsfe) {
                 log.warn("Error awt title: " + nsfe); // $NON-NLS-1$
-            } catch (IllegalAccessException iae) {
-                log.warn("Error awt title: " + iae); // $NON-NLS-1$
             }
        }
     }

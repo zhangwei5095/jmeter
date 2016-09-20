@@ -35,6 +35,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 
@@ -111,7 +112,7 @@ public class JsseSSLManager extends SSLManager {
                 log.debug("Creating shared context");
                 this.defaultContext = createContext();
             } else {
-                this.threadlocal = new ThreadLocal<SSLContext>();
+                this.threadlocal = new ThreadLocal<>();
             }
 
             HttpsURLConnection.setDefaultSSLSocketFactory(new HttpSSLProtocolSocketFactory(this, CPS));
@@ -283,7 +284,7 @@ public class JsseSSLManager extends SSLManager {
      * selecting the proper key and certificate based on the keystore available.
      *
      */
-    private static class WrappedX509KeyManager implements X509KeyManager {
+    private static class WrappedX509KeyManager extends X509ExtendedKeyManager {
 
         /**
          * The parent X509KeyManager.
@@ -411,8 +412,8 @@ public class JsseSSLManager extends SSLManager {
          * @see javax.net.ssl.X509KeyManager#chooseServerAlias(String, Principal[], Socket)
          */
         @Override
-        public String chooseServerAlias(String arg0, Principal[] arg1, Socket arg2) {
-            return this.manager.chooseServerAlias(arg0, arg1, arg2);
+        public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
+            return this.manager.chooseServerAlias(keyType, issuers, socket);
         }
     }
 }

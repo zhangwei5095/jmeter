@@ -154,8 +154,8 @@ public class JMeterTreeListener implements TreeSelectionListener, MouseListener,
         currentPath = e.getNewLeadSelectionPath();
         // Call requestFocusInWindow to ensure current component loses focus and
         // all values are correctly saved
-        // see https://issues.apache.org/bugzilla/show_bug.cgi?id=55103
-        // see https://issues.apache.org/bugzilla/show_bug.cgi?id=55459
+        // see https://bz.apache.org/bugzilla/show_bug.cgi?id=55103
+        // see https://bz.apache.org/bugzilla/show_bug.cgi?id=55459
         tree.requestFocusInWindow();
         actionHandler.actionPerformed(new ActionEvent(this, 3333, ActionNames.EDIT)); // $NON-NLS-1$
     }
@@ -219,6 +219,10 @@ public class JMeterTreeListener implements TreeSelectionListener, MouseListener,
             actionName = ActionNames.MOVE_LEFT;
         } else if (KeyStrokes.matches(e, KeyStrokes.ALT_RIGHT_ARROW)) {
             actionName = ActionNames.MOVE_RIGHT;
+        } else if (KeyStrokes.matches(e, KeyStrokes.SHIFT_LEFT_ARROW)) {
+            actionName = ActionNames.COLLAPSE;
+        } else if (KeyStrokes.matches(e, KeyStrokes.SHIFT_RIGHT_ARROW)) {
+            actionName = ActionNames.EXPAND;
         } 
         
         if (actionName != null) {

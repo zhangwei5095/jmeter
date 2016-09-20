@@ -98,7 +98,7 @@ public class ConstantThroughputTimer extends AbstractTestElement implements Time
 
     //For holding the ThrougputInfo objects for all ThreadGroups. Keyed by AbstractThreadGroup objects
     private static final ConcurrentMap<AbstractThreadGroup, ThroughputInfo> threadGroupsInfoMap =
-        new ConcurrentHashMap<AbstractThreadGroup, ThroughputInfo>();
+            new ConcurrentHashMap<>();
 
 
     /**
@@ -217,8 +217,8 @@ public class ConstantThroughputTimer extends AbstractTestElement implements Time
         //Synchronize on the info object's MUTEX to ensure
         //Multiple threads don't update the scheduled time simultaneously
         synchronized (info.MUTEX) {
-            final long nextRequstTime = info.lastScheduledTime + milliSecPerRequest;
-            info.lastScheduledTime = Math.max(now, nextRequstTime);
+            final long nextRequestTime = info.lastScheduledTime + milliSecPerRequest;
+            info.lastScheduledTime = Math.max(now, nextRequestTime);
             calculatedDelay = info.lastScheduledTime - now;
         }
 
@@ -329,5 +329,4 @@ public class ConstantThroughputTimer extends AbstractTestElement implements Time
     void setMode(Mode newMode) {
         mode = newMode;
     }
-
 }

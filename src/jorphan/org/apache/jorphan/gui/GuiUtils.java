@@ -89,7 +89,7 @@ public final class GuiUtils {
      * @param comboBox the combo box
      * @return the JComponent (margin+JLabel+margin+JComboBox)
      */
-    public static JComponent createLabelCombo(String label, JComboBox comboBox) {
+    public static JComponent createLabelCombo(String label, JComboBox<?> comboBox) {
         JPanel labelCombo = new JPanel();
         labelCombo.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
         JLabel caption = new JLabel(label);
@@ -111,6 +111,20 @@ public final class GuiUtils {
             cellEditor.stopCellEditing();
         }
     }
+
+    /**
+     * cancel any editing that is currently being done on the table.
+     *
+     * @param table the table to cancel on editing
+     * @since 3.1
+     */
+    public static void cancelEditing(JTable table) {
+        // If a table cell is being edited, we must cancel the editing
+        if (table != null && table.isEditing()) {
+            TableCellEditor cellEditor = table.getCellEditor(table.getEditingRow(), table.getEditingColumn());
+            cellEditor.cancelCellEditing();
+        }
+    }
     
     /**
      * Get pasted text from clipboard
@@ -125,7 +139,7 @@ public final class GuiUtils {
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         Transferable trans = clipboard.getContents(null);
         DataFlavor[] flavourList = trans.getTransferDataFlavors();
-        Collection<DataFlavor> flavours = new ArrayList<DataFlavor>(flavourList.length);
+        Collection<DataFlavor> flavours = new ArrayList<>(flavourList.length);
         if (Collections.addAll(flavours, flavourList) && flavours.contains(DataFlavor.stringFlavor)) {
             return (String) trans.getTransferData(DataFlavor.stringFlavor);
         } else {

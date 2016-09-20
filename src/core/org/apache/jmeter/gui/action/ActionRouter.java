@@ -40,17 +40,16 @@ import org.apache.log.Logger;
 public final class ActionRouter implements ActionListener {
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private static final Object LOCK = new Object();
+    // This is cheap, so no need to resort to IODH or lazy init
+    private static final ActionRouter INSTANCE = new ActionRouter();
 
-    private static volatile ActionRouter router;
+    private final Map<String, Set<Command>> commands = new HashMap<>();
 
-    private Map<String, Set<Command>> commands = new HashMap<String, Set<Command>>();
+    private final Map<String, Set<ActionListener>> preActionListeners =
+            new HashMap<>();
 
-    private final Map<String, HashSet<ActionListener>> preActionListeners =
-        new HashMap<String, HashSet<ActionListener>>();
-
-    private final Map<String, HashSet<ActionListener>> postActionListeners =
-        new HashMap<String, HashSet<ActionListener>>();
+    private final Map<String, Set<ActionListener>> postActionListeners =
+            new HashMap<>();
 
     private ActionRouter() {
     }
@@ -124,7 +123,7 @@ public final class ActionRouter implements ActionListener {
      *         <code>actionName</code>
      */
     public Set<Command> getAction(String actionName) {
-        Set<Command> set = new HashSet<Command>();
+        Set<Command> set = new HashSet<>();
         for (Command c : commands.get(actionName)) {
             try {
                 set.add(c);
@@ -187,14 +186,7 @@ public final class ActionRouter implements ActionListener {
      *            the ActionListener to receive the notifications
      */
     public void addPreActionListener(Class<?> action, ActionListener listener) {
-        if (action != null) {
-            HashSet<ActionListener> set = preActionListeners.get(action.getName());
-            if (set == null) {
-                set = new HashSet<ActionListener>();
-            }
-            set.add(listener);
-            preActionListeners.put(action.getName(), set);
-        }
+        addActionListener(action, listener, preActionListeners);
     }
 
     /**
@@ -209,11 +201,20 @@ public final class ActionRouter implements ActionListener {
      *            the ActionListener to receive the notifications
      */
     public void removePreActionListener(Class<?> action, ActionListener listener) {
+        removeActionListener(action, listener, preActionListeners);
+    }
+
+    /**
+     * @param action {@link Class}
+     * @param e {@link ActionListener}
+     * @param actionListeners {@link Set}
+     */
+    private void removeActionListener(Class<?> action, ActionListener listener, Map<String, Set<ActionListener>> actionListeners) {
         if (action != null) {
-            HashSet<ActionListener> set = preActionListeners.get(action.getName());
+            Set<ActionListener> set = actionListeners.get(action.getName());
             if (set != null) {
                 set.remove(listener);
-                preActionListeners.put(action.getName(), set);
+                actionListeners.put(action.getName(), set);
             }
         }
     }
@@ -230,13 +231,22 @@ public final class ActionRouter implements ActionListener {
      *            The {@link ActionListener} to be registered
      */
     public void addPostActionListener(Class<?> action, ActionListener listener) {
+        addActionListener(action, listener, postActionListeners);
+    }
+
+    /**
+     * @param action {@link Class}
+     * @param list {@link ActionListener}
+     * @param actionListeners {@link Set}
+     */
+    private void addActionListener(Class<?> action, ActionListener listener, Map<String, Set<ActionListener>> actionListeners) {
         if (action != null) {
-            HashSet<ActionListener> set = postActionListeners.get(action.getName());
+            Set<ActionListener> set = actionListeners.get(action.getName());
             if (set == null) {
-                set = new HashSet<ActionListener>();
+                set = new HashSet<>();
             }
             set.add(listener);
-            postActionListeners.put(action.getName(), set);
+            actionListeners.put(action.getName(), set);
         }
     }
 
@@ -251,30 +261,33 @@ public final class ActionRouter implements ActionListener {
      * @param listener The {@link ActionListener} that should be deregistered
      */
     public void removePostActionListener(Class<?> action, ActionListener listener) {
-        if (action != null) {
-            HashSet<ActionListener> set = postActionListeners.get(action.getName());
-            if (set != null) {
-                set.remove(listener);
-                postActionListeners.put(action.getName(), set);
-            }
-        }
+        removeActionListener(action, listener, postActionListeners);
     }
 
+    /**
+     * @param action {@link Class}
+     * @param e {@link ActionEvent}
+     */
     protected void preActionPerformed(Class<? extends Command> action, ActionEvent e) {
-        if (action != null) {
-            Set<ActionListener> listenerSet = preActionListeners.get(action.getName());
-            if (listenerSet != null && listenerSet.size() > 0) {
-                ActionListener[] listeners = listenerSet.toArray(new ActionListener[listenerSet.size()]);
-                for (ActionListener listener : listeners) {
-                    listener.actionPerformed(e);
-                }
-            }
-        }
+        actionPerformed(action, e, preActionListeners);
     }
 
+    /**
+     * @param action {@link Class}
+     * @param e {@link ActionEvent}
+     */
     protected void postActionPerformed(Class<? extends Command> action, ActionEvent e) {
+        actionPerformed(action, e, postActionListeners);
+    }
+
+    /**
+     * @param action {@link Class}
+     * @param e {@link ActionEvent}
+     * @param actionListeners {@link Set}
+     */
+    private void actionPerformed(Class<? extends Command> action, ActionEvent e, Map<String, Set<ActionListener>> actionListeners) {
         if (action != null) {
-            Set<ActionListener> listenerSet = postActionListeners.get(action.getName());
+            Set<ActionListener> listenerSet = actionListeners.get(action.getName());
             if (listenerSet != null && listenerSet.size() > 0) {
                 ActionListener[] listeners = listenerSet.toArray(new ActionListener[listenerSet.size()]);
                 for (ActionListener listener : listeners) {
@@ -284,7 +297,15 @@ public final class ActionRouter implements ActionListener {
         }
     }
 
-    private void populateCommandMap() {
+    /**
+     * Only for use by the JMeter.startGui.
+     * This method must not be called by getInstance() as was done previously.
+     * See <a href="https://bz.apache.org/bugzilla/show_bug.cgi?id=58790">Bug 58790</a> 
+     */
+    public void populateCommandMap() {
+        if (!commands.isEmpty()) {
+            return; // already done
+        }
         try {
             List<String> listClasses = ClassFinder.findClassesThatExtend(
                     JMeterUtils.getSearchPaths(), // strPathsOrJars - pathnames or jarfiles to search for classes
@@ -295,7 +316,6 @@ public final class ActionRouter implements ActionListener {
                     // Ignore the classes which are specific to the reporting tool
                     "org.apache.jmeter.report.gui", // $NON-NLS-1$ // notContains - classname should not contain this string
                     false); // annotations - true if classnames are annotations
-            commands = new HashMap<String, Set<Command>>(listClasses.size());
             if (listClasses.isEmpty()) {
                 log.fatalError("!!!!!Uh-oh, didn't find any action handlers!!!!!");
                 throw new JMeterError("No action handlers found - check JMeterHome and libraries");
@@ -306,7 +326,7 @@ public final class ActionRouter implements ActionListener {
                 for (String commandName : command.getActionNames()) {
                     Set<Command> commandObjects = commands.get(commandName);
                     if (commandObjects == null) {
-                        commandObjects = new HashSet<Command>();
+                        commandObjects = new HashSet<>();
                         commands.put(commandName, commandObjects);
                     }
                     commandObjects.add(command);
@@ -325,14 +345,6 @@ public final class ActionRouter implements ActionListener {
      * @return The Instance value
      */
     public static ActionRouter getInstance() {
-        if (router == null) {
-            synchronized (LOCK) {
-                if(router == null) {
-                    router = new ActionRouter();
-                    router.populateCommandMap();
-                }
-            }
-        }
-        return router;
+        return INSTANCE;
     }
 }

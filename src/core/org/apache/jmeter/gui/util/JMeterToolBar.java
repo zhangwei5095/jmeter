@@ -62,11 +62,11 @@ public class JMeterToolBar extends JToolBar implements LocaleChangeListener {
 
     protected static final String USER_DEFINED_TOOLBAR_PROPERTY_FILE = "jmeter.toolbar.icons"; //$NON-NLS-1$
 
-    protected static final String TOOLBAR_ICON_SIZE = "jmeter.toolbar.icons.size"; //$NON-NLS-1$
+    public static final String TOOLBAR_ICON_SIZE = "jmeter.toolbar.icons.size"; //$NON-NLS-1$
 
-    protected static final String DEFAULT_TOOLBAR_ICON_SIZE = "22x22"; //$NON-NLS-1$
+    public static final String DEFAULT_TOOLBAR_ICON_SIZE = "22x22"; //$NON-NLS-1$
     
-    private static final String TOOLBAR_LIST = "jmeter.toolbar";
+    protected static final String TOOLBAR_LIST = "jmeter.toolbar";
     
     /**
      * Create the default JMeter toolbar
@@ -164,7 +164,7 @@ public class JMeterToolBar extends JToolBar implements LocaleChangeListener {
         
         String iconSize = JMeterUtils.getPropDefault(TOOLBAR_ICON_SIZE, DEFAULT_TOOLBAR_ICON_SIZE); 
 
-        List<IconToolbarBean> listIcons = new ArrayList<IconToolbarBean>();
+        List<IconToolbarBean> listIcons = new ArrayList<>();
         for (String key : oList) {
             log.debug("Toolbar icon key: " + key); //$NON-NLS-1$
             String trimmed = key.trim();
@@ -204,10 +204,10 @@ public class JMeterToolBar extends JToolBar implements LocaleChangeListener {
      */
     private Map<String, Boolean> getCurrentButtonsStates() {
         Component[] components = getComponents();
-        Map<String, Boolean> buttonStates = new HashMap<String, Boolean>(components.length);
-        for (int i = 0; i < components.length; i++) {
-            if (components[i] instanceof JButton) {
-                JButton button = (JButton) components[i];
+        Map<String, Boolean> buttonStates = new HashMap<>(components.length);
+        for (Component component : components) {
+            if (component instanceof JButton) {
+                JButton button = (JButton) component;
                 buttonStates.put(button.getActionCommand(), Boolean.valueOf(button.isEnabled()));
             }
         }
@@ -218,20 +218,18 @@ public class JMeterToolBar extends JToolBar implements LocaleChangeListener {
      * Init the state of buttons
      */
     public void initButtonsState() {
-        final boolean started = false;
-        Map<String, Boolean> buttonStates = new HashMap<String, Boolean>();
-        buttonStates.put(ActionNames.ACTION_START, Boolean.valueOf(!started));
-        buttonStates.put(ActionNames.ACTION_START_NO_TIMERS, Boolean.valueOf(!started));
-        buttonStates.put(ActionNames.ACTION_STOP, Boolean.valueOf(started));
-        buttonStates.put(ActionNames.ACTION_SHUTDOWN, Boolean.valueOf(started));
+        Map<String, Boolean> buttonStates = new HashMap<>();
+        buttonStates.put(ActionNames.ACTION_START, Boolean.TRUE);
+        buttonStates.put(ActionNames.ACTION_START_NO_TIMERS, Boolean.TRUE);
+        buttonStates.put(ActionNames.ACTION_STOP, Boolean.FALSE);
+        buttonStates.put(ActionNames.ACTION_SHUTDOWN, Boolean.FALSE);
         buttonStates.put(ActionNames.UNDO, Boolean.FALSE);
         buttonStates.put(ActionNames.REDO, Boolean.FALSE);
-        buttonStates.put(ActionNames.REMOTE_START_ALL, Boolean.valueOf(!started));
-        buttonStates.put(ActionNames.REMOTE_STOP_ALL, Boolean.valueOf(started));
-        buttonStates.put(ActionNames.REMOTE_SHUT_ALL, Boolean.valueOf(started));
+        buttonStates.put(ActionNames.REMOTE_START_ALL, Boolean.TRUE);
+        buttonStates.put(ActionNames.REMOTE_STOP_ALL, Boolean.FALSE);
+        buttonStates.put(ActionNames.REMOTE_SHUT_ALL, Boolean.FALSE);
         updateButtons(buttonStates);
     }
-    
     
     /**
      * Change state of buttons on local test
@@ -240,7 +238,7 @@ public class JMeterToolBar extends JToolBar implements LocaleChangeListener {
      *            Flag whether local test is started
      */
     public void setLocalTestStarted(boolean started) {
-        Map<String, Boolean> buttonStates = new HashMap<String, Boolean>(3);
+        Map<String, Boolean> buttonStates = new HashMap<>(3);
         buttonStates.put(ActionNames.ACTION_START, Boolean.valueOf(!started));
         buttonStates.put(ActionNames.ACTION_START_NO_TIMERS, Boolean.valueOf(!started));
         buttonStates.put(ActionNames.ACTION_STOP, Boolean.valueOf(started));
@@ -255,7 +253,7 @@ public class JMeterToolBar extends JToolBar implements LocaleChangeListener {
      *            Flag whether the test is started
      */
     public void setRemoteTestStarted(boolean started) {
-        Map<String, Boolean> buttonStates = new HashMap<String, Boolean>(3);
+        Map<String, Boolean> buttonStates = new HashMap<>(3);
         buttonStates.put(ActionNames.REMOTE_START_ALL, Boolean.valueOf(!started));
         buttonStates.put(ActionNames.REMOTE_STOP_ALL, Boolean.valueOf(started));
         buttonStates.put(ActionNames.REMOTE_SHUT_ALL, Boolean.valueOf(started));
@@ -273,7 +271,7 @@ public class JMeterToolBar extends JToolBar implements LocaleChangeListener {
      *            {@link ActionNames#REDO} should be enabled
      */
     public void updateUndoRedoIcons(boolean canUndo, boolean canRedo) {
-        Map<String, Boolean> buttonStates = new HashMap<String, Boolean>(2);
+        Map<String, Boolean> buttonStates = new HashMap<>(2);
         buttonStates.put(ActionNames.UNDO, Boolean.valueOf(canUndo));
         buttonStates.put(ActionNames.REDO, Boolean.valueOf(canRedo));
         updateButtons(buttonStates);
@@ -286,10 +284,9 @@ public class JMeterToolBar extends JToolBar implements LocaleChangeListener {
      *            {@link Map} of button names and their states
      */
     private void updateButtons(Map<String, Boolean> buttonStates) {
-        Component[] components = getComponents();
-        for (int i = 0; i < components.length; i++) {
-            if (components[i] instanceof JButton) {
-                JButton button = (JButton) components[i];
+        for (Component component : getComponents()) {
+            if (component instanceof JButton) {
+                JButton button = (JButton) component;
                 Boolean enabled = buttonStates.get(button.getActionCommand());
                 if (enabled != null) {
                     button.setEnabled(enabled.booleanValue());

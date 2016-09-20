@@ -75,7 +75,7 @@ public class BeanShellAssertionGui extends AbstractAssertionGui {
     @Override
     public void modifyTestElement(TestElement te) {
         te.clear();
-        this.configureTestElement(te);
+        super.configureTestElement(te);
         te.setProperty(BeanShellAssertion.SCRIPT, scriptField.getText());
         te.setProperty(BeanShellAssertion.FILENAME, filename.getText());
         te.setProperty(BeanShellAssertion.PARAMETERS, parameters.getText());
@@ -123,7 +123,7 @@ public class BeanShellAssertionGui extends AbstractAssertionGui {
         return parameterPanel;
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout(0, 5));
         setBorder(makeBorder());
 
@@ -141,14 +141,14 @@ public class BeanShellAssertionGui extends AbstractAssertionGui {
     }
 
     private JPanel createScriptPanel() {
-        scriptField = new JSyntaxTextArea(20,20);
+        scriptField = JSyntaxTextArea.getInstance(20,20);
 
         JLabel label = new JLabel(JMeterUtils.getResString("bsh_assertion_script")); //$NON-NLS-1$
         label.setLabelFor(scriptField);
 
         JPanel panel = new JPanel(new BorderLayout());
         panel.add(label, BorderLayout.NORTH);
-        panel.add(new JTextScrollPane(scriptField), BorderLayout.CENTER);
+        panel.add(JTextScrollPane.getInstance(scriptField), BorderLayout.CENTER);
 
         JTextArea explain = new JTextArea(JMeterUtils.getResString("bsh_assertion_script_variables")); //$NON-NLS-1$
         explain.setLineWrap(true);

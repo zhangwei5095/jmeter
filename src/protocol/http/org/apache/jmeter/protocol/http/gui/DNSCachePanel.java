@@ -32,13 +32,12 @@ import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
-import javax.swing.table.TableCellEditor;
 
 import org.apache.jmeter.config.gui.AbstractConfigGui;
 import org.apache.jmeter.gui.util.PowerTableModel;
 import org.apache.jmeter.protocol.http.control.DNSCacheManager;
 import org.apache.jmeter.testelement.TestElement;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.gui.GuiUtils;
 import org.apache.jorphan.gui.layout.VerticalLayout;
@@ -146,9 +145,8 @@ public class DNSCachePanel extends AbstractConfigGui implements ActionListener {
 
     private void populateTable(DNSCacheManager resolver) {
         dnsServersTableModel.clearData();
-        PropertyIterator iter = resolver.getServers().iterator();
-        while (iter.hasNext()) {
-            addServerToTable((String) iter.next().getObjectValue());
+        for (JMeterProperty jMeterProperty : resolver.getServers()) {
+            addServerToTable((String) jMeterProperty.getObjectValue());
         }
     }
 
@@ -175,7 +173,7 @@ public class DNSCachePanel extends AbstractConfigGui implements ActionListener {
         }
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         dnsServersTableModel = new PowerTableModel(COLUMN_RESOURCE_NAMES, columnClasses);
 
         clearEachIteration = new JCheckBox(JMeterUtils.getResString("clear_cache_each_iteration"), true); //$NON-NLS-1$
@@ -200,6 +198,7 @@ public class DNSCachePanel extends AbstractConfigGui implements ActionListener {
     public JPanel createDnsServersTablePanel() {
         // create the JTable that holds header per row
         dnsServersTable = new JTable(dnsServersTableModel);
+        JMeterUtils.applyHiDPI(dnsServersTable);
         dnsServersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         dnsServersTable.setPreferredScrollableViewportSize(new Dimension(400, 100));
 
@@ -282,11 +281,7 @@ public class DNSCachePanel extends AbstractConfigGui implements ActionListener {
             if (dnsServersTableModel.getRowCount() > 0) {
                 // If a table cell is being edited, we must cancel the editing
                 // before deleting the row.
-                if (dnsServersTable.isEditing()) {
-                    TableCellEditor cellEditor = dnsServersTable.getCellEditor(dnsServersTable.getEditingRow(),
-                            dnsServersTable.getEditingColumn());
-                    cellEditor.cancelCellEditing();
-                }
+                GuiUtils.cancelEditing(dnsServersTable);
 
                 int rowSelected = dnsServersTable.getSelectedRow();
 

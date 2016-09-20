@@ -32,7 +32,6 @@ import org.apache.jmeter.testelement.property.CollectionProperty;
 import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.testelement.property.MultiProperty;
 import org.apache.jmeter.testelement.property.NullProperty;
-import org.apache.jmeter.testelement.property.PropertyIterator;
 import org.apache.jmeter.testelement.property.TestElementProperty;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.logging.LoggingManager;
@@ -58,9 +57,7 @@ public class TestBeanHelper {
      * <p>
      *
      * @param el the TestElement to be prepared
-     * @deprecated to limit it's usage in expectation of moving it elsewhere.
      */
-    @Deprecated
     public static void prepare(TestElement el) {
         if (!(el instanceof TestBean)) {
             return;
@@ -133,20 +130,16 @@ public class TestBeanHelper {
         return value;
     }
 
-    private static Object unwrapCollection(MultiProperty prop,String type)
+    private static Object unwrapCollection(MultiProperty prop, String type)
     {
         if(prop instanceof CollectionProperty)
         {
-            Collection<Object> values = new LinkedList<Object>();
-            PropertyIterator iter = prop.iterator();
-            while(iter.hasNext())
-            {
-                try
-                {
-                    values.add(unwrapProperty(null,iter.next(),Class.forName(type)));
+            Collection<Object> values = new LinkedList<>();
+            for (JMeterProperty jMeterProperty : prop) {
+                try {
+                    values.add(unwrapProperty(null, jMeterProperty, Class.forName(type)));
                 }
-                catch(Exception e)
-                {
+                catch(Exception e) {
                     log.error("Couldn't convert object: " + prop.getObjectValue() + " to " + type,e);
                 }
             }
@@ -170,11 +163,7 @@ public class TestBeanHelper {
     private static Object invokeOrBailOut(Object invokee, Method method, Object[] params) {
         try {
             return method.invoke(invokee, params);
-        } catch (IllegalArgumentException e) {
-            throw new Error(createMessage(invokee, method, params), e);
-        } catch (IllegalAccessException e) {
-            throw new Error(createMessage(invokee, method, params), e);
-        } catch (InvocationTargetException e) {
+        } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
             throw new Error(createMessage(invokee, method, params), e);
         }
     }

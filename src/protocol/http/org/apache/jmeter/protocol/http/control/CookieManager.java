@@ -30,13 +30,14 @@ import java.io.Serializable;
 import java.net.URL;
 import java.util.ArrayList;
 
-import org.apache.http.client.params.CookiePolicy;
+import org.apache.http.client.config.CookieSpecs;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.engine.event.LoopIterationEvent;
 import org.apache.jmeter.testelement.TestIterationListener;
 import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.testelement.property.BooleanProperty;
 import org.apache.jmeter.testelement.property.CollectionProperty;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.testelement.property.PropertyIterator;
 import org.apache.jmeter.threads.JMeterContext;
 import org.apache.jmeter.util.JMeterUtils;
@@ -101,8 +102,28 @@ public class CookieManager extends ConfigTestElement implements TestStateListene
 
     private transient CollectionProperty initialCookies;
 
-    public static final String DEFAULT_POLICY = CookiePolicy.BROWSER_COMPATIBILITY;
+    /**
+     * Defines the policy that is assumed when the JMX file does not contain an entry for it
+     * MUST NOT BE CHANGED otherwise JMX files will not be correctly interpreted
+     * <p>
+     * The default policy for new CookieManager elements is defined by 
+     * {@link org.apache.jmeter.protocol.http.gui.CookiePanel#DEFAULT_POLICY CookiePanel#DEFAULT_POLICY}
+     *
+     * @deprecated not intended for use outside this class (should have been created private)
+     */
+    @Deprecated
+    public static final String DEFAULT_POLICY = CookieSpecs.BROWSER_COMPATIBILITY;
     
+    /**
+     * Defines the implementation that is assumed when the JMX file does not contain an entry for it
+     * MUST NOT BE CHANGED otherwise JMX files will not be correctly interpreted
+     * <p>
+     * The default implementation for new CookieManager elements is defined by 
+     * {@link org.apache.jmeter.protocol.http.gui.CookiePanel#DEFAULT_IMPLEMENTATION CookiePanel#DEFAULT_IMPLEMENTATION}
+     *
+     * @deprecated not intended for use outside this class (should have been created private)
+     */
+    @Deprecated
     public static final String DEFAULT_IMPLEMENTATION = HC3CookieHandler.class.getName();
 
     public CookieManager() {
@@ -169,19 +190,18 @@ public class CookieManager extends ConfigTestElement implements TestStateListene
             file = new File(System.getProperty("user.dir") // $NON-NLS-1$
                     + File.separator + authFile);
         }
-        PrintWriter writer = new PrintWriter(new FileWriter(file)); // TODO Charset ?
-        writer.println("# JMeter generated Cookie file");// $NON-NLS-1$
-        PropertyIterator cookies = getCookies().iterator();
-        long now = System.currentTimeMillis();
-        while (cookies.hasNext()) {
-            Cookie cook = (Cookie) cookies.next().getObjectValue();
-            final long expiresMillis = cook.getExpiresMillis();
-            if (expiresMillis == 0 || expiresMillis > now) { // only save unexpired cookies
-                writer.println(cookieToString(cook));
+        try(PrintWriter writer = new PrintWriter(new FileWriter(file))) { // TODO Charset ?
+            writer.println("# JMeter generated Cookie file");// $NON-NLS-1$
+            long now = System.currentTimeMillis();
+            for (JMeterProperty jMeterProperty : getCookies()) {
+                Cookie cook = (Cookie) jMeterProperty.getObjectValue();
+                final long expiresMillis = cook.getExpiresMillis();
+                if (expiresMillis == 0 || expiresMillis > now) { // only save unexpired cookies
+                    writer.println(cookieToString(cook));
+                }
             }
+            writer.flush();
         }
-        writer.flush();
-        writer.close();
     }
 
     /**
@@ -316,7 +336,7 @@ public class CookieManager extends ConfigTestElement implements TestStateListene
      */
     private void clearCookies() {
         log.debug("Clear all cookies from store");
-        setProperty(new CollectionProperty(COOKIES, new ArrayList<Object>()));
+        setProperty(new CollectionProperty(COOKIES, new ArrayList<>()));
     }
 
     /**

@@ -41,7 +41,6 @@ import org.apache.jmeter.samplers.Sampler;
 import org.apache.jmeter.testbeans.TestBeanHelper;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.timers.Timer;
-import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.collections.HashTree;
 import org.apache.jorphan.collections.HashTreeTraverser;
 import org.apache.jorphan.logging.LoggingManager;
@@ -58,17 +57,12 @@ public class TestCompiler implements HashTreeTraverser {
 
     private static final Logger LOG = LoggingManager.getLoggerForClass();
 
-    /**
-     * Set this property {@value} to true to revert to using a shared static set.
+    /** 
+     * @deprecated since 3.0 will be removed in the next version 3.1. 
+     * Constant is not used since 3.0
      */
-    private static final String USE_STATIC_SET = "TestCompiler.useStaticSet";
-    
-    /**
-     * The default value - {@value} - assumed for {@link #USE_STATIC_SET}. 
-     */
-    private static final boolean USE_STATIC_SET_DEFAULT = false;
-
-    public static final boolean IS_USE_STATIC_SET = JMeterUtils.getPropDefault(USE_STATIC_SET, USE_STATIC_SET_DEFAULT);
+    @Deprecated
+    public static final boolean IS_USE_STATIC_SET = false;
 
     /**
      * This set keeps track of which ObjectPairs have been seen.
@@ -76,14 +70,14 @@ public class TestCompiler implements HashTreeTraverser {
      * If the ObjectPair (child, parent) is present, then the child has been added.
      * Otherwise, the child is added to the parent and the pair is added to the Set.
      */
-    private static final Set<ObjectPair> PAIRING = new HashSet<ObjectPair>();
+    private static final Set<ObjectPair> PAIRING = new HashSet<>();
 
-    private final LinkedList<TestElement> stack = new LinkedList<TestElement>();
+    private final LinkedList<TestElement> stack = new LinkedList<>();
 
-    private final Map<Sampler, SamplePackage> samplerConfigMap = new HashMap<Sampler, SamplePackage>();
+    private final Map<Sampler, SamplePackage> samplerConfigMap = new HashMap<>();
 
     private final Map<TransactionController, SamplePackage> transactionControllerConfigMap =
-        new HashMap<TransactionController, SamplePackage>();
+            new HashMap<>();
 
     private final HashTree testTree;
 
@@ -158,7 +152,7 @@ public class TestCompiler implements HashTreeTraverser {
             boolean duplicate = false;
             // Bug 53750: this condition used to be in ObjectPair#addTestElements()
             if (parent instanceof Controller && (child instanceof Sampler || child instanceof Controller)) {
-                if (!IS_USE_STATIC_SET && parent instanceof TestCompilerHelper) {
+                if (parent instanceof TestCompilerHelper) {
                     TestCompilerHelper te = (TestCompilerHelper) parent;
                     duplicate = !te.addTestElementOnce(child);
                 } else { // this is only possible for 3rd party controllers by default
@@ -179,11 +173,10 @@ public class TestCompiler implements HashTreeTraverser {
         }
     }
 
-    @SuppressWarnings("deprecation") // TestBeanHelper.prepare() is OK
-    private void trackIterationListeners(LinkedList<TestElement> p_stack) {
-        TestElement child = p_stack.getLast();
+    private void trackIterationListeners(LinkedList<TestElement> pStack) {
+        TestElement child = pStack.getLast();
         if (child instanceof LoopIterationListener) {
-            ListIterator<TestElement> iter = p_stack.listIterator(p_stack.size());
+            ListIterator<TestElement> iter = pStack.listIterator(pStack.size());
             while (iter.hasPrevious()) {
                 TestElement item = iter.previous();
                 if (item == child) {
@@ -204,17 +197,17 @@ public class TestCompiler implements HashTreeTraverser {
     }
 
     private void saveSamplerConfigs(Sampler sam) {
-        List<ConfigTestElement> configs = new LinkedList<ConfigTestElement>();
-        List<Controller> controllers = new LinkedList<Controller>();
-        List<SampleListener> listeners = new LinkedList<SampleListener>();
-        List<Timer> timers = new LinkedList<Timer>();
-        List<Assertion> assertions = new LinkedList<Assertion>();
-        LinkedList<PostProcessor> posts = new LinkedList<PostProcessor>();
-        LinkedList<PreProcessor> pres = new LinkedList<PreProcessor>();
+        List<ConfigTestElement> configs = new LinkedList<>();
+        List<Controller> controllers = new LinkedList<>();
+        List<SampleListener> listeners = new LinkedList<>();
+        List<Timer> timers = new LinkedList<>();
+        List<Assertion> assertions = new LinkedList<>();
+        LinkedList<PostProcessor> posts = new LinkedList<>();
+        LinkedList<PreProcessor> pres = new LinkedList<>();
         for (int i = stack.size(); i > 0; i--) {
             addDirectParentControllers(controllers, stack.get(i - 1));
-            List<PreProcessor>  tempPre = new LinkedList<PreProcessor> ();
-            List<PostProcessor> tempPost = new LinkedList<PostProcessor>();
+            List<PreProcessor>  tempPre = new LinkedList<>();
+            List<PostProcessor> tempPost = new LinkedList<>();
             for (Object item : testTree.list(stack.subList(0, i))) {
                 if ((item instanceof ConfigTestElement)) {
                     configs.add((ConfigTestElement) item);
@@ -247,13 +240,13 @@ public class TestCompiler implements HashTreeTraverser {
     }
 
     private void saveTransactionControllerConfigs(TransactionController tc) {
-        List<ConfigTestElement> configs = new LinkedList<ConfigTestElement>();
-        List<Controller> controllers = new LinkedList<Controller>();
-        List<SampleListener> listeners = new LinkedList<SampleListener>();
-        List<Timer> timers = new LinkedList<Timer>();
-        List<Assertion> assertions = new LinkedList<Assertion>();
-        LinkedList<PostProcessor> posts = new LinkedList<PostProcessor>();
-        LinkedList<PreProcessor> pres = new LinkedList<PreProcessor>();
+        List<ConfigTestElement> configs = new LinkedList<>();
+        List<Controller> controllers = new LinkedList<>();
+        List<SampleListener> listeners = new LinkedList<>();
+        List<Timer> timers = new LinkedList<>();
+        List<Assertion> assertions = new LinkedList<>();
+        LinkedList<PostProcessor> posts = new LinkedList<>();
+        LinkedList<PreProcessor> pres = new LinkedList<>();
         for (int i = stack.size(); i > 0; i--) {
             addDirectParentControllers(controllers, stack.get(i - 1));
             for (Object item : testTree.list(stack.subList(0, i))) {
@@ -275,7 +268,7 @@ public class TestCompiler implements HashTreeTraverser {
 
     /**
      * @param controllers
-     * @param i
+     * @param maybeController
      */
     private void addDirectParentControllers(List<Controller> controllers, TestElement maybeController) {
         if (maybeController instanceof Controller) {

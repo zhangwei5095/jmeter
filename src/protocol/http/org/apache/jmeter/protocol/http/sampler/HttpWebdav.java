@@ -19,37 +19,29 @@
 package org.apache.jmeter.protocol.http.sampler;
 
 import java.net.URI;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.jmeter.protocol.http.util.HTTPConstants;
 
 /**
  * WebDav request
+ *
  * @since 2.12
  */
 public final class HttpWebdav extends HttpEntityEnclosingRequestBase {
-    private static final Set<String> WEBDAV_METHODS = 
-            new HashSet<String>(Arrays.asList(new String[] {
-                    HTTPConstants.PROPFIND,
-                    HTTPConstants.PROPPATCH,
-                    HTTPConstants.MKCOL,
-                    HTTPConstants.COPY,
-                    HTTPConstants.MOVE,
-                    HTTPConstants.LOCK,
-                    HTTPConstants.UNLOCK,
-                    HTTPConstants.REPORT,
-                    HTTPConstants.MKCALENDAR
-            }));
+    // A HTTP method can be a token as specified in
+    // https://tools.ietf.org/html/rfc7230#section-3.2.6
+    private static final Pattern WEBDAV_METHOD_PATTERN = Pattern.compile("(?i)[\\da-z!#$%&'*+\\-.^_`|~]+"); // only used in .matches(), no need for anchors
     
-    private String davMethod;
+    private final String davMethod;
 
     /**
      * 
-     * @param davMethod method to use (has to be a Webdav method as identified by {@link #isWebdavMethod(String)})
-     * @param uri {@link URI} to use
+     * @param davMethod
+     *            method to use (has to be a Webdav method as identified by
+     *            {@link #isWebdavMethod(String)})
+     * @param uri
+     *            {@link URI} to use
      */
     public HttpWebdav(final String davMethod, final URI uri) {
         super();
@@ -63,10 +55,11 @@ public final class HttpWebdav extends HttpEntityEnclosingRequestBase {
     }
 
     /**
-     * @param method Http Method
+     * @param method
+     *            Http Method
      * @return <code>true</code> if method is a Webdav one
      */
     public static boolean isWebdavMethod(String method) {
-        return WEBDAV_METHODS.contains(method);
+        return method != null && WEBDAV_METHOD_PATTERN.matcher(method).matches();
     }
 }

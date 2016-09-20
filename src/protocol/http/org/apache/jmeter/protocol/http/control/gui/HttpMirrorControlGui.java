@@ -101,7 +101,7 @@ public class HttpMirrorControlGui extends LogicControllerGui
 
     @Override
     public Collection<String> getMenuCategories() {
-        return Arrays.asList(new String[] { MenuFactory.NON_TEST_ELEMENTS });
+        return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
     }
 
     @Override
@@ -132,7 +132,7 @@ public class HttpMirrorControlGui extends LogicControllerGui
         }
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout(0, 5));
         setBorder(makeBorder());
 

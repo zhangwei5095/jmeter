@@ -18,7 +18,13 @@
 
 package org.apache.jmeter.protocol.http.util.accesslog;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jmeter.junit.JMeterTestCase;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestLogFilter extends JMeterTestCase {
 
@@ -70,31 +76,33 @@ public class TestLogFilter extends JMeterTestCase {
                 new TestData("oldindex6.jsp", true, false, false, true),
                 new TestData("/test/index.htm", true, false, false, true) };
 
+        @Test
         public void testConstruct() {
             new LogFilter();
         }
 
         private LogFilter testf;
 
-        @Override
+        @Before
         public void setUp() {
             testf = new LogFilter();
         }
 
+        @Test
         public void testReplaceExtension() {
             testf.setReplaceExtension("html", "jsp");
             testf.isFiltered(TESTSTR,null);// set the required variables
             assertEquals(TESTSTROUT, testf.filter(TESTSTR));
         }
 
+        @Test
         public void testExcludeFiles() {
             testf.excludeFiles(INCL);
-            for (int idx = 0; idx < TESTDATA.length; idx++) {
-                TestData td = TESTDATA[idx];
+            for (TestData td : TESTDATA) {
                 String theFile = td.file;
                 boolean expect = td.exclfile;
 
-                testf.isFiltered(theFile,null);
+                testf.isFiltered(theFile, null);
                 String line = testf.filter(theFile);
                 if (line != null) {
                     assertTrue("Expect to accept " + theFile, expect);
@@ -104,14 +112,14 @@ public class TestLogFilter extends JMeterTestCase {
             }
         }
 
+        @Test
         public void testIncludeFiles() {
             testf.includeFiles(INCL);
-            for (int idx = 0; idx < TESTDATA.length; idx++) {
-                TestData td = TESTDATA[idx];
+            for (TestData td : TESTDATA) {
                 String theFile = td.file;
                 boolean expect = td.inclfile;
 
-                testf.isFiltered(theFile,null);
+                testf.isFiltered(theFile, null);
                 String line = testf.filter(theFile);
                 if (line != null) {
                     assertTrue("Expect to accept " + theFile, expect);
@@ -122,14 +130,14 @@ public class TestLogFilter extends JMeterTestCase {
 
         }
 
+        @Test
         public void testExcludePattern() {
             testf.excludePattern(PATTERNS);
-            for (int idx = 0; idx < TESTDATA.length; idx++) {
-                TestData td = TESTDATA[idx];
+            for (TestData td : TESTDATA) {
                 String theFile = td.file;
                 boolean expect = td.exclpatt;
 
-                assertEquals(!expect, testf.isFiltered(theFile,null));
+                assertPrimitiveEquals(!expect, testf.isFiltered(theFile, null));
                 String line = testf.filter(theFile);
                 if (line != null) {
                     assertTrue("Expect to accept " + theFile, expect);
@@ -139,14 +147,14 @@ public class TestLogFilter extends JMeterTestCase {
             }
         }
 
+        @Test
         public void testIncludePattern() {
             testf.includePattern(PATTERNS);
-            for (int idx = 0; idx < TESTDATA.length; idx++) {
-                TestData td = TESTDATA[idx];
+            for (TestData td : TESTDATA) {
                 String theFile = td.file;
                 boolean expect = td.inclpatt;
 
-                assertEquals(!expect, testf.isFiltered(theFile,null));
+                assertPrimitiveEquals(!expect, testf.isFiltered(theFile, null));
                 String line = testf.filter(theFile);
                 if (line != null) {
                     assertTrue("Expect to accept " + theFile, expect);

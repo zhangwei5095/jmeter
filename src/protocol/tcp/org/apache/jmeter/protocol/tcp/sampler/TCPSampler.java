@@ -58,11 +58,12 @@ public class TCPSampler extends AbstractSampler implements ThreadListener, Inter
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<String>(
-            Arrays.asList(new String[]{
+    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<>(
+            Arrays.asList(
                     "org.apache.jmeter.config.gui.LoginConfigGui",
                     "org.apache.jmeter.protocol.tcp.config.gui.TCPConfigGui",
-                    "org.apache.jmeter.config.gui.SimpleConfigGui"}));
+                    "org.apache.jmeter.config.gui.SimpleConfigGui"
+            ));
 
     //++ JMX file constants - do not change
     public static final String SERVER = "TCPSampler.server"; //$NON-NLS-1$
@@ -97,12 +98,7 @@ public class TCPSampler extends AbstractSampler implements ThreadListener, Inter
 
     private static final String ERRKEY = "ERR"; //$NON-NLS-1$ key for HashMap
 
-    // If set, this is the regex that is used to extract the status from the
-    // response
-    // NOT implemented yet private static final String STATUS_REGEX =
-    // JMeterUtils.getPropDefault("tcp.status.regex","");
-
-    // Otherwise, the response is scanned for these strings
+    // the response is scanned for these strings
     private static final String STATUS_PREFIX = JMeterUtils.getPropDefault("tcp.status.prefix", ""); //$NON-NLS-1$
 
     private static final String STATUS_SUFFIX = JMeterUtils.getPropDefault("tcp.status.suffix", ""); //$NON-NLS-1$
@@ -143,7 +139,7 @@ public class TCPSampler extends AbstractSampler implements ThreadListener, Inter
         new ThreadLocal<Map<String, Object>>() {
         @Override
         protected Map<String, Object> initialValue() {
-            return new HashMap<String, Object>();
+            return new HashMap<>();
         }
     };
 
@@ -212,7 +208,7 @@ public class TCPSampler extends AbstractSampler implements ThreadListener, Inter
     /**
      * @return String socket key in cache Map
      */
-    private final String getSocketKey() {
+    private String getSocketKey() {
         return TCPKEY+"#"+getServer()+"#"+getPort()+"#"+getUsername()+"#"+getPassword();
     }
 
@@ -396,7 +392,12 @@ public class TCPSampler extends AbstractSampler implements ThreadListener, Inter
         res.setSamplerData(sb.toString()); 
         res.sampleStart();
         try {
-            Socket sock = getSocket(socketKey);
+            Socket sock;
+            try {
+                sock = getSocket(socketKey);
+            } finally {
+                res.connectEnd();
+            }
             if (sock == null) {
                 res.setResponseCode("500"); //$NON-NLS-1$
                 res.setResponseMessage(getError());

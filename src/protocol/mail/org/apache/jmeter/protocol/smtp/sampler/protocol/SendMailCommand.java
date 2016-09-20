@@ -39,8 +39,10 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+import javax.net.ssl.SSLContext;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jmeter.config.Argument;
 import org.apache.jmeter.services.FileServer;
 import org.apache.jmeter.testelement.property.CollectionProperty;
@@ -108,7 +110,7 @@ public class SendMailCommand {
      */
     public SendMailCommand() {
         headerFields = new CollectionProperty();
-        attachments = new ArrayList<File>();
+        attachments = new ArrayList<>();
     }
 
     /**
@@ -136,6 +138,17 @@ public class SendMailCommand {
         // set timeout
         props.setProperty("mail." + protocol + ".timeout", getTimeout());
         props.setProperty("mail." + protocol + ".connectiontimeout", getConnectionTimeout());
+
+        if (useStartTLS || useSSL) {
+            try {
+                String allProtocols = StringUtils.join(
+                    SSLContext.getDefault().getSupportedSSLParameters().getProtocols(), " ");
+                logger.info("Use ssl/tls protocols for mail: " + allProtocols);
+                props.setProperty("mail." + protocol + ".ssl.protocols", allProtocols);
+            } catch (Exception e) {
+                logger.error("Problem setting ssl/tls protocols for mail", e);
+            }
+        }
 
         if (enableDebug) {
             props.setProperty("mail.debug","true");
@@ -276,28 +289,37 @@ public class SendMailCommand {
      */
     public void execute(Message message) throws MessagingException, IOException, InterruptedException {
 
-        Transport tr = session.getTransport(getProtocol());
-        SynchronousTransportListener listener = null;
+        Transport tr = null;
+        try {
+            tr = session.getTransport(getProtocol());
+            SynchronousTransportListener listener = null;
 
-        if (synchronousMode) {
-            listener = new SynchronousTransportListener();
-            tr.addTransportListener(listener);
+            if (synchronousMode) {
+                listener = new SynchronousTransportListener();
+                tr.addTransportListener(listener);
+            }
+    
+            if (useAuthentication) {
+                tr.connect(smtpServer, username, password);
+            } else {
+                tr.connect();
+            }
+
+            tr.sendMessage(message, message.getAllRecipients());
+
+            if (listener != null /*synchronousMode==true*/) {
+                listener.attend(); // listener cannot be null here
+            }
+        } finally {
+            if(tr != null) {
+                try {
+                    tr.close();
+                } catch (Exception e) {
+                    // NOOP
+                }
+            }
+            logger.debug("transport closed");
         }
-
-        if (useAuthentication) {
-            tr.connect(smtpServer, username, password);
-        } else {
-            tr.connect();
-        }
-
-        tr.sendMessage(message, message.getAllRecipients());
-
-        if (listener != null /*synchronousMode==true*/) {
-            listener.attend(); // listener cannot be null here
-        }
-
-        tr.close();
-        logger.debug("transport closed");
 
         logger.debug("message sent");
         return;

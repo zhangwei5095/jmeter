@@ -106,8 +106,8 @@ public class SmtpPanel extends JPanel {
     private JButton addHeaderFieldButton;
     private JLabel headerFieldName;
     private JLabel headerFieldValue;
-    private Map<JTextField, JTextField> headerFields = new HashMap<JTextField, JTextField>();
-    private Map<JButton,JTextField> removeButtons = new HashMap<JButton, JTextField>();
+    private Map<JTextField, JTextField> headerFields = new HashMap<>();
+    private Map<JButton,JTextField> removeButtons = new HashMap<>();
     private int headerGridY = 0;
 
     private SecuritySettingsPanel securitySettingsPanel;
@@ -498,8 +498,7 @@ public class SmtpPanel extends JPanel {
     public CollectionProperty getHeaderFields() {
         CollectionProperty result = new CollectionProperty();
         result.setName(SmtpSampler.HEADER_FIELDS);
-        for (Iterator<JTextField> iterator = headerFields.keySet().iterator(); iterator.hasNext();) {
-            JTextField headerName = iterator.next();
+        for (JTextField headerName : headerFields.keySet()) {
             String name = headerName.getText();
             String value = headerFields.get(headerName).getText();
             Argument argument = new Argument(name, value);
@@ -1067,11 +1066,11 @@ public class SmtpPanel extends JPanel {
 
     private void clearHeaderFields() {
         headerFieldName.setVisible(false);
-           headerFieldValue.setVisible(false);
+        headerFieldValue.setVisible(false);
 
         for (Iterator<JButton> iterator = removeButtons.keySet().iterator(); iterator.hasNext();) {
             JButton removeButton = iterator.next();
-               JTextField headerName = removeButtons.get(removeButton);
+            JTextField headerName = removeButtons.get(removeButton);
             JTextField headerValue = headerFields.get(headerName);
 
             headerFieldsPanel.remove(headerName);

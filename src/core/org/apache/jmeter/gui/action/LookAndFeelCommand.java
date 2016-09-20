@@ -24,6 +24,7 @@ import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.prefs.Preferences;
@@ -45,7 +46,7 @@ public class LookAndFeelCommand implements Command {
 
     private static final String JMETER_LAF = "jmeter.laf"; // $NON-NLS-1$
 
-    private static final Set<String> commands = new HashSet<String>();
+    private static final Set<String> commands = new HashSet<>();
 
     private static final Preferences PREFS = Preferences.userNodeForPackage(LookAndFeelCommand.class);
     // Note: Windows user preferences are stored relative to: HKEY_CURRENT_USER\Software\JavaSoft\Prefs
@@ -55,12 +56,12 @@ public class LookAndFeelCommand implements Command {
 
     static {
         UIManager.LookAndFeelInfo[] lfs = JMeterMenuBar.getAllLAFs();
-        for (int i = 0; i < lfs.length; i++) {
-            commands.add(ActionNames.LAF_PREFIX + lfs[i].getClassName());
+        for (UIManager.LookAndFeelInfo lf : lfs) {
+            commands.add(ActionNames.LAF_PREFIX + lf.getClassName());
         }
         String jMeterLaf = getJMeterLaf();
         if (log.isInfoEnabled()) {
-            ArrayList<String> names=new ArrayList<String>();
+            List<String> names = new ArrayList<>();
             for(UIManager.LookAndFeelInfo laf : lfs) {
                 if (laf.getClassName().equals(jMeterLaf)) {
                     names.add(laf.getName());
@@ -139,13 +140,7 @@ public class LookAndFeelCommand implements Command {
                 }
             }
             PREFS.put(USER_PREFS_KEY, className);
-        } catch (javax.swing.UnsupportedLookAndFeelException e) {
-            JMeterUtils.reportErrorToUser("Look and Feel unavailable:" + e.toString());
-        } catch (InstantiationException e) {
-            JMeterUtils.reportErrorToUser("Look and Feel unavailable:" + e.toString());
-        } catch (ClassNotFoundException e) {
-            JMeterUtils.reportErrorToUser("Look and Feel unavailable:" + e.toString());
-        } catch (IllegalAccessException e) {
+        } catch (javax.swing.UnsupportedLookAndFeelException | InstantiationException | ClassNotFoundException | IllegalAccessException e) {
             JMeterUtils.reportErrorToUser("Look and Feel unavailable:" + e.toString());
         }
     }

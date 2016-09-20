@@ -40,13 +40,13 @@ public final class IconToolbarBean {
     /**
      * Constructor to transform a line value (from icon set file) to a icon bean for toolbar.
      * @param strToSplit - the line value (i18n key, ActionNames ID, icon path, optional icon pressed path)
-     * @throws JMeterException if error in parsing.
+     * @throws IllegalArgumentException if error in parsing.
      */
     IconToolbarBean(final String strToSplit, final String iconSize) throws IllegalArgumentException {
         if (strToSplit == null) {
             throw new IllegalArgumentException("Icon definition must not be null"); //$NON-NLS-1$
         }
-        final String tmp[] = strToSplit.split(ICON_FIELD_SEP);
+        final String[] tmp = strToSplit.split(ICON_FIELD_SEP);
         if (tmp.length > 2) {
             this.i18nKey = tmp[0];
             this.actionName = tmp[1];

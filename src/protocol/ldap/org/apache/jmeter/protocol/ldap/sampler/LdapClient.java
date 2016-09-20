@@ -69,7 +69,7 @@ public class LdapClient {
      */
     public void connect(String host, String port, String rootdn, String username, String password)
             throws NamingException {
-        Hashtable<String, String> env = new Hashtable<String, String>();
+        Hashtable<String, String> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory"); //$NON-NLS-1$
         env.put(Context.PROVIDER_URL, "ldap://" + host + ":" + port + "/" + rootdn); //$NON-NLS-1$ $NON-NLS-2$ $NON-NLS-3$
         env.put(Context.REFERRAL, "throw"); //$NON-NLS-1$
@@ -105,7 +105,6 @@ public class LdapClient {
      *             when searching fails
      */
     public boolean searchTest(String searchBase, String searchFilter) throws NamingException {
-        // System.out.println("Base="+searchBase+" Filter="+searchFilter);
         SearchControls searchcontrols = new SearchControls(SearchControls.SUBTREE_SCOPE,
                 1L, // count limit
                 0, // time limit
@@ -113,15 +112,6 @@ public class LdapClient {
                 false,// return object ?
                 false);// dereference links?
         NamingEnumeration<?> ne = dirContext.search(searchBase, searchFilter, searchcontrols);
-        // System.out.println("Loop "+ne.toString()+" "+ne.hasMore());
-        // while (ne.hasMore()){
-        // Object tmp = ne.next();
-        // System.out.println(tmp.getClass().getName());
-        // SearchResult sr = (SearchResult) tmp;
-        // Attributes at = sr.getAttributes();
-        // System.out.println(at.get("cn"));
-        // }
-        // System.out.println("Done "+ne.hasMore());
         return ne.hasMore();
     }
 
@@ -148,7 +138,6 @@ public class LdapClient {
      * @throws NamingException when creating subcontext fails
      */
     public void createTest(BasicAttributes basicattributes, String string) throws NamingException {
-        // DirContext dc = //TODO perhaps return this?
         dirContext.createSubcontext(string, basicattributes);
     }
 

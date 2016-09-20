@@ -32,6 +32,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -59,8 +60,8 @@ public final class JmeterKeyStore {
     private String clientCertAliasVarName;
 
     private String[] names = new String[0]; // default empty array to prevent NPEs
-    private Map<String, PrivateKey> privateKeyByAlias = new HashMap<String, PrivateKey>();
-    private Map<String, X509Certificate[]> certsByAlias = new HashMap<String, X509Certificate[]>();
+    private Map<String, PrivateKey> privateKeyByAlias = new HashMap<>();
+    private Map<String, X509Certificate[]> certsByAlias = new HashMap<>();
 
     //@GuardedBy("this")
     private int last_user;
@@ -111,12 +112,12 @@ public final class JmeterKeyStore {
      *             happen here, either)
      */
     public void load(InputStream is, String pword) throws NoSuchAlgorithmException, CertificateException, IOException, KeyStoreException, UnrecoverableKeyException {
-        char pw[] = pword==null ? null : pword.toCharArray();
+        char[] pw = pword==null ? null : pword.toCharArray();
         store.load(is, pw);
     
-        ArrayList<String> v_names = new ArrayList<String>();
-        this.privateKeyByAlias = new HashMap<String, PrivateKey>();
-        this.certsByAlias = new HashMap<String, X509Certificate[]>();
+        List<String> v_names = new ArrayList<>();
+        this.privateKeyByAlias = new HashMap<>();
+        this.certsByAlias = new HashMap<>();
 
         if (null != is){ // No point checking an empty keystore
             PrivateKey _key = null;
@@ -177,7 +178,7 @@ public final class JmeterKeyStore {
         if(result != null) {
             return result;
         }
-        // API expects null not empty array, see http://docs.oracle.com/javase/6/docs/api/javax/net/ssl/X509KeyManager.html
+        // API expects null not empty array, see http://docs.oracle.com/javase/7/docs/api/javax/net/ssl/X509KeyManager.html
         throw new IllegalArgumentException("No certificate found for alias:'"+alias+"'");
     }
 
@@ -310,7 +311,7 @@ public final class JmeterKeyStore {
         if(aliases.length>0) {
             return aliases;
         } else {
-            // API expects null not empty array, see http://docs.oracle.com/javase/6/docs/api/javax/net/ssl/X509KeyManager.html
+            // API expects null not empty array, see http://docs.oracle.com/javase/7/docs/api/javax/net/ssl/X509KeyManager.html
             return null;
         }
     }

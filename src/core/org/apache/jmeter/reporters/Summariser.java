@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.jmeter.control.TransactionController;
 import org.apache.jmeter.engine.util.NoThreadClone;
 import org.apache.jmeter.samplers.Remoteable;
 import org.apache.jmeter.samplers.SampleEvent;
@@ -79,6 +80,9 @@ public class Summariser extends AbstractTestElement
 
     /** Write messages to System.out ? */
     private static final boolean TOOUT = JMeterUtils.getPropDefault("summariser.out", true); //$NON-NLS-1$
+    
+    /** Ignore TC generated SampleResult in summary */
+    private static final boolean IGNORE_TC_GENERATED_SAMPLERESULT = JMeterUtils.getPropDefault("summariser.ignore_transaction_controller_sample_result", true); //$NON-NLS-1$
 
     /*
      * Ensure that a report is not skipped if we are slightly late in checking
@@ -95,7 +99,7 @@ public class Summariser extends AbstractTestElement
      * This map allows summarisers with the same name to contribute to the same totals.
      */
     //@GuardedBy("LOCK") - needed to ensure consistency between this and INSTANCE_COUNT
-    private static final Map<String, Totals> ACCUMULATORS = new ConcurrentHashMap<String, Totals>();
+    private static final Map<String, Totals> ACCUMULATORS = new ConcurrentHashMap<>();
 
     //@GuardedBy("LOCK")
     private static int INSTANCE_COUNT; // number of active tests
@@ -168,6 +172,9 @@ public class Summariser extends AbstractTestElement
     @Override
     public void sampleOccurred(SampleEvent e) {
         SampleResult s = e.getResult();
+        if(IGNORE_TC_GENERATED_SAMPLERESULT && TransactionController.isFromTransactionController(s)) {
+            return;
+        }
 
         long now = System.currentTimeMillis() / 1000;// in seconds
 
@@ -197,24 +204,11 @@ public class Summariser extends AbstractTestElement
             }
         }
         if (reportNow) {
-            String str;
-            str = format(myName, myDelta, "+");
-            if (TOLOG) {
-                log.info(str);
-            }
-            if (TOOUT) {
-                System.out.println(str);
-            }
+            writeToLog(format(myName, myDelta, "+"));
 
             // Only if we have updated them
             if (myTotal != null && myDelta != null &&myTotal.getNumSamples() != myDelta.getNumSamples()) {
-                str = format(myName, myTotal, "=");
-                if (TOLOG) {
-                    log.info(str);
-                }
-                if (TOOUT) {
-                    System.out.println(str);
-                }
+                writeToLog(format(myName, myTotal, "="));
             }
         }
     }
@@ -252,15 +246,8 @@ public class Summariser extends AbstractTestElement
         sb.append(" in ");
         long elapsed = summariserRunningSample.getElapsed();
         long elapsedSec = (elapsed + 500) / 1000; // rounded seconds
-        if (elapsedSec > 100       // No point displaying decimals (less than 1% error)
-         || (elapsed - elapsedSec * 1000) < 50 // decimal would be zero
-         ) {
-            sb.append(longToSb(tmp, elapsedSec, 5));
-        } else {
-            double elapsedSecf = elapsed / 1000.0d; // fractional seconds
-            sb.append(doubleToSb(dfDouble, tmp, elapsedSecf, 5, 1)); // This will round
-        }
-        sb.append("s = ");
+        sb.append(JOrphanUtils.formatDuration(elapsedSec));
+        sb.append(" = ");
         if (elapsed > 0) {
             sb.append(doubleToSb(dfDouble, tmp, summariserRunningSample.getRate(), 6, 1));
         } else {
@@ -367,29 +354,25 @@ public class Summariser extends AbstractTestElement
             return;
         }
         for(Map.Entry<String, Totals> entry : totals){
-            String str;
             String name = entry.getKey();
             Totals total = entry.getValue();
             total.delta.setEndTime(); // ensure delta has correct end time
             // Only print final delta if there were some samples in the delta
             // and there has been at least one sample reported previously
             if (total.delta.getNumSamples() > 0 && total.total.getNumSamples() >  0) {
-                str = format(name, total.delta, "+");
-                if (TOLOG) {
-                    log.info(str);
-                }
-                if (TOOUT) {
-                    System.out.println(str);
-                }
+                writeToLog(format(name, total.delta, "+"));
             }
             total.moveDelta(); // This will update the total endTime
-            str = format(name, total.total, "=");
-            if (TOLOG) {
-                log.info(str);
-            }
-            if (TOOUT) {
-                System.out.println(str);
-            }
+            writeToLog(format(name, total.total, "="));
+        }
+    }
+
+    private void writeToLog(String str) {
+        if (TOLOG) {
+            log.info(str);
+        }
+        if (TOOUT) {
+            System.out.println(str);
         }
     }
 

@@ -386,17 +386,14 @@ public class JMSSampler extends AbstractSampler implements ThreadListener {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Connection started");
             }
-        } catch (Exception e) {
-            thrown = e;
-            LOGGER.error(e.getLocalizedMessage(), e);
-        } catch (NoClassDefFoundError e) {
+        } catch (Exception | NoClassDefFoundError e) {
             thrown = e;
             LOGGER.error(e.getLocalizedMessage(), e);
         }
     }
 
     private Context getInitialContext() throws NamingException {
-        Hashtable<String, String> table = new Hashtable<String, String>();
+        Hashtable<String, String> table = new Hashtable<>();
 
         if (getInitialContextFactory() != null && getInitialContextFactory().trim().length() > 0) {
             if (LOGGER.isDebugEnabled()) {

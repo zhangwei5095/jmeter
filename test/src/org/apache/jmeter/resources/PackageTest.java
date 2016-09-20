@@ -30,7 +30,6 @@ import java.nio.charset.CharsetEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
@@ -91,20 +90,21 @@ public class PackageTest extends TestCase {
     // Read resource into ResourceBundle and store in List
     private PropertyResourceBundle getRAS(String res) throws Exception {
         InputStream ras = this.getClass().getResourceAsStream(res);
-        if (ras == null){
+        if (ras == null) {
             return null;
         }
         return new PropertyResourceBundle(ras);
     }
 
-    private static final Object[] DUMMY_PARAMS = new Object[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+    private static final Object[] DUMMY_PARAMS =
+            new Object[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 
     // Read resource file saving the keys
     private int readRF(String res, List<String> l) throws Exception {
         int fails = 0;
         InputStream ras = this.getClass().getResourceAsStream(res);
-        if (ras==null){
-            if (MESSAGES.equals(resourcePrefix)|| lang.length() == 0 ){
+        if (ras == null){
+            if (MESSAGES.equals(resourcePrefix)|| lang.length() == 0 ) {
                 throw new IOException("Cannot open resource file "+res);
             } else {
                 return 0;
@@ -123,7 +123,7 @@ public class PackageTest extends TestCase {
                          * JMeterUtils.getResString() converts space to _ and lowercases
                          * the key, so make sure all keys pass the test
                          */
-                        if ((key.indexOf(' ') >= 0) || !key.toLowerCase(java.util.Locale.ENGLISH).equals(key)) {
+                        if (key.contains(" ") || !key.toLowerCase(java.util.Locale.ENGLISH).equals(key)) {
                             System.out.println("Invalid key for JMeterUtils " + key);
                             fails++;
                         }
@@ -136,9 +136,9 @@ public class PackageTest extends TestCase {
                      * parameters and check if there is a { in the output. A bit
                      * crude, but should be enough for now.
                      */
-                    if (val.indexOf("{0}") > 0 && val.indexOf('\'') > 0) {
+                    if (val.contains("{0}") && val.contains("'")) {
                         String m = java.text.MessageFormat.format(val, DUMMY_PARAMS);
-                        if (m.indexOf('{') > 0) {
+                        if (m.contains("{")) {
                             fails++;
                             System.out.println("Incorrect message format ? (input/output) for: "+key);
                             System.out.println(val);
@@ -177,15 +177,14 @@ public class PackageTest extends TestCase {
      * 
      */
     private void check(String resname, boolean checkUnexpected) throws Exception {
-        ArrayList<String> alf = new ArrayList<String>(500);// holds keys from file
+        ArrayList<String> alf = new ArrayList<>(500);// holds keys from file
         String res = getResName(resname);
         subTestFailures += readRF(res, alf);
         Collections.sort(alf);
 
         // Look for duplicate keys in the file
         String last = "";
-        for (int i = 0; i < alf.size(); i++) {
-            String curr = alf.get(i);
+        for (String curr : alf) {
             if (curr.equals(last)) {
                 subTestFailures++;
                 System.out.println("\nDuplicate key =" + curr + " in " + res);
@@ -234,26 +233,25 @@ public class PackageTest extends TestCase {
 
     /**
      * Find I18N resources in classpath
-     * @param srcFiledir directory in which the files reside
+     * @param srcFileDir directory in which the files reside
      * @return list of properties files subject to I18N
      */
-    public static final String[] getResources(File srcFiledir) {
-        Set<String> set = new TreeSet<String>();
-        findFile(srcFiledir, set, new FilenameFilter() {
+    public static String[] getResources(File srcFileDir) {
+        Set<String> set = new TreeSet<>();
+        findFile(srcFileDir, set, new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return new File(dir, name).isDirectory() 
-                        || (
-                                name.equals("messages.properties") ||
-                                (name.endsWith("Resources.properties")
-                                && !name.matches("Example\\d+Resources\\.properties")));
+                return (name.equals("messages.properties") ||
+                        (name.endsWith("Resources.properties")
+                                && !name.matches("Example\\d+Resources\\.properties")))
+                        || new File(dir, name).isDirectory();
             }
         });
         return set.toArray(new String[set.size()]);
     }
-    
+
     /**
-     * Find resources matching filenamefiler and adds them to set removing
+     * Find resources matching filenameFiler and adds them to set removing
      * everything before "/org"
      * 
      * @param file
@@ -269,7 +267,7 @@ public class PackageTest extends TestCase {
         File[] foundFiles = file.listFiles(filenameFilter);
         assertNotNull("Not a directory: "+file, foundFiles);
         for (File file2 : foundFiles) {
-            if(file2.isDirectory()) {
+            if (file2.isDirectory()) {
                 findFile(file2, set, filenameFilter);
             } else {
                 String absPath2 = file2.getAbsolutePath().replace('\\', '/'); // Fix up Windows paths
@@ -336,7 +334,7 @@ public class PackageTest extends TestCase {
      * @throws Exception if something fails
      */
     public void checkI18n() throws Exception {
-        Map<String, Map<String,String>> missingLabelsPerBundle = new HashMap<String, Map<String,String>>();
+        Map<String, Map<String,String>> missingLabelsPerBundle = new HashMap<>();
         for (String prefix : prefixList) {
             Properties messages = new Properties();
             messages.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(prefix.substring(1)+".properties"));
@@ -360,54 +358,56 @@ public class PackageTest extends TestCase {
         String languageBundle = bundlePath+"_"+language+ ".properties";
         InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(languageBundle);
         if(inputStream == null) {
-            Map<String, String> messagesAsProperties = new HashMap<String, String>();
-            for (Iterator<Map.Entry<Object, Object>> iterator = messages.entrySet().iterator(); iterator.hasNext();) {
-                Map.Entry<Object, Object> entry = iterator.next();
-                messagesAsProperties.put((String) entry.getKey(), (String) entry.getValue()); 
+            Map<String, String> messagesAsProperties = new HashMap<>();
+            for (Map.Entry<Object, Object> entry : messages.entrySet()) {
+                messagesAsProperties.put((String) entry.getKey(), (String) entry.getValue());
             }
             missingLabelsPerBundle.put(languageBundle, messagesAsProperties);
             return;
         }
         messagesFr.load(inputStream);
     
-        Map<String, String> missingLabels = new TreeMap<String,String>();
-        for (Iterator<Map.Entry<Object,Object>> iterator =  messages.entrySet().iterator(); iterator.hasNext();) {
-            Map.Entry<Object,Object> entry = iterator.next();
-            String key = (String)entry.getKey();
+        Map<String, String> missingLabels = new TreeMap<>();
+        for (Map.Entry<Object, Object> entry : messages.entrySet()) {
+            String key = (String) entry.getKey();
             final String I18NString = "[\\d% ]+";// numeric, space and % don't need translation
-            if(!messagesFr.containsKey(key)) {
+            if (!messagesFr.containsKey(key)) {
                 String value = (String) entry.getValue();
                 // TODO improve check of values that don't need translation
                 if (value.matches(I18NString)) {
                     // System.out.println("Ignoring missing "+key+"="+value+" in "+languageBundle); // TODO convert to list and display at end
                 } else {
-                    missingLabels.put(key,(String) entry.getValue());
+                    missingLabels.put(key, (String) entry.getValue());
                 }
             } else {
                 String value = (String) entry.getValue();
                 if (value.matches(I18NString)) {
-                    System.out.println("Unnecessary entry "+key+"="+value+" in "+languageBundle);
+                    System.out.println("Unnecessary entry " + key + "=" + value + " in " + languageBundle);
                 }
             }
         }
-        if(!missingLabels.isEmpty()) {
+        if (!missingLabels.isEmpty()) {
             missingLabelsPerBundle.put(languageBundle, missingLabels);
         }
     }
 
     /**
-     * Build message with misssing labels per bundle
+     * Build message with missing labels per bundle.
+     *
      * @param missingLabelsPerBundle
      * @return String
      */
     private String printLabels(Map<String, Map<String, String>> missingLabelsPerBundle) {
         StringBuilder builder = new StringBuilder();
-        for (Iterator<Map.Entry<String,Map<String, String>>> iterator =  missingLabelsPerBundle.entrySet().iterator(); iterator.hasNext();) {
-            Map.Entry<String,Map<String, String>> entry = iterator.next();
-            builder.append("Missing labels in bundle:"+entry.getKey()+"\r\n");
-            for (Iterator<Map.Entry<String,String>> it2 =  entry.getValue().entrySet().iterator(); it2.hasNext();) {
-                Map.Entry<String,String> entry2 = it2.next();
-                builder.append(entry2.getKey()+"="+entry2.getValue()+"\r\n");
+        for (Map.Entry<String, Map<String, String>> entry : missingLabelsPerBundle.entrySet()) {
+            builder.append("Missing labels in bundle:")
+                    .append(entry.getKey())
+                    .append("\r\n");
+            for (Map.Entry<String, String> entry2 : entry.getValue().entrySet()) {
+                builder.append(entry2.getKey())
+                        .append("=")
+                        .append(entry2.getValue())
+                        .append("\r\n");
             }
             builder.append("======================================================\r\n");
         }

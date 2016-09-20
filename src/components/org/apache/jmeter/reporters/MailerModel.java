@@ -48,10 +48,10 @@ import org.apache.log.Logger;
  *
  */
 public class MailerModel extends AbstractTestElement implements Serializable {
-    public static enum MailAuthType {
+    public enum MailAuthType {
         SSL,
         TLS,
-        NONE;
+        NONE
     }
 
     private static final long serialVersionUID = 270L;
@@ -152,7 +152,7 @@ public class MailerModel extends AbstractTestElement implements Serializable {
      */
     public List<String> getAddressList() {
         String addressees = getToAddress();
-        List<String> addressList = new ArrayList<String>();
+        List<String> addressList = new ArrayList<>();
 
         if (addressees != null) {
 

@@ -36,14 +36,13 @@ import org.apache.jmeter.testelement.TestElement;
  * created Apr 29 2003 11:00 AM company Sip Technologies and Exports Ltd.
  *
  ******************************************************************************/
-
 public class LdapExtTestSamplerGui extends AbstractSamplerGui {
     private static final long serialVersionUID = 240L;
 
     private LdapExtConfigGui ldapDefaultPanel;
 
     /***************************************************************************
-     * !ToDo (Constructor description)
+     * Constructor that initialises the GUI components
      **************************************************************************/
     public LdapExtTestSamplerGui() {
         init();
@@ -80,7 +79,7 @@ public class LdapExtTestSamplerGui extends AbstractSamplerGui {
     public void modifyTestElement(TestElement sampler) {
         sampler.clear();
         ((LDAPExtSampler) sampler).addTestElement(ldapDefaultPanel.createTestElement());
-        this.configureTestElement(sampler);
+        super.configureTestElement(sampler);
     }
 
     /**
@@ -98,7 +97,7 @@ public class LdapExtTestSamplerGui extends AbstractSamplerGui {
         return "ldapext_testing_title"; // $NON-NLS-1$
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout(0, 5));
         setBorder(makeBorder());
         add(makeTitlePanel(), BorderLayout.NORTH);

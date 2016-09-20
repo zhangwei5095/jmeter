@@ -25,6 +25,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -47,6 +48,11 @@ public class ConversionUtils {
     private static final String DOTDOT = ".."; // $NON-NLS-1$
     private static final String SLASH = "/"; // $NON-NLS-1$
     private static final String COLONSLASHSLASH = "://"; // $NON-NLS-1$
+    
+    /**
+     * Match /../[../] etc.
+     */
+    private static final Pattern MAKE_RELATIVE_PATTERN = Pattern.compile("^/((?:\\.\\./)+)"); // $NON-NLS-1$
 
     /**
      * Extract the encoding (charset) from the Content-Type, e.g.
@@ -99,7 +105,7 @@ public class ConversionUtils {
      * @param location the location, possibly with extraneous leading "../"
      * @return URL with extraneous ../ removed
      * @throws MalformedURLException when the given <code>URL</code> is malformed
-     * @see <a href="https://issues.apache.org/bugzilla/show_bug.cgi?id=46690">Bug 46690 - handling of 302 redirects with invalid relative paths</a>
+     * @see <a href="https://bz.apache.org/bugzilla/show_bug.cgi?id=46690">Bug 46690 - handling of 302 redirects with invalid relative paths</a>
      */
     public static URL makeRelativeURL(URL baseURL, String location) throws MalformedURLException{
         URL initial = new URL(baseURL,location);
@@ -109,9 +115,7 @@ public class ConversionUtils {
             return initial;
         }
         String path = initial.getPath();
-        // Match /../[../] etc.
-        Pattern p = Pattern.compile("^/((?:\\.\\./)+)"); // $NON-NLS-1$
-        Matcher m = p.matcher(path);
+        Matcher m = MAKE_RELATIVE_PATTERN.matcher(path);
         if (m.lookingAt()){
             String prefix = m.group(1); // get ../ or ../../ etc.
             if (location.startsWith(prefix)){
@@ -127,7 +131,7 @@ public class ConversionUtils {
      * @throws Exception when given <code>url</code> leads to a malformed URL or URI
      */
     public static String escapeIllegalURLCharacters(String url) throws Exception{
-        String decodeUrl = URLDecoder.decode(url,"UTF-8");
+        String decodeUrl = URLDecoder.decode(url,StandardCharsets.UTF_8.name());
         URL urlString = new URL(decodeUrl);
         URI uri = new URI(urlString.getProtocol(), urlString.getUserInfo(), urlString.getHost(), urlString.getPort(), urlString.getPath(), urlString.getQuery(), urlString.getRef());
         return uri.toString();
@@ -141,7 +145,7 @@ public class ConversionUtils {
      * @return URI which has been encoded as necessary
      * @throws URISyntaxException if parts of the url form a non valid URI
      */
-    public static final URI sanitizeUrl(URL url) throws URISyntaxException {
+    public static URI sanitizeUrl(URL url) throws URISyntaxException {
         try {
             return url.toURI(); // Assume the URL is already encoded
         } catch (URISyntaxException e) { // it's not, so encode it
@@ -164,7 +168,7 @@ public class ConversionUtils {
      * 
      * @param url in which the '/..'s should be removed
      * @return collapsed URL
-     * @see <a href="https://issues.apache.org/bugzilla/show_bug.cgi?id=49083">Bug 49083 - collapse /.. in redirect URLs</a>
+     * @see <a href="https://bz.apache.org/bugzilla/show_bug.cgi?id=49083">Bug 49083 - collapse /.. in redirect URLs</a>
      */
     public static String removeSlashDotDot(String url)
     {
@@ -220,7 +224,7 @@ public class ConversionUtils {
         final boolean endsWithSlash = currentPath.endsWith(SLASH);
 
         StringTokenizer st = new StringTokenizer(currentPath, SLASH);
-        List<String> tokens = new ArrayList<String>();
+        List<String> tokens = new ArrayList<>();
         while (st.hasMoreTokens())
         {
             tokens.add(st.nextToken());

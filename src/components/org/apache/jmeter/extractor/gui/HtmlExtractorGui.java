@@ -22,11 +22,14 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -62,9 +65,10 @@ public class HtmlExtractorGui extends AbstractPostProcessorGui {
 
     private JLabeledTextField refNameField;
 
-    private JComboBox extractorImplName;
+    private JComboBox<String> extractorImplName;
 
-
+    private JCheckBox emptyDefaultValue;
+    
     public HtmlExtractorGui() {
         super();
         init();
@@ -84,6 +88,7 @@ public class HtmlExtractorGui extends AbstractPostProcessorGui {
             expressionField.setText(htmlExtractor.getExpression());
             attributeField.setText(htmlExtractor.getAttribute());
             defaultField.setText(htmlExtractor.getDefaultValue());
+            emptyDefaultValue.setSelected(htmlExtractor.isEmptyDefaultValue());
             matchNumberField.setText(htmlExtractor.getMatchNumberAsString());
             refNameField.setText(htmlExtractor.getRefName());
             extractorImplName.setSelectedItem(htmlExtractor.getExtractor());
@@ -115,6 +120,7 @@ public class HtmlExtractorGui extends AbstractPostProcessorGui {
             htmlExtractor.setExpression(expressionField.getText());
             htmlExtractor.setAttribute(attributeField.getText());
             htmlExtractor.setDefaultValue(defaultField.getText());
+            htmlExtractor.setDefaultEmptyValue(emptyDefaultValue.isSelected());
             htmlExtractor.setMatchNumber(matchNumberField.getText());
             if(extractorImplName.getSelectedIndex()< HtmlExtractor.getImplementations().length) {
                 htmlExtractor.setExtractor(HtmlExtractor.getImplementations()[extractorImplName.getSelectedIndex()]);
@@ -136,10 +142,11 @@ public class HtmlExtractorGui extends AbstractPostProcessorGui {
         attributeField.setText(""); //$NON-NLS-1$
         defaultField.setText(""); //$NON-NLS-1$
         refNameField.setText(""); //$NON-NLS-1$
+        emptyDefaultValue.setSelected(false);
         matchNumberField.setText(""); //$NON-NLS-1$
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout());
         setBorder(makeBorder());
 
@@ -157,12 +164,12 @@ public class HtmlExtractorGui extends AbstractPostProcessorGui {
         JPanel panel = new HorizontalPanel();
         panel.setBorder(BorderFactory.createTitledBorder(JMeterUtils.getResString("html_extractor_type"))); //$NON-NLS-1$
         
-        DefaultComboBoxModel m = new DefaultComboBoxModel();
+        DefaultComboBoxModel<String> m = new DefaultComboBoxModel<>();
         for (String s : HtmlExtractor.getImplementations()){
             m.addElement(s);
         }
         m.addElement(USE_DEFAULT_EXTRACTOR_IMPL);
-        extractorImplName = new JComboBox(m);
+        extractorImplName = new JComboBox<>(m);
         extractorImplName.setSelectedItem(HtmlExtractor.DEFAULT_EXTRACTOR);
         JLabel label2 = new JLabel(JMeterUtils.getResString("html_extractor_type")); // $NON-NLS-1$
         label2.setLabelFor(extractorImplName);
@@ -174,7 +181,6 @@ public class HtmlExtractorGui extends AbstractPostProcessorGui {
     private JPanel makeParameterPanel() {        
         expressionField = new JLabeledTextField(JMeterUtils.getResString("expression_field")); //$NON-NLS-1$
         attributeField = new JLabeledTextField(JMeterUtils.getResString("attribute_field")); //$NON-NLS-1$
-        defaultField = new JLabeledTextField(JMeterUtils.getResString("default_value_field")); //$NON-NLS-1$
         refNameField = new JLabeledTextField(JMeterUtils.getResString("ref_name_field")); //$NON-NLS-1$
         matchNumberField = new JLabeledTextField(JMeterUtils.getResString("match_num_field")); //$NON-NLS-1$
 
@@ -190,7 +196,28 @@ public class HtmlExtractorGui extends AbstractPostProcessorGui {
         addField(panel, matchNumberField, gbc);
         resetContraints(gbc);
         gbc.weighty = 1;
-        addField(panel, defaultField, gbc);
+        
+        defaultField = new JLabeledTextField(JMeterUtils.getResString("default_value_field")); //$NON-NLS-1$
+        List<JComponent> item = defaultField.getComponentList();
+        panel.add(item.get(0), gbc.clone());
+        JPanel p = new JPanel(new BorderLayout());
+        p.add(item.get(1), BorderLayout.WEST);
+        emptyDefaultValue = new JCheckBox(JMeterUtils.getResString("cssjquery_empty_default_value"));
+        emptyDefaultValue.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                if(emptyDefaultValue.isSelected()) {
+                    defaultField.setText("");
+                }
+                defaultField.setEnabled(!emptyDefaultValue.isSelected());
+            }
+        });
+        p.add(emptyDefaultValue, BorderLayout.CENTER);
+        gbc.gridx++;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(p, gbc.clone());
+        
         return panel;
     }
 

@@ -28,6 +28,7 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
+import javax.swing.UIManager;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -36,7 +37,9 @@ import org.apache.jmeter.util.JMeterUtils;
 public class FilePanelEntry extends HorizontalPanel implements ActionListener {
     private static final long serialVersionUID = 280L;
 
-    private final Font FONT_SMALL = new Font("SansSerif", Font.PLAIN, 10); //$NON-NLS-1$
+    private static final Font FONT_DEFAULT = UIManager.getDefaults().getFont("TextField.font"); //$NON-NLS-1$
+
+    private static final Font FONT_SMALL = new Font("SansSerif", Font.PLAIN, (int) Math.round(FONT_DEFAULT.getSize() * 0.8)); //$NON-NLS-1$
 
     private final JTextField filename = new JTextField(10);
 
@@ -46,9 +49,11 @@ public class FilePanelEntry extends HorizontalPanel implements ActionListener {
 
     private static final String ACTION_BROWSE = "browse"; //$NON-NLS-1$
 
-    private final List<ChangeListener> listeners = new LinkedList<ChangeListener>();
+    private final List<ChangeListener> listeners = new LinkedList<>();
 
     private final String[] filetypes;
+    
+    private boolean onlyDirectories = false;
 
     // Mainly needed for unit test Serialisable tests
     public FilePanelEntry() {
@@ -63,17 +68,28 @@ public class FilePanelEntry extends HorizontalPanel implements ActionListener {
         this(label, (ChangeListener) null, exts);
     }
 
+    public FilePanelEntry(String label, boolean onlyDirectories, String ... exts) {
+        this(label, onlyDirectories, (ChangeListener) null, exts);
+    }
+
     public FilePanelEntry(String label, ChangeListener listener, String ... exts) {
+        this(label, false, (ChangeListener) null, exts);
+    }
+    
+    public FilePanelEntry(String label, boolean onlyDirectories, ChangeListener listener, String ... exts) {
         this.label = new JLabel(label);
         if (listener != null) {
             listeners.add(listener);
         }
-        if (exts != null) {
+        if (exts != null && 
+          !(exts.length == 1 && exts[0] == null) // String null is converted to String[]{null}
+            ) {
             this.filetypes = new String[exts.length];
             System.arraycopy(exts, 0, this.filetypes, 0, exts.length);
         } else {
             this.filetypes = null;
         }
+        this.onlyDirectories=onlyDirectories;
         init();
     }
 
@@ -81,7 +97,7 @@ public class FilePanelEntry extends HorizontalPanel implements ActionListener {
         listeners.add(l);
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         add(label);
         add(filename);
         filename.addActionListener(this);
@@ -136,9 +152,9 @@ public class FilePanelEntry extends HorizontalPanel implements ActionListener {
         if (e.getActionCommand().equals(ACTION_BROWSE)) {
             JFileChooser chooser;
             if(filetypes == null || filetypes.length == 0){
-                chooser = FileDialoger.promptToOpenFile(filename.getText());
+                chooser = FileDialoger.promptToOpenFile(filename.getText(),onlyDirectories);
             } else {
-                chooser = FileDialoger.promptToOpenFile(filetypes, filename.getText());
+                chooser = FileDialoger.promptToOpenFile(filetypes, filename.getText(),onlyDirectories);
             }
             if (chooser != null && chooser.getSelectedFile() != null) {
                 filename.setText(chooser.getSelectedFile().getPath());

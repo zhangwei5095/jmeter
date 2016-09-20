@@ -25,6 +25,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -219,8 +220,8 @@ public class XPathUtil {
      */
     public static Tidy makeTidyParser(boolean quiet, boolean showWarnings, boolean isXml, StringWriter stringWriter) {
         Tidy tidy = new Tidy();
-        tidy.setInputEncoding("UTF8");
-        tidy.setOutputEncoding("UTF8");
+        tidy.setInputEncoding(StandardCharsets.UTF_8.name());
+        tidy.setOutputEncoding(StandardCharsets.UTF_8.name());
         tidy.setQuiet(quiet);
         tidy.setShowWarnings(showWarnings);
         tidy.setMakeClean(true);
@@ -433,14 +434,14 @@ public class XPathUtil {
      * @param xml string to format
      * @return String formatted XML
      */
-    public static final String formatXml(String xml){
+    public static String formatXml(String xml){
         try {
             Transformer serializer= TransformerFactory.newInstance().newTransformer();
             serializer.setOutputProperty(OutputKeys.INDENT, "yes");
             serializer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-            Source xmlSource=new SAXSource(new InputSource(new StringReader(xml)));
+            Source xmlSource = new SAXSource(new InputSource(new StringReader(xml)));
             StringWriter stringWriter = new StringWriter();
-            StreamResult res =  new StreamResult(stringWriter);            
+            StreamResult res = new StreamResult(stringWriter);
             serializer.transform(xmlSource, res);
             return stringWriter.toString();
         } catch (Exception e) {

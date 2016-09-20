@@ -22,7 +22,6 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -105,8 +104,7 @@ public class SummaryReport extends AbstractVisualizer implements Clearable, Acti
      */
     private final transient Object lock = new Object();
 
-    private final Map<String, Calculator> tableRows =
-        new ConcurrentHashMap<String, Calculator>();
+    private final Map<String, Calculator> tableRows = new ConcurrentHashMap<>();
 
     // Column renderers
     private static final TableCellRenderer[] RENDERERS =
@@ -179,7 +177,7 @@ public class SummaryReport extends AbstractVisualizer implements Clearable, Acti
     @Override
     public void add(final SampleResult res) {
         final String sampleLabel = res.getSampleLabel(useGroupName.isSelected());
-        JMeterUtils.runSafe(new Runnable() {
+        JMeterUtils.runSafe(false, new Runnable() {
             @Override
             public void run() {
                 Calculator row = null;
@@ -223,7 +221,7 @@ public class SummaryReport extends AbstractVisualizer implements Clearable, Acti
     /**
      * Main visualizer setup.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         this.setLayout(new BorderLayout());
 
         // MAIN PANEL
@@ -236,6 +234,7 @@ public class SummaryReport extends AbstractVisualizer implements Clearable, Acti
         mainPanel.add(makeTitlePanel());
 
         myJTable = new JTable(model);
+        JMeterUtils.applyHiDPI(myJTable);
         myJTable.getTableHeader().setDefaultRenderer(new HeaderAsPropertyRenderer());
         myJTable.setPreferredScrollableViewportSize(new Dimension(500, 70));
         RendererUtils.applyRenderers(myJTable, RENDERERS);
@@ -276,8 +275,6 @@ public class SummaryReport extends AbstractVisualizer implements Clearable, Acti
                 writer = new FileWriter(chooser.getSelectedFile());
                 CSVSaveService.saveCSVStats(StatGraphVisualizer.getAllTableData(model, FORMATS),writer, 
                         saveHeaders.isSelected() ? StatGraphVisualizer.getLabels(COLUMNS) : null);
-            } catch (FileNotFoundException e) {
-                JMeterUtils.reportErrorToUser(e.getMessage(), "Error saving data");
             } catch (IOException e) {
                 JMeterUtils.reportErrorToUser(e.getMessage(), "Error saving data");
             } finally {

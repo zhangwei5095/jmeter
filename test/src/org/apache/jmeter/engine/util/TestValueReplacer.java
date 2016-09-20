@@ -18,6 +18,9 @@
 
 package org.apache.jmeter.engine.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,16 +33,16 @@ import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.testelement.property.StringProperty;
 import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jmeter.threads.JMeterVariables;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestValueReplacer extends JMeterTestCase {
         private TestPlan variables;
 
-        public TestValueReplacer(String name) {
-            super(name);
-        }
 
         /** {@inheritDoc} */
-        @Override
+        @Before
         public void setUp() {
             variables = new TestPlan();
             variables.addParameter("server", "jakarta.apache.org");
@@ -55,13 +58,14 @@ public class TestValueReplacer extends JMeterTestCase {
             JMeterContextService.getContext().setSamplingStarted(true);
         }
 
+        @Test
         public void testReverseReplacement() throws Exception {
             ValueReplacer replacer = new ValueReplacer(variables);
             assertTrue(variables.getUserDefinedVariables().containsKey("server"));
             assertTrue(replacer.containsKey("server"));
             TestElement element = new TestPlan();
             element.setProperty(new StringProperty("domain", "jakarta.apache.org"));
-            List<Object> argsin = new ArrayList<Object>();
+            List<Object> argsin = new ArrayList<>();
             argsin.add("username is jack");
             argsin.add("his_password");
             element.setProperty(new CollectionProperty("args", argsin));
@@ -73,6 +77,7 @@ public class TestValueReplacer extends JMeterTestCase {
             assertEquals("${password}", args.get(1).getStringValue());
         }
 
+        @Test
         public void testReverseReplacementXml() throws Exception {
             ValueReplacer replacer = new ValueReplacer(variables);
             assertTrue(variables.getUserDefinedVariables().containsKey("bounded_regex"));
@@ -81,7 +86,7 @@ public class TestValueReplacer extends JMeterTestCase {
             assertTrue(replacer.containsKey("normal_regex"));
             TestElement element = new TestPlan();
             element.setProperty(new StringProperty("domain", "<this><is>xml</this></is>"));
-            List<Object> argsin = new ArrayList<Object>();
+            List<Object> argsin = new ArrayList<>();
             argsin.add("<this><is>xml</this></is>");
             argsin.add("And I say: Hello World.");
             element.setProperty(new CollectionProperty("args", argsin));
@@ -92,6 +97,7 @@ public class TestValueReplacer extends JMeterTestCase {
             assertEquals("${bounded_regex}", args.get(0).getStringValue());
         }
 
+        @Test
         public void testOverlappingMatches() throws Exception {
             TestPlan plan = new TestPlan();
             plan.addParameter("longMatch", "servername");
@@ -104,17 +110,18 @@ public class TestValueReplacer extends JMeterTestCase {
             assertEquals("${${shortMatch}", replacedDomain);
         }
 
+        @Test
         public void testReplace() throws Exception {
             ValueReplacer replacer = new ValueReplacer();
             replacer.setUserDefinedVariables(variables.getUserDefinedVariables());
             TestElement element = new ConfigTestElement();
             element.setProperty(new StringProperty("domain", "${server}"));
             replacer.replaceValues(element);
-            //log.debug("domain property = " + element.getProperty("domain"));
             element.setRunningVersion(true);
             assertEquals("jakarta.apache.org", element.getPropertyAsString("domain"));
         }
 
+        @Test
         public void testReplaceStringWithBackslash() throws Exception {
             ValueReplacer replacer = new ValueReplacer();
             replacer.setUserDefinedVariables(variables.getUserDefinedVariables());
@@ -122,7 +129,6 @@ public class TestValueReplacer extends JMeterTestCase {
             String input = "\\${server} \\ \\\\ \\\\\\ \\, ";
             element.setProperty(new StringProperty("domain", input));
             replacer.replaceValues(element);
-            //log.debug("domain property = " + element.getProperty("domain"));
             element.setRunningVersion(true);
             assertEquals(input, element.getPropertyAsString("domain"));
         }
@@ -132,8 +138,9 @@ public class TestValueReplacer extends JMeterTestCase {
          * Here, the string contains a valid variable reference, so all
          * backslashes are also processed.
          * 
-         * See https://issues.apache.org/bugzilla/show_bug.cgi?id=53534
+         * See https://bz.apache.org/bugzilla/show_bug.cgi?id=53534
          */
+        @Test
         public void testReplaceFunctionWithBackslash() throws Exception {
             ValueReplacer replacer = new ValueReplacer();
             replacer.setUserDefinedVariables(variables.getUserDefinedVariables());
@@ -141,14 +148,13 @@ public class TestValueReplacer extends JMeterTestCase {
             String input = "${server} \\ \\\\ \\\\\\ \\, ";
             element.setProperty(new StringProperty("domain", input));
             replacer.replaceValues(element);
-            //log.debug("domain property = " + element.getProperty("domain"));
             element.setRunningVersion(true);
             assertEquals("jakarta.apache.org \\ \\ \\\\ , ", element.getPropertyAsString("domain"));
         }
 
         /** {@inheritDoc} */
-        @Override
-        protected void tearDown() throws Exception {
+        @After
+        public void tearDown() throws Exception {
             JMeterContextService.getContext().setSamplingStarted(false);
         }
 }

@@ -20,7 +20,7 @@ package org.apache.jmeter.extractor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -124,7 +124,7 @@ public class XPathExtractor extends AbstractScopedTestElement implements
         vars.put(matchNR, "0"); // In case parse fails // $NON-NLS-1$
         vars.remove(concat(refName,"1")); // In case parse fails // $NON-NLS-1$
 
-        List<String> matches = new ArrayList<String>();
+        List<String> matches = new ArrayList<>();
         try{
             if (isScopeVariable()){
                 String inputString=vars.get(getVariableName());
@@ -287,7 +287,7 @@ public class XPathExtractor extends AbstractScopedTestElement implements
      *
      */
     private Document parseResponse(String unicodeData)
-      throws UnsupportedEncodingException, IOException, ParserConfigurationException,SAXException,TidyException
+      throws IOException, ParserConfigurationException,SAXException,TidyException
     {
       //TODO: validate contentType for reasonable types?
 
@@ -295,7 +295,7 @@ public class XPathExtractor extends AbstractScopedTestElement implements
       //       Therefore we do byte -> unicode -> byte conversion
       //       to ensure UTF-8 encoding as required by XPathUtil
       // convert unicode String -> UTF-8 bytes
-      byte[] utf8data = unicodeData.getBytes("UTF-8"); // $NON-NLS-1$
+      byte[] utf8data = unicodeData.getBytes(StandardCharsets.UTF_8);
       ByteArrayInputStream in = new ByteArrayInputStream(utf8data);
       boolean isXML = JOrphanUtils.isXML(utf8data);
       // this method assumes UTF-8 input data

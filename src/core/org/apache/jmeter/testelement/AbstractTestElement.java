@@ -79,9 +79,7 @@ public abstract class AbstractTestElement implements TestElement, Serializable, 
             }
             clonedElement.setRunningVersion(runningVersion);
             return clonedElement;
-        } catch (InstantiationException e) {
-            throw new AssertionError(e); // clone should never return null
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             throw new AssertionError(e); // clone should never return null
         }
     }
@@ -189,6 +187,16 @@ public abstract class AbstractTestElement implements TestElement, Serializable, 
         }
         return prop;
     }
+    
+    /**
+     * Null property are wrapped in a {@link NullProperty}
+     * This method avoids this wrapping
+     * for internal use only
+     * @since 3.1
+     */
+    private JMeterProperty getRawProperty(String key) {
+        return propMap.get(key);
+    }
 
     @Override
     public void traverse(TestElementTraverser traverser) {
@@ -220,9 +228,8 @@ public abstract class AbstractTestElement implements TestElement, Serializable, 
     }
 
     protected void traverseCollection(CollectionProperty col, TestElementTraverser traverser) {
-        PropertyIterator iter = col.iterator();
-        while (iter.hasNext()) {
-            traverseProperty(traverser, iter.next());
+        for (JMeterProperty jMeterProperty :  col) {
+            traverseProperty(traverser, jMeterProperty);
         }
     }
 
@@ -233,8 +240,8 @@ public abstract class AbstractTestElement implements TestElement, Serializable, 
 
     @Override
     public int getPropertyAsInt(String key, int defaultValue) {
-        JMeterProperty jmp = getProperty(key);
-        return jmp instanceof NullProperty ? defaultValue : jmp.getIntValue();
+        JMeterProperty jmp = getRawProperty(key);
+        return jmp == null || jmp instanceof NullProperty ? defaultValue : jmp.getIntValue();
     }
 
     @Override
@@ -244,8 +251,8 @@ public abstract class AbstractTestElement implements TestElement, Serializable, 
 
     @Override
     public boolean getPropertyAsBoolean(String key, boolean defaultVal) {
-        JMeterProperty jmp = getProperty(key);
-        return jmp instanceof NullProperty ? defaultVal : jmp.getBooleanValue();
+        JMeterProperty jmp = getRawProperty(key);
+        return jmp == null || jmp instanceof NullProperty ? defaultVal : jmp.getBooleanValue();
     }
 
     @Override
@@ -260,8 +267,8 @@ public abstract class AbstractTestElement implements TestElement, Serializable, 
 
     @Override
     public long getPropertyAsLong(String key, long defaultValue) {
-        JMeterProperty jmp = getProperty(key);
-        return jmp instanceof NullProperty ? defaultValue : jmp.getLongValue();
+        JMeterProperty jmp = getRawProperty(key);
+        return jmp == null || jmp instanceof NullProperty ? defaultValue : jmp.getLongValue();
     }
 
     @Override
@@ -276,8 +283,8 @@ public abstract class AbstractTestElement implements TestElement, Serializable, 
 
     @Override
     public String getPropertyAsString(String key, String defaultValue) {
-        JMeterProperty jmp = getProperty(key);
-        return jmp instanceof NullProperty ? defaultValue : jmp.getStringValue();
+        JMeterProperty jmp = getRawProperty(key);
+        return jmp == null || jmp instanceof NullProperty ? defaultValue : jmp.getStringValue();
     }
 
     /**
@@ -297,7 +304,7 @@ public abstract class AbstractTestElement implements TestElement, Serializable, 
         }
         JMeterProperty prop = getProperty(property.getName());
 
-        if (prop instanceof NullProperty || (prop instanceof StringProperty && prop.getStringValue().equals(""))) {
+        if (prop instanceof NullProperty || (prop instanceof StringProperty && prop.getStringValue().isEmpty())) {
             propMap.put(property.getName(), propertyToPut);
         } else {
             prop.mergeIn(propertyToPut);
@@ -537,13 +544,12 @@ public abstract class AbstractTestElement implements TestElement, Serializable, 
     @Override
     public void setTemporary(JMeterProperty property) {
         if (temporaryProperties == null) {
-            temporaryProperties = new LinkedHashSet<JMeterProperty>();
+            temporaryProperties = new LinkedHashSet<>();
         }
         temporaryProperties.add(property);
         if (property instanceof MultiProperty) {
-            PropertyIterator iter = ((MultiProperty) property).iterator();
-            while (iter.hasNext()) {
-                setTemporary(iter.next());
+            for (JMeterProperty jMeterProperty : (MultiProperty) property) {
+                setTemporary(jMeterProperty);
             }
         }
     }
@@ -631,7 +637,7 @@ public abstract class AbstractTestElement implements TestElement, Serializable, 
      */
     @Override
     public List<String> getSearchableTokens() {
-        List<String> result = new ArrayList<String>(25);
+        List<String> result = new ArrayList<>(25);
         PropertyIterator iterator = propertyIterator();
         while(iterator.hasNext()) {
             JMeterProperty jMeterProperty = iterator.next();    

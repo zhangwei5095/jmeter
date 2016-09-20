@@ -39,9 +39,8 @@ import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
 
 public class JSR223Sampler extends JSR223TestElement implements Cloneable, Sampler, TestBean, ConfigMergabilityIndicator {
-    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<String>(
-            Arrays.asList(new String[]{
-                    "org.apache.jmeter.config.gui.SimpleConfigGui"}));
+    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<>(
+            Arrays.asList("org.apache.jmeter.config.gui.SimpleConfigGui"));
 
     private static final long serialVersionUID = 234L;
 
@@ -71,12 +70,7 @@ public class JSR223Sampler extends JSR223TestElement implements Cloneable, Sampl
             if (ret != null && (result.getResponseData() == null || result.getResponseData()==SampleResult.EMPTY_BA)){
                 result.setResponseData(ret.toString(), null);
             }
-        } catch (IOException e) {
-            log.error("Problem in JSR223 script "+getName()+", message:"+e, e);
-            result.setSuccessful(false);
-            result.setResponseCode("500"); // $NON-NLS-1$
-            result.setResponseMessage(e.toString());
-        } catch (ScriptException e) {
+        } catch (IOException | ScriptException e) {
             log.error("Problem in JSR223 script "+getName()+", message:"+e, e);
             result.setSuccessful(false);
             result.setResponseCode("500"); // $NON-NLS-1$

@@ -27,12 +27,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.jmeter.protocol.http.util.HTTPArgument;
 import org.apache.jmeter.protocol.http.util.HTTPConstants;
 import org.apache.jmeter.protocol.http.util.HTTPFileArg;
 import org.apache.jmeter.samplers.SampleResult;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jorphan.util.JOrphanUtils;
 
 /**
@@ -49,7 +50,7 @@ public class PostWriter {
 
     private static final byte[] CRLF = { 0x0d, 0x0A };
 
-    public static final String ENCODING = "ISO-8859-1"; // $NON-NLS-1$
+    public static final String ENCODING = StandardCharsets.ISO_8859_1.name();
 
     /** The form data that is going to be sent as url encoded */
     protected byte[] formDataUrlEncoded;
@@ -91,7 +92,7 @@ public class PostWriter {
         // Buffer to hold the post body, except file content
         StringBuilder postedBody = new StringBuilder(1000);
 
-        HTTPFileArg files[] = sampler.getHTTPFiles();
+        HTTPFileArg[] files = sampler.getHTTPFiles();
 
         String contentEncoding = sampler.getContentEncoding();
         if(contentEncoding == null || contentEncoding.length() == 0) {
@@ -175,7 +176,7 @@ public class PostWriter {
             contentEncoding = ENCODING;
         }
         long contentLength = 0L;
-        HTTPFileArg files[] = sampler.getHTTPFiles();
+        HTTPFileArg[] files = sampler.getHTTPFiles();
 
         // Check if we should do a multipart/form-data or an
         // application/x-www-form-urlencoded post request
@@ -191,11 +192,10 @@ public class PostWriter {
             // First the multipart start divider
             bos.write(getMultipartDivider());
             // Add any parameters
-            PropertyIterator args = sampler.getArguments().iterator();
-            while (args.hasNext()) {
-                HTTPArgument arg = (HTTPArgument) args.next().getObjectValue();
+            for (JMeterProperty jMeterProperty : sampler.getArguments()) {
+                HTTPArgument arg = (HTTPArgument) jMeterProperty.getObjectValue();
                 String parameterName = arg.getName();
-                if (arg.isSkippable(parameterName)){
+                if (arg.isSkippable(parameterName)) {
                     continue;
                 }
                 // End the previous multipart
@@ -307,9 +307,8 @@ public class PostWriter {
 
                     // Just append all the parameter values, and use that as the post body
                     StringBuilder postBodyBuffer = new StringBuilder();
-                    PropertyIterator args = sampler.getArguments().iterator();
-                    while (args.hasNext()) {
-                        HTTPArgument arg = (HTTPArgument) args.next().getObjectValue();
+                    for (JMeterProperty jMeterProperty : sampler.getArguments()) {
+                        HTTPArgument arg = (HTTPArgument) jMeterProperty.getObjectValue();
                         postBodyBuffer.append(arg.getEncodedValue(contentEncoding));
                     }
                     postBody = postBodyBuffer.toString();

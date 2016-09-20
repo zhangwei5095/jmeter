@@ -19,20 +19,18 @@
 package org.apache.jmeter.save.converters;
 
 import org.apache.jmeter.config.ConfigTestElement;
-import org.apache.jmeter.save.SaveService;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.testelement.property.JMeterProperty;
-import org.apache.jmeter.testelement.property.PropertyIterator;
 import org.apache.jmeter.testelement.property.TestElementProperty;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
 
-import com.thoughtworks.xstream.mapper.Mapper;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.converters.collections.AbstractCollectionConverter;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import com.thoughtworks.xstream.mapper.Mapper;
 
 public class TestElementPropertyConverter extends AbstractCollectionConverter {
     private static final Logger log = LoggingManager.getLoggerForClass();
@@ -63,23 +61,19 @@ public class TestElementPropertyConverter extends AbstractCollectionConverter {
         writer.addAttribute(ConversionHelp.ATT_NAME, ConversionHelp.encode(prop.getName()));
         Class<?> clazz = prop.getObjectValue().getClass();
         writer.addAttribute(ConversionHelp.ATT_ELEMENT_TYPE,
-                SaveService.IS_TESTPLAN_FORMAT_22 ?  mapper().serializedClass(clazz) : clazz.getName());
-        if (SaveService.IS_TESTPLAN_FORMAT_22){
-            TestElement te = (TestElement)prop.getObjectValue();
-            ConversionHelp.saveSpecialProperties(te,writer);
-        }
-        PropertyIterator iter = prop.iterator();
-        while (iter.hasNext()) {
-            JMeterProperty jmp=iter.next();
+                mapper().serializedClass(clazz));
+        TestElement te = (TestElement)prop.getObjectValue();
+        ConversionHelp.saveSpecialProperties(te,writer);
+        for (JMeterProperty jmp : prop) {
             // Skip special properties if required
-            if (!SaveService.IS_TESTPLAN_FORMAT_22 || !ConversionHelp.isSpecialProperty(jmp.getName()))
+            if (!ConversionHelp.isSpecialProperty(jmp.getName()))
             {
                 // Don't save empty comments
-                   if (!(TestElement.COMMENTS.equals(jmp.getName())
-                           && jmp.getStringValue().length()==0))
-                   {
+                if (!(TestElement.COMMENTS.equals(jmp.getName())
+                        && jmp.getStringValue().isEmpty()))
+                {
                     writeItem(jmp, context, writer);
-                   }
+                }
             }
         }
         //TODO clazz is probably always the same as testclass
@@ -128,10 +122,7 @@ public class TestElementPropertyConverter extends AbstractCollectionConverter {
                 reader.moveUp();
             }
             return prop;
-        } catch (InstantiationException e) {
-            log.error("Couldn't unmarshall TestElementProperty", e);
-            return new TestElementProperty("ERROR", new ConfigTestElement());// $NON-NLS-1$
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             log.error("Couldn't unmarshall TestElementProperty", e);
             return new TestElementProperty("ERROR", new ConfigTestElement());// $NON-NLS-1$
         }

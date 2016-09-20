@@ -18,39 +18,49 @@
 
 package org.apache.jorphan.test;
 
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestResult;
-import junit.framework.TestSuite;
-import junit.textui.TestRunner;
+import javax.crypto.Cipher;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.jmeter.junit.categories.ExcludeCategoryFilter;
+import org.apache.jmeter.junit.categories.NeedGuiTests;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.logging.LoggingManager;
+import org.apache.jorphan.reflect.ClassFilter;
 import org.apache.jorphan.reflect.ClassFinder;
 import org.apache.jorphan.util.JOrphanUtils;
 import org.apache.log.Logger;
+import org.junit.internal.RealSystem;
+import org.junit.internal.TextListener;
+import org.junit.runner.Computer;
+import org.junit.runner.JUnitCore;
+import org.junit.runner.Request;
+import org.junit.runner.Result;
+import org.junit.runner.notification.RunListener;
+
+import junit.framework.TestCase;
 
 /**
- * Provides a quick and easy way to run all <a
- * href="http://junit.sourceforge.net">junit</a> unit tests in your java
- * project. It will find all unit test classes and run all their test methods.
+ * Provides a quick and easy way to run all <a href="http://http://junit.org">junit</a> 
+ * unit tests in your java project. 
+ * It will find all unit test classes and run all their test methods.
  * There is no need to configure it in any way to find these classes except to
  * give it a path to search.
  * <p>
  * Here is an example Ant target (See Ant at <a
- * href="http://jakarta.apache.org/ant">Apache</a>) that runs all your unit
+ * href="http://ant.apache.org">Apache Ant</a>) that runs all your unit
  * tests:
  * 
  * <pre>
@@ -134,7 +144,8 @@ public final class AllTests {
             System.out.println("You must specify a comma-delimited list of paths to search " + "for unit tests");
             return;
         }
-        String home=new File(System.getProperty("user.dir")).getParent();
+        
+        String home = new File(System.getProperty("user.dir")).getParent();
         System.out.println("Setting JMeterHome: "+home);
         JMeterUtils.setJMeterHome(home);
         initializeLogging(args);
@@ -165,15 +176,15 @@ public final class AllTests {
         logprop("os.version", true);
         logprop("os.arch");
         logprop("java.class.version");
-        // logprop("java.class.path");
+        
         String cp = System.getProperty("java.class.path");
-        String cpe[] = JOrphanUtils.split(cp, java.io.File.pathSeparator);
+        String[] cpe = JOrphanUtils.split(cp, java.io.File.pathSeparator);
         StringBuilder sb = new StringBuilder(3000);
         sb.append("java.class.path=");
-        for (int i = 0; i < cpe.length; i++) {
+        for (String path : cpe) {
             sb.append("\n");
-            sb.append(cpe[i]);
-            if (new java.io.File(cpe[i]).exists()) {
+            sb.append(path);
+            if (new File(path).exists()) {
                 sb.append(" - OK");
             } else {
                 sb.append(" - ??");
@@ -181,79 +192,50 @@ public final class AllTests {
         }
         log.info(sb.toString());
 
-        // ++
-        // GUI tests throw the error
-        // testArgumentCreation(org.apache.jmeter.config.gui.ArgumentsPanel$Test)java.lang.NoClassDefFoundError
-        // at java.lang.Class.forName0(Native Method)
-        // at java.lang.Class.forName(Class.java:141)
-        // at
-        // java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment(GraphicsEnvironment.java:62)
-        //
-        // Try to find out why this is ...
-
+        try {
+            int maxKeyLen = Cipher.getMaxAllowedKeyLength("AES");
+            System.out.println("JCE max key length = " + maxKeyLen);
+        } catch (NoSuchAlgorithmException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
         System.out.println("+++++++++++");
         logprop("java.awt.headless", true);
         logprop("java.awt.graphicsenv", true);
-        //
-        // try {//
-        // Class c = Class.forName(n);
-        // System.out.println("Found class: "+n);
-        // // c.newInstance();
-        // // System.out.println("Instantiated: "+n);
-        // } catch (Exception e1) {
-        // System.out.println("Error finding class "+n+" "+e1);
-        // } catch (java.lang.InternalError e1){
-        // System.out.println("Error finding class "+n+" "+e1);
-        // }
-        //
-        System.out.println("------------");
-        // don't call isHeadless() here, as it has a side effect.
-        // --
-        System.out.println("Creating test suite");
-        TestSuite suite = suite(args[0]);
-        int countTestCases = suite.countTestCases();
-        System.out.println("Starting test run, test count = "+countTestCases);
-//        for (int i=0;i<suite.testCount();i++){
-//           Test testAt = suite.testAt(i);
-//           int testCases = testAt.countTestCases();
-//           if (testAt instanceof junit.framework.TestCase){
-//                System.out.print(((junit.framework.TestCase) testAt).getName());
-//            }
-//            if (testAt instanceof TestSuite){
-//                TestSuite testSuite = ((TestSuite) testAt);
-//                String name = testSuite.getName();
-//                System.out.print(name);
-//                System.out.println(" "+testCases);
-//            }                
-//        }
         
-        // Jeremy Arnold: This method used to attempt to write results to
-        // a file, but it had a bug and instead just wrote to System.out.
-        // Since nobody has complained about this behavior, I'm changing
-        // the code to not attempt to write to a file, so it will continue
-        // behaving as it did before. It would be simple to make it write
-        // to a file instead if that is the desired behavior.
-        TestResult result = TestRunner.run(suite);
-        // ++
-        // Recheck settings:
-        //System.out.println("+++++++++++");
-        // System.out.println(e+"="+System.getProperty(e));
-        // System.out.println(g+"="+System.getProperty(g));
-        // System.out.println("Headless?
-        // "+java.awt.GraphicsEnvironment.isHeadless());
-        // try {
-        // Class c = Class.forName(n);
-        // System.out.println("Found class: "+n);
-        // c.newInstance();
-        // System.out.println("Instantiated: "+n);
-        // } catch (Exception e1) {
-        // System.out.println("Error with class "+n+" "+e1);
-        // } catch (java.lang.InternalError e1){
-        // System.out.println("Error with class "+n+" "+e1);
-        // }
-        //System.out.println("------------");
-        // --
-        System.exit(result.wasSuccessful() ? 0 : 1); // this is needed because the test may start the AWT EventQueue thread which is not a daemon.
+        System.out.println("------------");
+        try {
+            System.out.println("Searching junit tests in : "+args[0]);
+            List<String> tests = findJMeterJUnitTests(args[0]);
+            Class<?>[] classes = asClasses(tests);
+            JUnitCore jUnitCore = new JUnitCore();
+            
+            // this listener is in the internal junit package
+            // if it breaks, replace it with a custom text listener
+            RunListener listener = new TextListener(new RealSystem());
+            jUnitCore.addListener(listener);
+            
+            Request request = Request.classes(new Computer(), classes);
+            if(GraphicsEnvironment.isHeadless()) {
+                request = request.filterWith(new ExcludeCategoryFilter(NeedGuiTests.class));                
+            }
+            Result result = jUnitCore.run(request);
+            
+            System.exit(result.wasSuccessful() ? 0 : 1);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    private static Class<?>[] asClasses(List<String> tests) throws ClassNotFoundException {
+        Class<?>[] classes = new Class<?>[tests.size()];
+        for (int i = 0; i < classes.length; i++) {
+            String test = tests.get(i);
+            classes[i] = Class.forName(test, true, Thread.currentThread().getContextClassLoader());
+        }
+        
+        return classes;
     }
 
     /**
@@ -271,8 +253,6 @@ public final class AllTests {
                 inputStream = new FileInputStream(args[1]);
                 props.load(inputStream);
                 LoggingManager.initializeLogging(props);
-            } catch (FileNotFoundException e) {
-                System.out.println(e.getLocalizedMessage());
             } catch (IOException e) {
                 System.out.println(e.getLocalizedMessage());
             } finally {
@@ -298,88 +278,79 @@ public final class AllTests {
                 UnitTestManager um = (UnitTestManager) Class.forName(args[2]).newInstance();
                 System.out.println("Setting up initial properties using: " + args[1]);
                 um.initializeProperties(args[1]);
-            } catch (ClassNotFoundException e) {
-                System.out.println("Couldn't create: " + args[2]);
-                e.printStackTrace();
-            } catch (InstantiationException e) {
-                System.out.println("Couldn't create: " + args[2]);
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
+            } catch (ClassNotFoundException | IllegalAccessException
+                    | InstantiationException e) {
                 System.out.println("Couldn't create: " + args[2]);
                 e.printStackTrace();
             }
         }
     }
 
-    /*
-     * Externally callable suite() method for use by JUnit Allows tests to be
-     * run directly under JUnit, rather than using the startup code in the rest
-     * of the module. No parameters can be passed in, so it is less flexible.
-     */
-    public static TestSuite suite() {
-        String args[] = { "../lib/ext", "./testfiles/jmetertest.properties", "org.apache.jmeter.util.JMeterUtils" };
-
-        initializeManager(args);
-        return suite(args[0]);
+    private static List<String> findJMeterJUnitTests(String searchPaths)  throws IOException {
+        List<String> classList = ClassFinder.findClasses(JOrphanUtils.split(searchPaths, ","), new JunitTestFilter());
+       
+        return classList;
     }
-
+    
     /**
-     * A unit test suite for JUnit.
-     * 
-     * @return The test suite
+     * find the junit tests in the test search path
      */
-    private static TestSuite suite(String searchPaths) {
-        TestSuite suite = new TestSuite("All Tests");
-        System.out.println("Scanning "+searchPaths+ " for test cases");
-        int tests=0;
-        int suites=0;
-        try {
-            log.info("ClassFinder(TestCase)");
-            List<String> classList = ClassFinder.findClassesThatExtend(JOrphanUtils.split(searchPaths, ","),
-                    new Class[] { TestCase.class }, true);
-            int sz=classList.size();
-            log.info("ClassFinder(TestCase) found: "+sz+ " TestCase classes");
-            System.out.println("ClassFinder found: "+sz+ " TestCase classes");
-            for (String name : classList) {
-                try {
-                    /*
-                     * TestSuite only finds testXXX() methods, and does not look
-                     * for suite() methods.
-                     * 
-                     * To provide more compatibilty with stand-alone tests,
-                     * where JUnit does look for a suite() method, check for it
-                     * first here.
-                     * 
-                     */
+    private static class JunitTestFilter implements ClassFilter {
+        
+        private final transient ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
-                    Class<?> clazz = Class.forName(name);
-                    Test t = null;
-                    try {
-                        Method m = clazz.getMethod("suite", new Class[0]);
-                        t = (Test) m.invoke(clazz, (Object[])null);
-                        suites++;
-                    } catch (NoSuchMethodException e) {
-                    } // this is not an error, the others are
-                    // catch (SecurityException e) {}
-                    // catch (IllegalAccessException e) {}
-                    // catch (IllegalArgumentException e) {}
-                    // catch (InvocationTargetException e) {}
+        @Override
+        public boolean accept(String className) {
+            
+            boolean isJunitTest = false;
+            try {
+                Class<?> c = Class.forName(className, false, contextClassLoader);
 
-                    if (t == null) {
-                        t = new TestSuite(clazz);
+                if (!c.isAnnotation() 
+                        && !c.isEnum() 
+                        && !c.isInterface() 
+                        && !Modifier.isAbstract(c.getModifiers())) 
+                {
+                    if (TestCase.class.isAssignableFrom(c)) {
+                        isJunitTest =  true;
                     }
+                    else {
+                        isJunitTest = checkForJUnitAnnotations(c);
+                    }
+                }
+            } catch (UnsupportedClassVersionError | ClassNotFoundException
+                    | NoClassDefFoundError e) {
+                log.debug(e.getLocalizedMessage());
+            }
 
-                    tests++;
-                    suite.addTest(t);
-                } catch (Exception ex) {
-                    System.out.println("ERROR: (see logfile) could not add test for class " + name + " " + ExceptionUtils.getStackTrace(ex));
-                    log.error("error adding test :", ex);
+            return isJunitTest;
+        }
+        
+        private boolean checkForJUnitAnnotations(Class<?> clazz)
+        {
+            Class<?> classToCheck = clazz;
+            while(classToCheck != null) {
+                if( checkforTestAnnotationOnMethods(classToCheck)) {
+                    return true;
+                }
+                classToCheck = classToCheck.getSuperclass();
+            }
+            
+            return false;
+        }
+
+        private boolean checkforTestAnnotationOnMethods(Class<?> clazz)
+        {
+            for(Method method : clazz.getDeclaredMethods()) {
+                for(Annotation annotation : method.getAnnotations() ) {
+                    if (org.junit.Test.class.isAssignableFrom(annotation.annotationType())) {
+                        return true;
+                    }
                 }
             }
-        } catch (IOException e) {
-            log.error("", e);
+            
+            return false;
         }
-        System.out.println("Created: "+tests+" tests including "+suites+" suites");
-        return suite;
+        
     }
 }

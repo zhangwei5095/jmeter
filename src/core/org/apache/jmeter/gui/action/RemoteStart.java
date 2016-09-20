@@ -32,12 +32,8 @@ import org.apache.jmeter.gui.GuiPackage;
 import org.apache.jmeter.threads.RemoteThreadsListenerTestElement;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.collections.HashTree;
-import org.apache.jorphan.logging.LoggingManager;
-import org.apache.log.Logger;
 
 public class RemoteStart extends AbstractAction {
-
-    private static final Logger log = LoggingManager.getLoggerForClass();
 
     private static final String LOCAL_HOST = "127.0.0.1"; // $NON-NLS-1$
 
@@ -45,7 +41,7 @@ public class RemoteStart extends AbstractAction {
 
     private static final String REMOTE_HOSTS_SEPARATOR = ","; // $NON-NLS-1$
 
-    private static final Set<String> commands = new HashSet<String>();
+    private static final Set<String> commands = new HashSet<>();
 
     static {
         commands.add(ActionNames.REMOTE_START);
@@ -96,11 +92,12 @@ public class RemoteStart extends AbstractAction {
     }
 
     private List<String> getRemoteHosts() {
-        String remote_hosts_string = JMeterUtils.getPropDefault(REMOTE_HOSTS, LOCAL_HOST);
-        StringTokenizer st = new StringTokenizer(remote_hosts_string, REMOTE_HOSTS_SEPARATOR);
-        List<String> list = new LinkedList<String>();
-        while (st.hasMoreElements())
+        String remoteHostsString = JMeterUtils.getPropDefault(REMOTE_HOSTS, LOCAL_HOST);
+        StringTokenizer st = new StringTokenizer(remoteHostsString, REMOTE_HOSTS_SEPARATOR);
+        List<String> list = new LinkedList<>();
+        while (st.hasMoreElements()) {
             list.add((String) st.nextElement());
+        }
         return list;
     }
 

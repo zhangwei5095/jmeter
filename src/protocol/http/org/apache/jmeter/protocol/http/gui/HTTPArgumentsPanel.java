@@ -18,15 +18,22 @@
 
 package org.apache.jmeter.protocol.http.gui;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.Iterator;
 
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jmeter.config.Argument;
 import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.config.gui.ArgumentsPanel;
 import org.apache.jmeter.protocol.http.util.HTTPArgument;
 import org.apache.jmeter.testelement.TestElement;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.gui.GuiUtils;
 import org.apache.jorphan.gui.ObjectTableModel;
@@ -85,12 +92,13 @@ public class HTTPArgumentsPanel extends ArgumentsPanel {
 
     public HTTPArgumentsPanel() {
         super(JMeterUtils.getResString("paramtable")); //$NON-NLS-1$
+        init();
     }
 
     @Override
     public TestElement createTestElement() {
         Arguments args = getUnclonedParameters();
-        this.configureTestElement(args);
+        super.configureTestElement(args);
         return (TestElement) args.clone();
     }
 
@@ -122,17 +130,74 @@ public class HTTPArgumentsPanel extends ArgumentsPanel {
         if (el instanceof Arguments) {
             tableModel.clearData();
             HTTPArgument.convertArgumentsToHTTP((Arguments) el);
-            PropertyIterator iter = ((Arguments) el).getArguments().iterator();
-            while (iter.hasNext()) {
-                HTTPArgument arg = (HTTPArgument) iter.next().getObjectValue();
+            for (JMeterProperty jMeterProperty : ((Arguments) el).getArguments()) {
+                HTTPArgument arg = (HTTPArgument) jMeterProperty.getObjectValue();
                 tableModel.addRow(arg);
             }
         }
-        checkDeleteStatus();
+        checkButtonsStatus();
     }
 
     protected boolean isMetaDataNormal(HTTPArgument arg) {
         return arg.getMetaData() == null || arg.getMetaData().equals("=")
                 || (arg.getValue() != null && arg.getValue().length() > 0);
     }
+
+    @Override
+    protected Argument createArgumentFromClipboard(String[] clipboardCols) {
+        HTTPArgument argument = makeNewArgument();
+        argument.setName(clipboardCols[0]);
+        if (clipboardCols.length > 1) {
+            argument.setValue(clipboardCols[1]);
+            
+            if (clipboardCols.length > 2) {
+                
+                // default to false if the string is not a boolean
+                argument.setAlwaysEncoded(Boolean.parseBoolean(clipboardCols[2]));
+                
+                if (clipboardCols.length > 3) {
+                    Boolean useEqual = BooleanUtils.toBooleanObject(clipboardCols[3]);
+                    // default to true if the string is not a boolean
+                    argument.setUseEquals(useEqual!=null?useEqual.booleanValue():true);
+                }
+            }
+        }
+        
+        return argument;
+    }
+
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
+        
+        // register the right click menu
+        JTable table = getTable();
+        final JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem variabilizeItem = new JMenuItem(JMeterUtils.getResString("transform_into_variable"));
+        variabilizeItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                transformNameIntoVariable();
+            }
+        });
+        popupMenu.add(variabilizeItem);
+        table.setComponentPopupMenu(popupMenu);
+    }
+    
+    /** 
+     * replace the argument value of the selection with a variable 
+     * the variable name is derived from the parameter name 
+     */
+    private void transformNameIntoVariable() {
+        int[] rowsSelected = getTable().getSelectedRows();
+        for (int selectedRow : rowsSelected) {
+            String name = (String) tableModel.getValueAt(selectedRow, 0);
+            if (StringUtils.isNotBlank(name)) {
+                name = name.trim();
+                name = name.replaceAll("\\$", "_");
+                name = name.replaceAll("\\{", "_");
+                name = name.replaceAll("\\}", "_");
+                tableModel.setValueAt("${" + name + "}", selectedRow, 1);
+            }
+        }
+    }
+    
 }

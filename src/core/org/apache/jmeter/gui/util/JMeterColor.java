@@ -20,20 +20,23 @@ package org.apache.jmeter.gui.util;
 
 import java.awt.Color;
 
-public class JMeterColor extends Color {
-    private static final long serialVersionUID = 240L;
+public class JMeterColor {
 
-    public static final Color dark_green = new JMeterColor(0F, .5F, 0F);
+    public static final Color DARK_GREEN = new Color(0F, .5F, 0F);
 
-    public static final Color LAVENDER = new JMeterColor(206F / 255F, 207F / 255F, 1F);
+    /**
+     * @deprecated Use {@link JMeterColor#DARK_GREEN} instead
+     */
+    @Deprecated
+    public static final Color dark_green = DARK_GREEN;
 
-    public static final Color purple = new JMeterColor(150 / 255F, 0, 150 / 255F);
+    public static final Color LAVENDER = new Color(206F / 255F, 207F / 255F, 1F);
 
-    public JMeterColor(float r, float g, float b) {
-        super(r, g, b);
-    }
+    public static final Color PURPLE = new Color(150 / 255F, 0, 150 / 255F);
 
-    public JMeterColor() {
-        super(0, 0, 0);
-    }
+    /**
+     * @deprecated Use {@link JMeterColor#PURPLE} instead
+     */
+    @Deprecated
+    public static final Color purple = PURPLE;
 }

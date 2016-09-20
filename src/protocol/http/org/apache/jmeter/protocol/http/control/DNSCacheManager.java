@@ -32,7 +32,7 @@ import org.apache.jmeter.engine.event.LoopIterationEvent;
 import org.apache.jmeter.testelement.TestIterationListener;
 import org.apache.jmeter.testelement.property.BooleanProperty;
 import org.apache.jmeter.testelement.property.CollectionProperty;
-import org.apache.jmeter.testelement.property.PropertyIterator;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
@@ -83,6 +83,8 @@ public class DNSCacheManager extends ConfigTestElement implements TestIterationL
 
     private final transient Cache lookupCache;
 
+    private transient int timeoutMs;
+
     // ensure that the initial DNSServers are copied to the per-thread instances
 
     public DNSCacheManager() {
@@ -100,14 +102,13 @@ public class DNSCacheManager extends ConfigTestElement implements TestIterationL
     public Object clone() {
         DNSCacheManager clone = (DNSCacheManager) super.clone();
         clone.systemDefaultDnsResolver = new SystemDefaultDnsResolver();
-        clone.cache = new LinkedHashMap<String, InetAddress[]>();
+        clone.cache = new LinkedHashMap<>();
         CollectionProperty dnsServers = getServers();
         try {
             String[] serverNames = new String[dnsServers.size()];
-            PropertyIterator dnsServIt = dnsServers.iterator();
-            int index=0;
-            while (dnsServIt.hasNext()) {
-                serverNames[index] = dnsServIt.next().getStringValue();
+            int index = 0;
+            for (JMeterProperty jMeterProperty : dnsServers) {
+                serverNames[index] = jMeterProperty.getStringValue();
                 index++;
             }
             clone.resolver = new ExtendedResolver(serverNames);
@@ -154,6 +155,9 @@ public class DNSCacheManager extends ConfigTestElement implements TestIterationL
             try {
                 Lookup lookup = new Lookup(host, Type.A);
                 lookup.setCache(lookupCache);
+                if (timeoutMs > 0) {
+                    resolver.setTimeout(timeoutMs / 1000, timeoutMs % 1000);
+                }
                 lookup.setResolver(resolver);
                 Record[] records = lookup.run();
                 if (records == null || records.length == 0) {
@@ -236,6 +240,24 @@ public class DNSCacheManager extends ConfigTestElement implements TestIterationL
 
     public void setCustomResolver(boolean isCustomResolver) {
         this.setProperty(IS_CUSTOM_RESOLVER, isCustomResolver);
+    }
+
+    /**
+     * Sets DNS resolution timeout.
+     *
+     * @param timeoutMs timeout in milliseconds
+     */
+    void setTimeoutMs(int timeoutMs) {
+        this.timeoutMs = timeoutMs;
+    }
+
+    /**
+     * Returns DNS resolution timeout in milliseconds.
+     *
+     * @return DNS resolution timeout in milliseconds
+     */
+    int getTimeoutMs() {
+        return timeoutMs;
     }
 
 }

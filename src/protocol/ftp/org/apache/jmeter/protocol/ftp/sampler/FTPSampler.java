@@ -58,11 +58,12 @@ public class FTPSampler extends AbstractSampler implements Interruptible {
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<String>(
-            Arrays.asList(new String[]{
+    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<>(
+            Arrays.asList(
                     "org.apache.jmeter.config.gui.LoginConfigGui",
                     "org.apache.jmeter.protocol.ftp.config.gui.FtpConfigGui",
-                    "org.apache.jmeter.config.gui.SimpleConfigGui"}));
+                    "org.apache.jmeter.config.gui.SimpleConfigGui"
+            ));
     
     public static final String SERVER = "FTPSampler.server"; // $NON-NLS-1$
 
@@ -207,7 +208,7 @@ public class FTPSampler extends AbstractSampler implements Interruptible {
                     if (isUpload()) {
                         String contents=getLocalFileContents();
                         if (contents.length() > 0){
-                            byte bytes[] = contents.getBytes(); // TODO - charset?
+                            byte[] bytes = contents.getBytes(); // TODO - charset?
                             input = new ByteArrayInputStream(bytes);
                             res.setBytes(bytes.length);
                         } else {

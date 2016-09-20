@@ -29,7 +29,6 @@ import org.apache.jmeter.testelement.property.CollectionProperty;
 import org.apache.jmeter.testelement.property.IntegerProperty;
 import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.testelement.property.NullProperty;
-import org.apache.jmeter.testelement.property.PropertyIterator;
 import org.apache.jmeter.testelement.property.StringProperty;
 import org.apache.jmeter.util.Document;
 import org.apache.jmeter.util.JMeterUtils;
@@ -76,7 +75,7 @@ public class ResponseAssertion extends AbstractScopedAssertion implements Serial
      * Mask values for TEST_TYPE TODO: remove either MATCH or CONTAINS - they
      * are mutually exclusive
      */
-    private static final int MATCH = 1 << 0;
+    private static final int MATCH = 1; // 1 << 0;
 
     private static final int CONTAINS = 1 << 1;
 
@@ -183,40 +182,14 @@ public class ResponseAssertion extends AbstractScopedAssertion implements Serial
 
     @Override
     public AssertionResult getResult(SampleResult response) {
-        AssertionResult result;
-
-        // None of the other Assertions check the response status, so remove
-        // this check
-        // for the time being, at least...
-        // if (!response.isSuccessful())
-        // {
-        // result = new AssertionResult();
-        // result.setError(true);
-        // byte [] ba = response.getResponseData();
-        // result.setFailureMessage(
-        // ba == null ? "Unknown Error (responseData is empty)" : new String(ba)
-        // );
-        // return result;
-        // }
-
-        result = evaluateResponse(response);
+        AssertionResult result = evaluateResponse(response);
         return result;
     }
 
-    /***************************************************************************
-     * !ToDoo (Method description)
-     *
-     * @return !ToDo (Return description)
-     **************************************************************************/
     public String getTestField() {
         return getPropertyAsString(TEST_FIELD);
     }
 
-    /***************************************************************************
-     * !ToDoo (Method description)
-     *
-     * @return !ToDo (Return description)
-     **************************************************************************/
     public int getTestType() {
         JMeterProperty type = getProperty(TEST_TYPE);
         if (type instanceof NullProperty) {
@@ -225,11 +198,6 @@ public class ResponseAssertion extends AbstractScopedAssertion implements Serial
         return type.getIntValue();
     }
 
-    /***************************************************************************
-     * !ToDoo (Method description)
-     *
-     * @return !ToDo (Return description)
-     **************************************************************************/
     public CollectionProperty getTestStrings() {
         return (CollectionProperty) getProperty(TEST_STRINGS);
     }
@@ -349,9 +317,8 @@ public class ResponseAssertion extends AbstractScopedAssertion implements Serial
         try {
             // Get the Matcher for this thread
             Perl5Matcher localMatcher = JMeterUtils.getMatcher();
-            PropertyIterator iter = getTestStrings().iterator();
-            while (iter.hasNext()) {
-                String stringPattern = iter.next().getStringValue();
+            for (JMeterProperty jMeterProperty : getTestStrings()) {
+                String stringPattern = jMeterProperty.getStringValue();
                 Pattern pattern = null;
                 if (contains || matches) {
                     pattern = JMeterUtils.getPatternCache().getPattern(stringPattern, Perl5Compiler.READ_ONLY_MASK);
@@ -362,7 +329,7 @@ public class ResponseAssertion extends AbstractScopedAssertion implements Serial
                 } else if (equals) {
                     found = toCheck.equals(stringPattern);
                 } else if (substring) {
-                    found = toCheck.indexOf(stringPattern) != -1;
+                    found = toCheck.contains(stringPattern);
                 } else {
                     found = localMatcher.matches(toCheck, pattern);
                 }

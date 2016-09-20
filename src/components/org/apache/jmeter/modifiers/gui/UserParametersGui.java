@@ -38,7 +38,6 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
-import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
@@ -131,7 +130,7 @@ public class UserParametersGui extends AbstractPreProcessorGui {
         GuiUtils.stopTableEditing(paramTable);
         UserParameters userParams = ((UserParameters) params);
         userParams.setNames(new CollectionProperty(UserParameters.NAMES, tableModel.getColumnData(NAME_COL_RESOURCE)));
-        CollectionProperty threadLists = new CollectionProperty(UserParameters.THREAD_VALUES, new ArrayList<Object>());
+        CollectionProperty threadLists = new CollectionProperty(UserParameters.THREAD_VALUES, new ArrayList<>());
         log.debug("making threadlists from gui");
         for (int col = 1; col < tableModel.getColumnCount(); col++) {
             threadLists.addItem(tableModel.getColumnData(getUserColName(col)));
@@ -179,7 +178,7 @@ public class UserParametersGui extends AbstractPreProcessorGui {
         return USER_COL_RESOURCE+UNDERSCORE+user;
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setBorder(makeBorder());
         setLayout(new BorderLayout());
         JPanel vertPanel = new VerticalPanel();
@@ -206,6 +205,7 @@ public class UserParametersGui extends AbstractPreProcessorGui {
         // paramTable.setCellSelectionEnabled(true);
         // paramTable.setPreferredScrollableViewportSize(new Dimension(100,
         // 70));
+        JMeterUtils.applyHiDPI(paramTable);
 
         paramPanel = new JPanel(new BorderLayout());
         paramPanel.add(tableLabel, BorderLayout.NORTH);
@@ -328,11 +328,7 @@ public class UserParametersGui extends AbstractPreProcessorGui {
     private class DeleteRowAction implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (paramTable.isEditing()) {
-                TableCellEditor cellEditor = paramTable.getCellEditor(paramTable.getEditingRow(), paramTable
-                        .getEditingColumn());
-                cellEditor.cancelCellEditing();
-            }
+            GuiUtils.cancelEditing(paramTable);
 
             int rowSelected = paramTable.getSelectedRow();
             if (rowSelected >= 0) {
@@ -362,11 +358,7 @@ public class UserParametersGui extends AbstractPreProcessorGui {
     private class DeleteColumnAction implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (paramTable.isEditing()) {
-                TableCellEditor cellEditor = paramTable.getCellEditor(paramTable.getEditingRow(), paramTable
-                        .getEditingColumn());
-                cellEditor.cancelCellEditing();
-            }
+            GuiUtils.cancelEditing(paramTable);
 
             int colSelected = paramTable.getSelectedColumn();
             if (colSelected == 0 || colSelected == 1) {

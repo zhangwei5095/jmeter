@@ -22,46 +22,51 @@
      
 package org.apache.jorphan.util;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-public class TestJorphanUtils extends TestCase {
+import org.junit.Test;
 
-    public TestJorphanUtils() {
-        super();
-    }
+public class TestJorphanUtils {
 
-    public TestJorphanUtils(String arg0) {
-        super(arg0);
-    }
-    
+    @Test
     public void testReplace1() {
         assertEquals("xyzdef", JOrphanUtils.replaceFirst("abcdef", "abc", "xyz"));
     }
 
+    @Test
     public void testReplace2() {
         assertEquals("axyzdef", JOrphanUtils.replaceFirst("abcdef", "bc", "xyz"));
     }
 
+    @Test
     public void testReplace3() {
         assertEquals("abcxyz", JOrphanUtils.replaceFirst("abcdef", "def", "xyz"));
     }
 
+    @Test
     public void testReplace4() {
         assertEquals("abcdef", JOrphanUtils.replaceFirst("abcdef", "bce", "xyz"));
     }
 
+    @Test
     public void testReplace5() {
         assertEquals("abcdef", JOrphanUtils.replaceFirst("abcdef", "alt=\"\" ", ""));
     }
 
+    @Test
     public void testReplace6() {
         assertEquals("abcdef", JOrphanUtils.replaceFirst("abcdef", "alt=\"\" ", ""));
     }
 
+    @Test
     public void testReplace7() {
         assertEquals("alt=\"\"", JOrphanUtils.replaceFirst("alt=\"\"", "alt=\"\" ", ""));
     }
 
+    @Test
     public void testReplace8() {
         assertEquals("img src=xyz ", JOrphanUtils.replaceFirst("img src=xyz alt=\"\" ", "alt=\"\" ", ""));
     }
@@ -69,6 +74,7 @@ public class TestJorphanUtils extends TestCase {
     // Note: the split tests should agree as far as possible with CSVSaveService.csvSplitString()
     
     // Tests for split(String,String,boolean)
+    @Test
     public void testSplit1() {
         String in = "a,bc,,"; // Test ignore trailing split characters
         String out[] = JOrphanUtils.split(in, ",",true);// Ignore adjacent delimiters
@@ -83,6 +89,7 @@ public class TestJorphanUtils extends TestCase {
         assertEquals("", out[3]);
     }
 
+    @Test
     public void testSplit2() {
         String in = ",,a,bc"; // Test leading split characters
         String out[] = JOrphanUtils.split(in, ",",true);
@@ -97,6 +104,7 @@ public class TestJorphanUtils extends TestCase {
         assertEquals("bc", out[3]);
     }
     
+    @Test
     public void testSplit3() {
         String in = "a,bc,,"; // Test ignore trailing split characters
         String out[] = JOrphanUtils.split(in, ",",true);// Ignore adjacent delimiters
@@ -111,6 +119,7 @@ public class TestJorphanUtils extends TestCase {
         assertEquals("", out[3]);
     }
 
+    @Test
     public void testSplit4() {
         String in = " , ,a ,bc"; // Test leading split characters
         String out[] = JOrphanUtils.split(in, " ,",true);
@@ -125,6 +134,7 @@ public class TestJorphanUtils extends TestCase {
         assertEquals("bc", out[3]);
     }
     
+    @Test
     public void testTruncate() throws Exception
     {
         String in = "a;,b;,;,;,d;,e;,;,f";
@@ -148,6 +158,7 @@ public class TestJorphanUtils extends TestCase {
         
     }
 
+    @Test
     public void testSplit5() throws Exception
     {
         String in = "a;;b;;;;;;d;;e;;;;f";
@@ -172,12 +183,14 @@ public class TestJorphanUtils extends TestCase {
     }
 
     // Empty string
+    @Test
     public void testEmpty(){
         String out[] = JOrphanUtils.split("", ",",false);   
         assertEquals(0,out.length);
     }
 
     // Tests for split(String,String,String)
+    @Test
     public void testSplitSSS1() {
         String in = "a,bc,,"; // Test non-empty parameters
         String out[] = JOrphanUtils.split(in, ",","?");
@@ -188,6 +201,7 @@ public class TestJorphanUtils extends TestCase {
         assertEquals("?", out[3]);
     }
 
+    @Test
     public void testSplitSSS2() {
         String in = "a,bc,,"; // Empty default
         String out[] = JOrphanUtils.split(in, ",","");
@@ -198,6 +212,7 @@ public class TestJorphanUtils extends TestCase {
         assertEquals("", out[3]);
     }
 
+    @Test
     public void testSplitSSS3() {
         String in = "a,bc,,"; // Empty delimiter
         String out[] = JOrphanUtils.split(in, "","?");
@@ -205,6 +220,7 @@ public class TestJorphanUtils extends TestCase {
         assertEquals(in, out[0]);
     }
 
+    @Test
     public void testSplitSSS4() {
         String in = "a,b;c,,"; // Multiple delimiters
         String out[];
@@ -224,6 +240,7 @@ public class TestJorphanUtils extends TestCase {
         assertEquals("", out[4]);
     }
 
+    @Test
     public void testSplitSSS5() {
         String in = "a,bc,,"; // Delimiter same as splitter
         String out[] = JOrphanUtils.split(in, ",",",");
@@ -234,6 +251,7 @@ public class TestJorphanUtils extends TestCase {
         assertEquals(",", out[3]);
     }
 
+    @Test
     public void testSplitSSSNulls() {
         String in = "a,bc,,";
         String out[];
@@ -253,6 +271,7 @@ public class TestJorphanUtils extends TestCase {
         }
     }
 
+    @Test
     public void testSplitSSSNull() {
         String out[];
         out = JOrphanUtils.split("a,bc,,", ",",null);
@@ -266,9 +285,9 @@ public class TestJorphanUtils extends TestCase {
         assertEquals("bc", out[1]);
     }
 
+    @Test
     public void testSplitSSSNone() {
-        String out[];
-        out = JOrphanUtils.split("", "," ,"x");
+        String[] out = JOrphanUtils.split("", "," ,"x");
         assertEquals(0, out.length);
 
         out = JOrphanUtils.split("a,;bc,;,", "","x");
@@ -276,17 +295,18 @@ public class TestJorphanUtils extends TestCase {
         assertEquals("a,;bc,;,", out[0]);
     }
 
+    @Test
     public void testreplaceAllChars(){
-        assertEquals(JOrphanUtils.replaceAllChars("",' ', "+"),"");
-        String in,out;
-        in="source";
-        assertEquals(JOrphanUtils.replaceAllChars(in,' ', "+"),in);
-        out="so+rce";
-        assertEquals(JOrphanUtils.replaceAllChars(in,'u', "+"),out);
-        in="A B  C "; out="A+B++C+";
-        assertEquals(JOrphanUtils.replaceAllChars(in,' ', "+"),out);
+        assertEquals("", JOrphanUtils.replaceAllChars("",' ', "+"));
+        assertEquals("source", JOrphanUtils.replaceAllChars("source",' ', "+"));
+        assertEquals("so+rce", JOrphanUtils.replaceAllChars("source",'u', "+"));
+        assertEquals("+so+urc+", JOrphanUtils.replaceAllChars("esoeurce",'e', "+"));
+        assertEquals("AZAZsoAZurcAZ", JOrphanUtils.replaceAllChars("eesoeurce",'e', "AZ"));
+        assertEquals("A+B++C+", JOrphanUtils.replaceAllChars("A B  C ",' ', "+"));
+        assertEquals("A%20B%20%20C%20", JOrphanUtils.replaceAllChars("A B  C ",' ', "%20"));
     }
     
+    @Test
     public void testTrim(){
         assertEquals("",JOrphanUtils.trim("", " ;"));
         assertEquals("",JOrphanUtils.trim(" ", " ;"));
@@ -296,12 +316,14 @@ public class TestJorphanUtils extends TestCase {
         assertEquals("abc",JOrphanUtils.trim("abc ;", " ;"));
     }
     
+    @Test
     public void testbaToHexString(){
         assertEquals("",JOrphanUtils.baToHexString(new byte[]{}));
         assertEquals("00",JOrphanUtils.baToHexString(new byte[]{0}));
         assertEquals("0f107f8081ff",JOrphanUtils.baToHexString(new byte[]{15,16,127,-128,-127,-1}));
     }
 
+    @Test
     public void testbaToByte() throws Exception{
         assertEqualsArray(new byte[]{},JOrphanUtils.baToHexBytes(new byte[]{}));
         assertEqualsArray(new byte[]{'0','0'},JOrphanUtils.baToHexBytes(new byte[]{0}));
@@ -315,6 +337,7 @@ public class TestJorphanUtils extends TestCase {
         }
     }
     
+    @Test
     public void testIsBlank() {
         assertTrue(JOrphanUtils.isBlank(""));
         assertTrue(JOrphanUtils.isBlank(null));

@@ -21,12 +21,12 @@ package org.apache.jmeter.protocol.http.sampler;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.jmeter.NewDriver;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.jorphan.util.JOrphanUtils;
 import org.apache.log.Logger;
@@ -56,7 +56,9 @@ public class HttpClientDefaultParameters {
      * 
      * @param file the file to load
      * @param params Commons HttpClient parameter instance
+     * @deprecated HC3.1 will be dropped in upcoming version
      */
+    @Deprecated
     public static void load(String file, 
             final org.apache.commons.httpclient.params.HttpParams params){
         load(file, 
@@ -91,7 +93,7 @@ public class HttpClientDefaultParameters {
 
                     @Override
                     public void setVersion(String name, String value) {
-                        String parts[] = value.split("\\.");
+                        String[] parts = value.split("\\.");
                         if (parts.length != 2){
                             throw new IllegalArgumentException("Version must have form m.n");
                         }
@@ -104,8 +106,18 @@ public class HttpClientDefaultParameters {
     }
 
     private static void load(String file, GenericHttpParams params){
-        log.info("Reading httpclient parameters from "+file);
-        File f = new File(file);
+        log.info("Trying httpclient parameters from "+file);
+        File f = new File(file);        
+        if(! (f.exists() && f.canRead())) {
+            f = new File(NewDriver.getJMeterDir() + File.separator
+                    + "bin" + File.separator + file); // $NON-NLS-1$
+            log.info(file + " httpclient parameters does not exist, trying "+f.getAbsolutePath());
+            if(! (f.exists() && f.canRead())) {
+                log.error("Cannot read parameters file for HttpClient: "+ file);
+                return;
+            }
+        }
+        log.info("Reading httpclient parameters from "+f.getAbsolutePath());
         InputStream is = null;
         Properties props = new Properties();
         try {
@@ -139,8 +151,6 @@ public class HttpClientDefaultParameters {
                     log.error("Error in property: "+key+"="+value+" "+e.toString());
                 }
             }
-        } catch (FileNotFoundException e) {
-            log.error("Problem loading properties "+e.toString());
         } catch (IOException e) {
             log.error("Problem loading properties "+e.toString());
         } finally {

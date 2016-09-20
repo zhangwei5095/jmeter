@@ -18,69 +18,77 @@
 
 package org.apache.jmeter.protocol.http.sampler;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLSession;
+
 import org.apache.http.HttpConnectionMetrics;
+import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpRequest;
-import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.conn.ClientConnectionOperator;
 import org.apache.http.conn.ClientConnectionRequest;
 import org.apache.http.conn.ConnectionPoolTimeoutException;
 import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.ManagedClientConnection;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.impl.conn.JMeterPoolingClientConnectionManager;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 import org.apache.jmeter.samplers.SampleResult;
-
-import javax.net.ssl.SSLSession;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Adapter for {@link PoolingClientConnectionManager}
  * that wraps all connection requests into time-measured implementation a private
  * MeasuringConnectionRequest
  */
-public class MeasuringConnectionManager extends PoolingClientConnectionManager {
+public class MeasuringConnectionManager extends JMeterPoolingClientConnectionManager {
 
-    private MeasuringConnectionRequest measuredConnection;
-    private SampleResult sample;
-
-    public MeasuringConnectionManager(SchemeRegistry schemeRegistry, DnsResolver resolver) {
-        super(schemeRegistry, resolver);
+    public MeasuringConnectionManager(SchemeRegistry schemeRegistry, 
+            DnsResolver resolver, 
+            int timeToLiveMs,
+            int validateAfterInactivityMs) {
+        super(schemeRegistry, timeToLiveMs, TimeUnit.MILLISECONDS, resolver, validateAfterInactivityMs);
     }
 
     @Override
     public ClientConnectionRequest requestConnection(final HttpRoute route, final Object state) {
         ClientConnectionRequest res = super.requestConnection(route, state);
-        this.measuredConnection = new MeasuringConnectionRequest(res, this.sample);
-        return this.measuredConnection;
+        return new MeasuringConnectionRequest(res);
     }
 
-    public void setSample(SampleResult sample) {
-        this.sample = sample;
+    /**
+     * Overriden to use {@link JMeterClientConnectionOperator} and fix SNI issue 
+     * @see "https://bz.apache.org/bugzilla/show_bug.cgi?id=57935"
+     * @see org.apache.http.impl.conn.PoolingClientConnectionManager#createConnectionOperator(org.apache.http.conn.scheme.SchemeRegistry)
+     */
+    @Override
+    protected ClientConnectionOperator createConnectionOperator(
+            SchemeRegistry schreg) {
+        return new JMeterClientConnectionOperator(schreg);
     }
+
 
     /**
      * An adapter class to pass {@link SampleResult} into {@link MeasuredConnection}
      */
     private static class MeasuringConnectionRequest implements ClientConnectionRequest {
         private final ClientConnectionRequest handler;
-        private final SampleResult sample;
-
-        public MeasuringConnectionRequest(ClientConnectionRequest res, SampleResult sample) {
+        public MeasuringConnectionRequest(ClientConnectionRequest res) {
             handler = res;
-            this.sample = sample;
         }
 
         @Override
         public ManagedClientConnection getConnection(long timeout, TimeUnit tunit) throws InterruptedException, ConnectionPoolTimeoutException {
             ManagedClientConnection res = handler.getConnection(timeout, tunit);
-            return new MeasuredConnection(res, this.sample);
+            return new MeasuredConnection(res);
         }
 
         @Override
@@ -95,18 +103,21 @@ public class MeasuringConnectionManager extends PoolingClientConnectionManager {
      */
     private static class MeasuredConnection implements ManagedClientConnection {
         private final ManagedClientConnection handler;
-        private final SampleResult sample;
 
-        public MeasuredConnection(ManagedClientConnection res, SampleResult sample) {
+        public MeasuredConnection(ManagedClientConnection res) {
             handler = res;
-            this.sample = sample;
         }
 
         @Override
         public void open(HttpRoute route, HttpContext context, HttpParams params) throws IOException {
-            handler.open(route, context, params);
-            if (sample != null) {
-                sample.connectEnd();
+            try {
+                handler.open(route, context, params);
+            } finally {
+                SampleResult sample = 
+                        (SampleResult)context.getAttribute(HTTPHC4Impl.SAMPLER_RESULT_TOKEN);
+                if (sample != null) {
+                    sample.connectEnd();
+                }
             }
         }
 
@@ -264,6 +275,21 @@ public class MeasuringConnectionManager extends PoolingClientConnectionManager {
         @Override
         public HttpConnectionMetrics getMetrics() {
             return handler.getMetrics();
+        }
+
+        @Override
+        public void bind(Socket arg0) throws IOException {
+            handler.bind(arg0);
+        }
+
+        @Override
+        public String getId() {
+            return handler.getId();
+        }
+
+        @Override
+        public Socket getSocket() {
+            return handler.getSocket();
         }
     }
 }

@@ -18,15 +18,10 @@
 package org.apache.jmeter.protocol.http.parser;
 
 /**
- * Exception class for use with HTMLParser classes. 
- * The main rationale for the class
- * was to support chained Exceptions in JDK 1.3,
- * however it is now used in its own right.
- *
- * @version $Revision$
+ * Exception class for use with {@link HTMLParser} classes.
  */
-public class HTMLParseException extends Exception {
-    private static final long serialVersionUID = 240L;
+public class HTMLParseException extends LinkExtractorParseException {
+    private static final long serialVersionUID = 241L;
 
     public HTMLParseException() {
         super();
@@ -42,5 +37,10 @@ public class HTMLParseException extends Exception {
 
     public HTMLParseException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    public HTMLParseException(String message, Throwable cause,
+            boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

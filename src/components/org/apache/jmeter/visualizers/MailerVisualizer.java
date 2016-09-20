@@ -91,7 +91,7 @@ public class MailerVisualizer extends AbstractVisualizer implements ActionListen
 
     private JTextField smtpPasswordField;
 
-    private JComboBox authTypeCombo;
+    private JComboBox<String> authTypeCombo;
 
     /**
      * Constructs the MailerVisualizer and initializes its GUI.
@@ -122,7 +122,7 @@ public class MailerVisualizer extends AbstractVisualizer implements ActionListen
     @Override
     public void add(final SampleResult res) {
         if (getModel() != null) {
-            JMeterUtils.runSafe(new Runnable() {
+            JMeterUtils.runSafe(false, new Runnable() {
                 @Override
                 public void run() {
                     MailerModel model = ((MailerResultCollector) getModel()).getMailerModel();
@@ -281,7 +281,7 @@ public class MailerVisualizer extends AbstractVisualizer implements ActionListen
 
         JPanel authTypePane = new JPanel(new BorderLayout());
         authTypePane.add(new JLabel(JMeterUtils.getResString("mailer_connection_security")), BorderLayout.WEST); // $NON-NLS-1$
-        authTypeCombo = new JComboBox(new Object[] { 
+        authTypeCombo = new JComboBox<>(new String[] { 
                 MailerModel.MailAuthType.NONE.toString(), 
                 MailerModel.MailAuthType.SSL.toString(),
                 MailerModel.MailAuthType.TLS.toString()});

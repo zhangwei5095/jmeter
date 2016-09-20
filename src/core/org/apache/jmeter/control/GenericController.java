@@ -31,7 +31,6 @@ import org.apache.jmeter.engine.event.LoopIterationListener;
 import org.apache.jmeter.samplers.Sampler;
 import org.apache.jmeter.testelement.AbstractTestElement;
 import org.apache.jmeter.testelement.TestElement;
-import org.apache.jmeter.threads.TestCompiler;
 import org.apache.jmeter.threads.TestCompilerHelper;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
@@ -54,18 +53,15 @@ public class GenericController extends AbstractTestElement implements Controller
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private transient LinkedList<LoopIterationListener> iterationListeners =
-        new LinkedList<LoopIterationListener>();
+    private transient LinkedList<LoopIterationListener> iterationListeners = new LinkedList<>();
 
     // Only create the map if it is required
-    private transient ConcurrentMap<TestElement, Object> children = 
-            TestCompiler.IS_USE_STATIC_SET ? null : new ConcurrentHashMap<TestElement, Object>();
+    private transient ConcurrentMap<TestElement, Object> children = new ConcurrentHashMap<>();
 
     private static final Object DUMMY = new Object();
 
     // May be replaced by RandomOrderController
-    protected transient List<TestElement> subControllersAndSamplers =
-        new ArrayList<TestElement>();
+    protected transient List<TestElement> subControllersAndSamplers = new ArrayList<>();
 
     /**
      * Index of current sub controller or sampler
@@ -270,6 +266,7 @@ public class GenericController extends AbstractTestElement implements Controller
      * Called to re-initialize a index of controller's elements (Bug 50032)
      * @deprecated replaced by GeneriController#initializeSubControllers
      */
+    @Deprecated
     protected void reInitializeSubController() {
         initializeSubControllers();
     }
@@ -422,13 +419,9 @@ public class GenericController extends AbstractTestElement implements Controller
     }
     
     protected Object readResolve(){
-        iterationListeners =
-                new LinkedList<LoopIterationListener>();
-        children = 
-                TestCompiler.IS_USE_STATIC_SET ? null : new ConcurrentHashMap<TestElement, Object>();
-        
-        subControllersAndSamplers =
-                new ArrayList<TestElement>();
+        iterationListeners = new LinkedList<>();
+        children = new ConcurrentHashMap<>();
+        subControllersAndSamplers = new ArrayList<>();
 
         return this;
     }

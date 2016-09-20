@@ -34,14 +34,14 @@ import java.util.TreeSet;
 import java.util.Vector;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jmeter.junit.JMeterTestCase;
+import org.apache.jmeter.junit.JMeterTestCaseJUnit3;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.log.Logger;
 
 import junit.framework.TestSuite;
 
-public class TestHTMLParser extends JMeterTestCase {
+public class TestHTMLParser extends JMeterTestCaseJUnit3 {
     private static final Logger log = LoggingManager.getLoggerForClass();
 
     private static final String DEFAULT_UA  = "Apache-HttpClient/4.2.6";
@@ -122,9 +122,6 @@ public class TestHTMLParser extends JMeterTestCase {
                 this.userAgent = userAgent;
             }
 
-//            private TestData(String f, String b, String s) {
-//                this(f, b, s, null);
-//            }
         }
         
         private static final String DEFAULT_JMETER_PARSER = 
@@ -132,7 +129,6 @@ public class TestHTMLParser extends JMeterTestCase {
         
         // List of parsers to test. Should probably be derived automatically
         private static final String[] PARSERS = { 
-            "org.apache.jmeter.protocol.http.parser.HtmlParserHTMLParser",
             "org.apache.jmeter.protocol.http.parser.JTidyHTMLParser",
             "org.apache.jmeter.protocol.http.parser.RegexpHTMLParser",
             DEFAULT_JMETER_PARSER,
@@ -259,13 +255,13 @@ public class TestHTMLParser extends JMeterTestCase {
             suite.addTest(new TestHTMLParser("testNotParser"));
             suite.addTest(new TestHTMLParser("testNotCreatable"));
             suite.addTest(new TestHTMLParser("testNotCreatableStatic"));
-            for (int i = 0; i < PARSERS.length; i++) {
-                TestSuite ps = new TestSuite(PARSERS[i]);// Identify subtests
-                ps.addTest(new TestHTMLParser("testParserProperty", PARSERS[i], 0));
+            for (String parser : PARSERS) {
+                TestSuite ps = new TestSuite(parser);// Identify subtests
+                ps.addTest(new TestHTMLParser("testParserProperty", parser, 0));
                 for (int j = 0; j < TESTS.length; j++) {
                     TestSuite ts = new TestSuite(TESTS[j].fileName);
-                    ts.addTest(new TestHTMLParser("testParserSet", PARSERS[i], j));
-                    ts.addTest(new TestHTMLParser("testParserList", PARSERS[i], j));
+                    ts.addTest(new TestHTMLParser("testParserSet", parser, j));
+                    ts.addTest(new TestHTMLParser("testParserList", parser, j));
                     ps.addTest(ts);
                 }
                 suite.addTest(ps);
@@ -288,22 +284,22 @@ public class TestHTMLParser extends JMeterTestCase {
                 p = JMeterUtils.getProperties("jmeter.properties");
             }
             p.setProperty(HTMLParser.PARSER_CLASSNAME, parserName);
-            HTMLParser.getParser();
+            BaseParser.getParser(p.getProperty(HTMLParser.PARSER_CLASSNAME));
         }
 
         public void testDefaultParser() throws Exception {
-            HTMLParser.getParser();
+            BaseParser.getParser(JMeterUtils.getPropDefault(HTMLParser.PARSER_CLASSNAME, HTMLParser.DEFAULT_PARSER));
         }
 
         public void testParserDefault() throws Exception {
-            HTMLParser.getParser(HTMLParser.DEFAULT_PARSER);
+            BaseParser.getParser(HTMLParser.DEFAULT_PARSER);
         }
 
         public void testParserMissing() throws Exception {
             try {
-                HTMLParser.getParser("no.such.parser");
+                BaseParser.getParser("no.such.parser");
                 fail("Should not have been able to create the parser");
-            } catch (HTMLParseError e) {
+            } catch (LinkExtractorParseException e) {
                 if (e.getCause() instanceof ClassNotFoundException) {
                     // This is OK
                 } else {
@@ -316,7 +312,7 @@ public class TestHTMLParser extends JMeterTestCase {
             try {
                 HTMLParser.getParser("java.lang.String");
                 fail("Should not have been able to create the parser");
-            } catch (HTMLParseError e) {
+            } catch (LinkExtractorParseException e) {
                 if (e.getCause() instanceof ClassCastException) {
                     return;
                 }
@@ -328,7 +324,7 @@ public class TestHTMLParser extends JMeterTestCase {
             try {
                 HTMLParser.getParser(TestClass.class.getName());
                 fail("Should not have been able to create the parser");
-            } catch (HTMLParseError e) {
+            } catch (LinkExtractorParseException e) {
                 if (e.getCause() instanceof InstantiationException) {
                     return;
                 }
@@ -340,7 +336,7 @@ public class TestHTMLParser extends JMeterTestCase {
             try {
                 HTMLParser.getParser(StaticTestClass.class.getName());
                 fail("Should not have been able to create the parser");
-            } catch (HTMLParseError e) {
+            } catch (LinkExtractorParseException e) {
                 if (e.getCause() instanceof ClassCastException) {
                     return;
                 }
@@ -352,19 +348,19 @@ public class TestHTMLParser extends JMeterTestCase {
         }
 
         public void testParserSet() throws Exception {
-            HTMLParser p = HTMLParser.getParser(parserName);
+            HTMLParser p = (HTMLParser) BaseParser.getParser(parserName);
             filetest(p, TESTS[testNumber].fileName, TESTS[testNumber].baseURL, TESTS[testNumber].expectedSet, null,
                     false, TESTS[testNumber].userAgent);
         }
 
         public void testParserList() throws Exception {
-            HTMLParser p = HTMLParser.getParser(parserName);
+            HTMLParser p = (HTMLParser) BaseParser.getParser(parserName);
             filetest(p, TESTS[testNumber].fileName, TESTS[testNumber].baseURL, TESTS[testNumber].expectedList,
                     new Vector<URLString>(), true, TESTS[testNumber].userAgent);
         }
         
         public void testSpecificParserList() throws Exception {
-            HTMLParser p = HTMLParser.getParser(parserName);
+            HTMLParser p = (HTMLParser) BaseParser.getParser(parserName);
             filetest(p, SPECIFIC_PARSER_TESTS[testNumber].fileName, SPECIFIC_PARSER_TESTS[testNumber].baseURL, SPECIFIC_PARSER_TESTS[testNumber].expectedList,
                     new ArrayList<URLString>(), true, SPECIFIC_PARSER_TESTS[testNumber].userAgent);
         }
@@ -402,8 +398,8 @@ public class TestHTMLParser extends JMeterTestCase {
                 expected = getFile(resultFile).iterator();
             } else {
                 // Convert both to Sets
-                expected = new TreeSet<String>(getFile(resultFile)).iterator();
-                TreeSet<URL> temp = new TreeSet<URL>(new Comparator<Object>() {
+                expected = new TreeSet<>(getFile(resultFile)).iterator();
+                TreeSet<URL> temp = new TreeSet<>(new Comparator<Object>() {
                     @Override
                     public int compare(Object o1, Object o2) {
                         return (o1.toString().compareTo(o2.toString()));
@@ -429,7 +425,7 @@ public class TestHTMLParser extends JMeterTestCase {
 
         // Get expected results as a List
         private static List<String> getFile(String file) throws Exception {
-            ArrayList<String> al = new ArrayList<String>();
+            ArrayList<String> al = new ArrayList<>();
             if (file != null && file.length() > 0) {
                 BufferedReader br = new BufferedReader(new FileReader(findTestFile(file)));
                 String line = br.readLine();

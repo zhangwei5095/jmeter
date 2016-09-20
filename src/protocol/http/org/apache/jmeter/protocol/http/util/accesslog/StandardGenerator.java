@@ -68,10 +68,6 @@ public class StandardGenerator implements Generator, Serializable {
 
     protected File FILE = null;
 
-    // NOT USED transient protected ThreadGroup THREADGROUP = null;
-    // Anyway, was this supposed to be the class from java.lang, or
-    // jmeter.threads?
-
     /**
      * The constructor is used by GUI and samplers to generate request objects.
      */
@@ -152,8 +148,8 @@ public class StandardGenerator implements Generator, Serializable {
      */
     @Override
     public void setParams(NVPair[] params) {
-        for (int idx = 0; idx < params.length; idx++) {
-            SAMPLE.addArgument(params[idx].getName(), params[idx].getValue());
+        for (NVPair param : params) {
+            SAMPLE.addArgument(param.getName(), param.getValue());
         }
     }
 

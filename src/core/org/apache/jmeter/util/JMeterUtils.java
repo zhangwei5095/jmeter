@@ -38,14 +38,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Properties;
-import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.Vector;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
+import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 
 import org.apache.commons.io.IOUtils;
@@ -53,6 +54,7 @@ import org.apache.jmeter.gui.GuiPackage;
 import org.apache.jorphan.logging.LoggingManager;
 import org.apache.jorphan.reflect.ClassFinder;
 import org.apache.jorphan.test.UnitTestManager;
+import org.apache.jorphan.util.JMeterError;
 import org.apache.jorphan.util.JOrphanUtils;
 import org.apache.log.Logger;
 import org.apache.oro.text.MalformedCachePatternException;
@@ -83,7 +85,7 @@ public class JMeterUtils implements UnitTestManager {
 
     private static volatile Properties appProperties;
 
-    private static final Vector<LocaleChangeListener> localeChangeListeners = new Vector<LocaleChangeListener>();
+    private static final Vector<LocaleChangeListener> localeChangeListeners = new Vector<>();
 
     private static volatile Locale locale;
 
@@ -106,9 +108,6 @@ public class JMeterUtils implements UnitTestManager {
             return new Perl5Matcher();
         }
     };
-
-    // Provide Random numbers to whomever wants one
-    private static final Random rand = new Random();
 
     /**
      * Gets Perl5Matcher for this thread.
@@ -337,7 +336,7 @@ public class JMeterUtils implements UnitTestManager {
      * @return a random <code>int</code>
      */
     public static int getRandomInt(int r) {
-        return rand.nextInt(r);
+        return ThreadLocalRandom.current().nextInt(r);
     }
 
     /**
@@ -583,10 +582,7 @@ public class JMeterUtils implements UnitTestManager {
                 log.warn("no icon for " + name);
                 return null;                
             }
-        } catch (NoClassDefFoundError e) {// Can be returned by headless hosts
-            log.info("no icon for " + name + " " + e.getMessage());
-            return null;
-        } catch (InternalError e) {// Can be returned by headless hosts
+        } catch (NoClassDefFoundError | InternalError e) {// Can be returned by headless hosts
             log.info("no icon for " + name + " " + e.getMessage());
             return null;
         }
@@ -620,13 +616,10 @@ public class JMeterUtils implements UnitTestManager {
             if(is != null) {
                 fileReader = new BufferedReader(new InputStreamReader(is));
                 StringBuilder text = new StringBuilder();
-                String line = "NOTNULL"; // $NON-NLS-1$
-                while (line != null) {
-                    line = fileReader.readLine();
-                    if (line != null) {
-                        text.append(line);
-                        text.append(lineEnd);
-                    }
+                String line;
+                while ((line = fileReader.readLine()) != null) {
+                    text.append(line);
+                    text.append(lineEnd);
                 }
                 // Done by finally block: fileReader.close();
                 return text.toString();
@@ -646,7 +639,9 @@ public class JMeterUtils implements UnitTestManager {
      * @param properties
      *            Description of Parameter
      * @return The Timers value
+     * @deprecated (3.0) not used + pre-java 1.2 collection
      */
+    @Deprecated
     public static Vector<Object> getTimers(Properties properties) {
         return instantiate(getVector(properties, "timer."), // $NON-NLS-1$
                 "org.apache.jmeter.timers.Timer"); // $NON-NLS-1$
@@ -658,7 +653,9 @@ public class JMeterUtils implements UnitTestManager {
      * @param properties
      *            Description of Parameter
      * @return The Visualizers value
+     * @deprecated (3.0) not used + pre-java 1.2 collection
      */
+    @Deprecated
     public static Vector<Object> getVisualizers(Properties properties) {
         return instantiate(getVector(properties, "visualizer."), // $NON-NLS-1$
                 "org.apache.jmeter.visualizers.Visualizer"); // $NON-NLS-1$
@@ -670,11 +667,13 @@ public class JMeterUtils implements UnitTestManager {
      * @param properties
      *            The properties with information about the samplers
      * @return The Controllers value
+     * @deprecated (3.0) not used + pre-java 1.2 collection
      */
     // TODO - does not appear to be called directly
+    @Deprecated
     public static Vector<Object> getControllers(Properties properties) {
         String name = "controller."; // $NON-NLS-1$
-        Vector<Object> v = new Vector<Object>();
+        Vector<Object> v = new Vector<>();
         Enumeration<?> names = properties.keys();
         while (names.hasMoreElements()) {
             String prop = (String) names.nextElement();
@@ -695,7 +694,9 @@ public class JMeterUtils implements UnitTestManager {
      * @param name
      *            The name of the sampler controller.
      * @return The TestSamples value
+     * @deprecated (3.0) not used
      */
+    @Deprecated
     public static String[] getTestSamples(Properties properties, String name) {
         Vector<String> vector = getVector(properties, name + ".testsample"); // $NON-NLS-1$
         return vector.toArray(new String[vector.size()]);
@@ -705,8 +706,9 @@ public class JMeterUtils implements UnitTestManager {
      * Create an instance of an org.xml.sax.Parser based on the default props.
      *
      * @return The XMLParser value
+     * @deprecated (3.0) was only called by UserParameterXMLParser.getXMLParameters which has been removed in 3.0
      */
-    // TODO only called by UserParameterXMLParser.getXMLParameters which is a deprecated class
+    @Deprecated
     public static XMLReader getXMLParser() {
         final String parserName = getPropDefault("xml.parser", // $NON-NLS-1$
                 "org.apache.xerces.parsers.SAXParser");  // $NON-NLS-1$
@@ -725,7 +727,9 @@ public class JMeterUtils implements UnitTestManager {
      * @param properties
      *            the input values
      * @return The Alias value
+     * @deprecated (3.0) not used
      */
+    @Deprecated
     public static Hashtable<String, String> getAlias(Properties properties) {
         return getHashtable(properties, "alias."); // $NON-NLS-1$
     }
@@ -741,7 +745,7 @@ public class JMeterUtils implements UnitTestManager {
      * @return The Vector value
      */
     public static Vector<String> getVector(Properties properties, String name) {
-        Vector<String> v = new Vector<String>();
+        Vector<String> v = new Vector<>();
         Enumeration<?> names = properties.keys();
         while (names.hasMoreElements()) {
             String prop = (String) names.nextElement();
@@ -771,9 +775,11 @@ public class JMeterUtils implements UnitTestManager {
      *            to match against properties
      * @return a Hashtable where the keys are the original matching keys with
      *         the prefix removed
+     * @deprecated (3.0) not used
      */
+    @Deprecated
     public static Hashtable<String, String> getHashtable(Properties properties, String prefix) {
-        Hashtable<String, String> t = new Hashtable<String, String>();
+        Hashtable<String, String> t = new Hashtable<>();
         Enumeration<?> names = properties.keys();
         final int length = prefix.length();
         while (names.hasMoreElements()) {
@@ -799,7 +805,7 @@ public class JMeterUtils implements UnitTestManager {
         try {
             ans = Integer.parseInt(appProperties.getProperty(propName, Integer.toString(defaultVal)).trim());
         } catch (Exception e) {
-            log.warn("Unexpected value set for int property:'"+propName+"', defaulting to:"+defaultVal);
+            log.warn("Exception '"+ e.getMessage()+ "' occurred when fetching int property:'"+propName+"', defaulting to:"+defaultVal);
             ans = defaultVal;
         }
         return ans;
@@ -826,7 +832,7 @@ public class JMeterUtils implements UnitTestManager {
                 ans = Integer.parseInt(strVal) == 1;
             }
         } catch (Exception e) {
-            log.warn("Unexpected value set for boolean property:'"+propName+"', defaulting to:"+defaultVal);
+            log.warn("Exception '"+ e.getMessage()+ "' occurred when fetching boolean property:'"+propName+"', defaulting to:"+defaultVal);
             ans = defaultVal;
         }
         return ans;
@@ -846,7 +852,27 @@ public class JMeterUtils implements UnitTestManager {
         try {
             ans = Long.parseLong(appProperties.getProperty(propName, Long.toString(defaultVal)).trim());
         } catch (Exception e) {
-            log.warn("Unexpected value set for long property:'"+propName+"', defaulting to:"+defaultVal);
+            log.warn("Exception '"+ e.getMessage()+ "' occurred when fetching long property:'"+propName+"', defaulting to:"+defaultVal);
+            ans = defaultVal;
+        }
+        return ans;
+    }
+    
+    /**
+     * Get a float value with default if not present.
+     *
+     * @param propName
+     *            the name of the property.
+     * @param defaultVal
+     *            the default value.
+     * @return The PropDefault value
+     */
+    public static float getPropDefault(String propName, float defaultVal) {
+        float ans;
+        try {
+            ans = Float.parseFloat(appProperties.getProperty(propName, Float.toString(defaultVal)).trim());
+        } catch (Exception e) {
+            log.warn("Exception '"+ e.getMessage()+ "' occurred when fetching float property:'"+propName+"', defaulting to:"+defaultVal);
             ans = defaultVal;
         }
         return ans;
@@ -859,7 +885,7 @@ public class JMeterUtils implements UnitTestManager {
      *            the name of the property.
      * @param defaultVal
      *            the default value.
-     * @return The PropDefault value
+     * @return The PropDefault value applying a trim on it
      */
     public static String getPropDefault(String propName, String defaultVal) {
         String ans = defaultVal;
@@ -870,7 +896,7 @@ public class JMeterUtils implements UnitTestManager {
                 ans = value.trim();
             }
         } catch (Exception e) {
-            // TODO Can this happen ?
+            log.warn("Exception '"+ e.getMessage()+ "' occurred when fetching String property:'"+propName+"', defaulting to:"+defaultVal);
             ans = defaultVal;
         }
         return ans;
@@ -888,7 +914,7 @@ public class JMeterUtils implements UnitTestManager {
         try {
             ans = appProperties.getProperty(propName);
         } catch (Exception e) {
-            // TODO Can this happen ?
+            log.warn("Exception '"+ e.getMessage()+ "' occurred when fetching String property:'"+propName+"'");
             ans = null;
         }
         return ans;
@@ -916,7 +942,8 @@ public class JMeterUtils implements UnitTestManager {
      * @param namVec List of names, which are displayed in <code>combo</code>
      * @param name Name, that is to be selected. It has to be in <code>namVec</code>
      */
-    public static void selJComboBoxItem(Properties properties, JComboBox combo, Vector<?> namVec, String name) {
+    @Deprecated
+    public static void selJComboBoxItem(Properties properties, JComboBox<?> combo, Vector<?> namVec, String name) {
         int idx = namVec.indexOf(name);
         combo.setSelectedIndex(idx);
         // Redisplay.
@@ -930,9 +957,11 @@ public class JMeterUtils implements UnitTestManager {
      *            The name of the class to instantiate.
      * @param impls
      *            The name of the class it must be an instance of
-     * @return an instance of the class, or null if instantiation failed or the class did not implement/extend as required 
+     * @return an instance of the class, or null if instantiation failed or the class did not implement/extend as required
+     * @deprecated (3.0) not used out of this class
      */
     // TODO probably not needed
+    @Deprecated
     public static Object instantiate(String className, String impls) {
         if (className != null) {
             className = className.trim();
@@ -974,9 +1003,11 @@ public class JMeterUtils implements UnitTestManager {
      * @param className
      *            Description of Parameter
      * @return Description of the Returned Value
+     * @deprecated (3.0) not used out of this class
      */
+    @Deprecated
     public static Vector<Object> instantiate(Vector<String> v, String className) {
-        Vector<Object> i = new Vector<Object>();
+        Vector<Object> i = new Vector<>();
         try {
             Class<?> c = Class.forName(className);
             Enumeration<String> elements = v.elements();
@@ -1011,7 +1042,9 @@ public class JMeterUtils implements UnitTestManager {
      * @param listener
      *            Description of Parameter
      * @return Description of the Returned Value
+     * @deprecated (3.0) not used
      */
+    @Deprecated
     public static JButton createButton(String name, ActionListener listener) {
         JButton button = new JButton(getImage(name + ".on.gif")); // $NON-NLS-1$
         button.setDisabledIcon(getImage(name + ".off.gif")); // $NON-NLS-1$
@@ -1035,7 +1068,9 @@ public class JMeterUtils implements UnitTestManager {
      * @param listener
      *            Description of Parameter
      * @return Description of the Returned Value
+     * @deprecated (3.0) not used
      */
+    @Deprecated
     public static JButton createSimpleButton(String name, ActionListener listener) {
         JButton button = new JButton(getImage(name + ".gif")); // $NON-NLS-1$
         button.setActionCommand(name);
@@ -1091,8 +1126,10 @@ public class JMeterUtils implements UnitTestManager {
      * @param value
      *            String to compare to array values.
      * @return Index of value in array, or -1 if not in array.
+     * @deprecated (3.0) not used
      */
     //TODO - move to JOrphanUtils?
+    @Deprecated
     public static int findInArray(String[] array, String value) {
         int count = -1;
         int index = -1;
@@ -1279,7 +1316,7 @@ public class JMeterUtils implements UnitTestManager {
         try {
             localHost = InetAddress.getLocalHost();
         } catch (UnknownHostException e1) {
-            log.error("Unable to get local host IP address.");
+            log.error("Unable to get local host IP address.", e1);
             return; // TODO - perhaps this should be a fatal error?
         }
         localHostIP=localHost.getHostAddress();
@@ -1295,7 +1332,7 @@ public class JMeterUtils implements UnitTestManager {
      * @return a map name/value for each header
      */
     public static LinkedHashMap<String, String> parseHeaders(String headers) {
-        LinkedHashMap<String, String> linkedHeaders = new LinkedHashMap<String, String>();
+        LinkedHashMap<String, String> linkedHeaders = new LinkedHashMap<>();
         String[] list = headers.split("\n"); // $NON-NLS-1$
         for (String header : list) {
             int colon = header.indexOf(':'); // $NON-NLS-1$
@@ -1314,41 +1351,100 @@ public class JMeterUtils implements UnitTestManager {
      * otherwise runs call {@link SwingUtilities#invokeAndWait(Runnable)}
      * @param runnable {@link Runnable}
      */
-    public static final void runSafe(Runnable runnable) {
+    public static void runSafe(Runnable runnable) {
+        runSafe(true, runnable);
+    }
+
+    /**
+     * Run the runnable in AWT Thread if current thread is not AWT thread
+     * otherwise runs call {@link SwingUtilities#invokeAndWait(Runnable)}
+     * @param synchronous flag, whether we will wait for the AWT Thread to finish its job.
+     * @param runnable {@link Runnable}
+     */
+    public static void runSafe(boolean synchronous, Runnable runnable) {
         if(SwingUtilities.isEventDispatchThread()) {
             runnable.run();
         } else {
-            try {
-                SwingUtilities.invokeAndWait(runnable);
-            } catch (InterruptedException e) {
-                log.warn("Interrupted in thread "+Thread.currentThread().getName(), e);
-            } catch (InvocationTargetException e) {
-                throw new Error(e);
+            if (synchronous) {
+                try {
+                    SwingUtilities.invokeAndWait(runnable);
+                } catch (InterruptedException e) {
+                    log.warn("Interrupted in thread "
+                            + Thread.currentThread().getName(), e);
+                } catch (InvocationTargetException e) {
+                    throw new Error(e);
+                }
+            } else {
+                SwingUtilities.invokeLater(runnable);
             }
         }
     }
-    
+
     /**
      * Help GC by triggering GC and finalization
      */
-    public static final void helpGC() {
+    public static void helpGC() {
         System.gc();
         System.runFinalization();
     }
-    
+
     /**
      * Hack to make matcher clean the two internal buffers it keeps in memory which size is equivalent to 
      * the unzipped page size
      * @param matcher {@link Perl5Matcher}
      * @param pattern Pattern
      */
-    public static final void clearMatcherMemory(Perl5Matcher matcher, Pattern pattern) {
+    public static void clearMatcherMemory(Perl5Matcher matcher, Pattern pattern) {
         try {
-            if(pattern != null) {
+            if (pattern != null) {
                 matcher.matches("", pattern); // $NON-NLS-1$
             }
         } catch (Exception e) {
             // NOOP
         }
     }
+
+    /**
+     * Provide info, whether we run in HiDPI mode
+     * @return {@code true} if we run in HiDPI mode, {@code false} otherwise
+     */
+    public static boolean getHiDPIMode() {
+        return JMeterUtils.getPropDefault("jmeter.hidpi.mode", false);  // $NON-NLS-1$
+    }
+
+    /**
+     * Provide info about the HiDPI scale factor
+     * @return the factor by which we should scale elements for HiDPI mode
+     */
+    public static double getHiDPIScaleFactor() {
+        return Double.parseDouble(JMeterUtils.getPropDefault("jmeter.hidpi.scale.factor", "1.0"));  // $NON-NLS-1$  $NON-NLS-2$
+    }
+
+    /**
+     * Apply HiDPI mode management to {@link JTable}
+     * @param table the {@link JTable} which should be adapted for HiDPI mode
+     */
+    public static void applyHiDPI(JTable table) {
+        if (JMeterUtils.getHiDPIMode()) {
+            table.setRowHeight((int) Math.round(table.getRowHeight() * JMeterUtils.getHiDPIScaleFactor()));
+        }
+    }
+
+    /**
+     * Return delimiterValue handling the TAB case
+     * @param delimiterValue Delimited value 
+     * @return String delimited modified to handle correctly tab
+     * @throws JMeterError if delimiterValue has a length different from 1
+     */
+    public static String getDelimiter(String delimiterValue) {
+        if (delimiterValue.equals("\\t")) {// Make it easier to enter a tab (can use \<tab> but that is awkward)
+            delimiterValue="\t";
+        }
+
+        if (delimiterValue.length() != 1){
+            throw new JMeterError("Delimiter '"+delimiterValue+"' must be of length 1.");
+        }
+        return delimiterValue;
+    }
+
 }

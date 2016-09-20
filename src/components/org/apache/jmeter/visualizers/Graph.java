@@ -55,7 +55,7 @@ public class Graph extends JComponent implements Scrollable, Clearable {
 
     private CachingStatCalculator model;
 
-    private static final int width = 2000;
+    private static final int WIDTH = 2000;
 
     private long graphMax = 1;
 
@@ -65,7 +65,7 @@ public class Graph extends JComponent implements Scrollable, Clearable {
      * Constructor for the Graph object.
      */
     public Graph() {
-        this.setPreferredSize(new Dimension(width, 100));
+        this.setPreferredSize(new Dimension(WIDTH, 100));
     }
 
     /**
@@ -211,7 +211,7 @@ public class Graph extends JComponent implements Scrollable, Clearable {
         // int width = getWidth();
         int height = getHeight();
         log.debug("Drawing a sample at " + x);
-        int adjustedWidth = (int)(x % width); // will always be within range of an int: as must be < width
+        int adjustedWidth = (int)(x % WIDTH); // will always be within range of an int: as must be < width
         if (wantData) {
             int data = (int) (oneSample.getData() * height / graphMax);
 
@@ -236,7 +236,7 @@ public class Graph extends JComponent implements Scrollable, Clearable {
         if (wantMedian) {
             int median = (int) (oneSample.getMedian() * height / graphMax);
 
-            g.setColor(JMeterColor.purple);
+            g.setColor(JMeterColor.PURPLE);
             g.drawLine(adjustedWidth, height - median, adjustedWidth, (height - median - 1));
         }
 
@@ -249,7 +249,7 @@ public class Graph extends JComponent implements Scrollable, Clearable {
         if (wantThroughput) {
             int throughput = (int) (oneSample.getThroughput() * height / throughputMax);
 
-            g.setColor(JMeterColor.dark_green);
+            g.setColor(JMeterColor.DARK_GREEN);
             g.drawLine(adjustedWidth, height - throughput, adjustedWidth, (height - throughput - 1));
         }
     }

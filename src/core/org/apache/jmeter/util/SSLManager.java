@@ -72,7 +72,7 @@ public abstract class SSLManager {
     /** Cache the TrustStore instance - null if no truststore name was provided */
     private KeyStore trustStore = null;
     // Have we yet tried to load the truststore?
-    private volatile boolean truststore_loaded=false;
+    private volatile boolean truststoreLoaded=false;
 
     /** Have the password available */
     protected String defaultpw = System.getProperty(KEY_STORE_PASSWORD);
@@ -197,9 +197,9 @@ public abstract class SSLManager {
      *
      */
     protected KeyStore getTrustStore() {
-        if (!truststore_loaded) {
+        if (!truststoreLoaded) {
 
-            truststore_loaded=true;// we've tried ...
+            truststoreLoaded=true;// we've tried ...
 
             String fileName = System.getProperty(SSL_TRUST_STORE);
             if (fileName == null) {
@@ -250,23 +250,9 @@ public abstract class SSLManager {
      *
      * @return the singleton {@link SSLManager}
      */
-    public static final synchronized SSLManager getInstance() {
+    public static synchronized SSLManager getInstance() {
         if (null == SSLManager.manager) {
             SSLManager.manager = new JsseSSLManager(null);
-//          if (SSLManager.isSSLSupported) {
-//              String classname = null;
-//              classname = "org.apache.jmeter.util.JsseSSLManager"; // $NON-NLS-1$
-//
-//              try {
-//                  Class clazz = Class.forName(classname);
-//                  Constructor con = clazz.getConstructor(new Class[] { Provider.class });
-//                  SSLManager.manager = (SSLManager) con.newInstance(new Object[] { SSLManager.sslProvider });
-//              } catch (Exception e) {
-//                  log.error("Could not create SSLManager instance", e); // $NON-NLS-1$
-//                  SSLManager.isSSLSupported = false;
-//                  return null;
-//              }
-//          }
         }
 
         return SSLManager.manager;
@@ -277,7 +263,7 @@ public abstract class SSLManager {
      *
      * @return flag whether SSL is supported
      */
-    public static final boolean isSSLSupported() {
+    public static boolean isSSLSupported() {
         return SSLManager.isSSLSupported;
     }
 

@@ -28,8 +28,6 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
-import javax.swing.table.TableCellEditor;
-
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.gui.util.HeaderAsPropertyRenderer;
 import org.apache.jmeter.gui.util.PowerTableModel;
@@ -161,7 +159,7 @@ public class SimpleConfigGui extends AbstractConfigGui implements ActionListener
     /**
      * Initialize the components and layout of this component.
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout(0, 10));
 
         if (displayName) {
@@ -203,6 +201,7 @@ public class SimpleConfigGui extends AbstractConfigGui implements ActionListener
                 new Class[] { String.class, String.class });
 
         table = new JTable(tableModel);
+        JMeterUtils.applyHiDPI(table);
         table.getTableHeader().setDefaultRenderer(new HeaderAsPropertyRenderer());
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         return makeScrollPane(table);
@@ -278,10 +277,7 @@ public class SimpleConfigGui extends AbstractConfigGui implements ActionListener
     protected void deleteArgument() {
         // If a table cell is being edited, we must cancel the editing before
         // deleting the row
-        if (table.isEditing()) {
-            TableCellEditor cellEditor = table.getCellEditor(table.getEditingRow(), table.getEditingColumn());
-            cellEditor.cancelCellEditing();
-        }
+        GuiUtils.cancelEditing(table);
 
         int rowSelected = table.getSelectedRow();
 

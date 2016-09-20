@@ -24,6 +24,9 @@ package org.apache.jmeter.samplers;
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.lang3.CharUtils;
@@ -41,7 +44,9 @@ import org.apache.log.Logger;
  * - clone s.xyz = xyz (perhaps)
  * - setXyz(boolean)
  * - saveXyz()
+ * - add Xyz to SAVE_CONFIG_NAMES list
  * - update SampleSaveConfigurationConverter to add new fields to marshall() and shouldSerialiseMember()
+ * - update ctor SampleSaveConfiguration(boolean value) to set the value if it is a boolean property
  * - update SampleResultConverter and/or HTTPSampleConverter
  * - update CSVSaveService: CSV_XXXX, makeResultFromDelimitedString, printableFieldNamesToString, static{}
  * - update messages.properties to add save_xyz entry
@@ -88,10 +93,10 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
     private static final String FALSE = "false"; // $NON_NLS-1$
 
     /** A properties file indicator for milliseconds. * */
-    private static final String MILLISECONDS = "ms"; // $NON_NLS-1$
+    public static final String MILLISECONDS = "ms"; // $NON_NLS-1$
 
     /** A properties file indicator for none. * */
-    private static final String NONE = "none"; // $NON_NLS-1$
+    public static final String NONE = "none"; // $NON_NLS-1$
 
     /** A properties file indicator for the first of a series. * */
     private static final String FIRST = "first"; // $NON_NLS-1$
@@ -103,7 +108,7 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
      * The name of the property indicating which assertion results should be
      * saved.
      **************************************************************************/
-    private static final String ASSERTION_RESULTS_FAILURE_MESSAGE_PROP =
+    public static final String ASSERTION_RESULTS_FAILURE_MESSAGE_PROP =
         "jmeter.save.saveservice.assertion_results_failure_message";  // $NON_NLS-1$
 
     /***************************************************************************
@@ -116,7 +121,7 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
      * The name of the property indicating which delimiter should be used when
      * saving in a delimited values format.
      **************************************************************************/
-    private static final String DEFAULT_DELIMITER_PROP = "jmeter.save.saveservice.default_delimiter"; // $NON_NLS-1$
+    public static final String DEFAULT_DELIMITER_PROP = "jmeter.save.saveservice.default_delimiter"; // $NON_NLS-1$
 
     /***************************************************************************
      * The name of the property indicating which format should be used when
@@ -293,7 +298,7 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
 
     private static final boolean _idleTime;
 
-    private static final String DEFAULT_DELIMITER = ","; // $NON_NLS-1$
+    public static final String DEFAULT_DELIMITER = ","; // $NON_NLS-1$
 
     /**
      * Read in the properties having to do with saving from a properties file.
@@ -304,20 +309,13 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
         _subresults      = TRUE.equalsIgnoreCase(props.getProperty(SUBRESULTS_PROP, TRUE));
         _assertions      = TRUE.equalsIgnoreCase(props.getProperty(ASSERTIONS_PROP, TRUE));
         _latency         = TRUE.equalsIgnoreCase(props.getProperty(LATENCY_PROP, TRUE));
-        _connectTime     = TRUE.equalsIgnoreCase(props.getProperty(CONNECT_TIME_PROP, FALSE));
+        _connectTime     = TRUE.equalsIgnoreCase(props.getProperty(CONNECT_TIME_PROP, TRUE));
         _samplerData     = TRUE.equalsIgnoreCase(props.getProperty(SAMPLERDATA_PROP, FALSE));
         _responseHeaders = TRUE.equalsIgnoreCase(props.getProperty(RESPONSEHEADERS_PROP, FALSE));
         _requestHeaders  = TRUE.equalsIgnoreCase(props.getProperty(REQUESTHEADERS_PROP, FALSE));
         _encoding        = TRUE.equalsIgnoreCase(props.getProperty(ENCODING_PROP, FALSE));
 
-        String dlm = props.getProperty(DEFAULT_DELIMITER_PROP, DEFAULT_DELIMITER);
-        if (dlm.equals("\\t")) {// Make it easier to enter a tab (can use \<tab> but that is awkward)
-            dlm="\t";
-        }
-
-        if (dlm.length() != 1){
-            throw new JMeterError("Delimiter '"+dlm+"' must be of length 1.");
-        }
+        String dlm = JMeterUtils.getDelimiter(props.getProperty(DEFAULT_DELIMITER_PROP, DEFAULT_DELIMITER));
         char ch = dlm.charAt(0);
 
         if (CharUtils.isAsciiAlphanumeric(ch) || ch == CSVSaveService.QUOTING_CHAR){
@@ -330,7 +328,7 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
 
         _delimiter = dlm;
 
-        _fieldNames = TRUE.equalsIgnoreCase(props.getProperty(PRINT_FIELD_NAMES_PROP, FALSE));
+        _fieldNames = TRUE.equalsIgnoreCase(props.getProperty(PRINT_FIELD_NAMES_PROP, TRUE));
 
         _dataType = TRUE.equalsIgnoreCase(props.getProperty(SAVE_DATA_TYPE_PROP, TRUE));
 
@@ -363,6 +361,7 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
         _printMilliseconds = MILLISECONDS.equalsIgnoreCase(_timeStampFormat);
 
         // Prepare for a pretty date
+        // FIXME Can _timeStampFormat be null ? it does not appear to me .
         if (!_printMilliseconds && !NONE.equalsIgnoreCase(_timeStampFormat) && (_timeStampFormat != null)) {
             _formatter = new SimpleDateFormat(_timeStampFormat);
         } else {
@@ -372,7 +371,7 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
         _timestamp = !NONE.equalsIgnoreCase(_timeStampFormat);// reversed compare allows for null
 
         _saveAssertionResultsFailureMessage = TRUE.equalsIgnoreCase(props.getProperty(
-                ASSERTION_RESULTS_FAILURE_MESSAGE_PROP, FALSE));
+                ASSERTION_RESULTS_FAILURE_MESSAGE_PROP, TRUE));
 
         String whichAssertionResults = props.getProperty(ASSERTION_RESULTS_PROP, NONE);
         if (NONE.equals(whichAssertionResults)) {
@@ -400,7 +399,7 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
 
         _sampleCount=TRUE.equalsIgnoreCase(props.getProperty(SAVE_SAMPLE_COUNT, FALSE));
 
-        _idleTime=TRUE.equalsIgnoreCase(props.getProperty(SAVE_IDLE_TIME, FALSE));
+        _idleTime=TRUE.equalsIgnoreCase(props.getProperty(SAVE_IDLE_TIME, TRUE));
     }
 
     // Don't save this, as not settable via GUI
@@ -424,11 +423,73 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
         return _static;
     }
 
+    // for test code only
+    static final String CONFIG_GETTER_PREFIX = "save";  // $NON-NLS-1$
+
+    /**
+     * Convert a config name to the method name of the getter.
+     * The getter method returns a boolean.
+     * @param configName
+     * @return the getter method name
+     */
+    public static final String getterName(String configName) {
+        return CONFIG_GETTER_PREFIX + configName;
+    }
+
+    // for test code only
+    static final String CONFIG_SETTER_PREFIX = "set";  // $NON-NLS-1$
+
+    /**
+     * Convert a config name to the method name of the setter
+     * The setter method requires a boolean parameter.
+     * @param configName
+     * @return the setter method name
+     */
+    public static final String setterName(String configName) {
+        return CONFIG_SETTER_PREFIX + configName;
+    }
+
+    /**
+     * List of saveXXX/setXXX(boolean) methods which is used to build the Sample Result Save Configuration dialog.
+     * New method names should be added at the end so that existing layouts are not affected.
+     */
+    // The current order is derived from http://jmeter.apache.org/usermanual/listeners.html#csvlogformat
+    // TODO this may not be the ideal order; fix further and update the screenshot(s)
+    public static final List<String> SAVE_CONFIG_NAMES = Collections.unmodifiableList(Arrays.asList(new String[]{
+        "AsXml",
+        "FieldNames", // CSV
+        "Timestamp",
+        "Time", // elapsed
+        "Label",
+        "Code", // Response Code
+        "Message", // Response Message
+        "ThreadName",
+        "DataType",
+        "Success",
+        "AssertionResultsFailureMessage",
+        "Bytes",
+        "ThreadCounts", // grpThreads and allThreads
+        "Url",
+        "FileName",
+        "Latency",
+        "ConnectTime",
+        "Encoding",
+        "SampleCount", // Sample and Error Count
+        "Hostname",
+        "IdleTime",
+        "RequestHeaders", // XML
+        "SamplerData", // XML
+        "ResponseHeaders", // XML
+        "ResponseData", // XML
+        "Subresults", // XML
+        "Assertions", // XML
+    }));
+    
     public SampleSaveConfiguration() {
     }
 
     /**
-     * Alternate constructor for use by OldSaveService
+     * Alternate constructor for use by CsvSaveService
      *
      * @param value initial setting for boolean fields used in Config dialogue
      */
@@ -436,26 +497,27 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
         assertions = value;
         bytes = value;
         code = value;
+        connectTime = value;
         dataType = value;
         encoding = value;
         fieldNames = value;
         fileName = value;
         hostname = value;
+        idleTime = value;
         label = value;
         latency = value;
-        connectTime = value;
         message = value;
         printMilliseconds = _printMilliseconds;//is derived from properties only
         requestHeaders = value;
         responseData = value;
         responseDataOnError = value;
         responseHeaders = value;
+        sampleCount = value;
         samplerData = value;
         saveAssertionResultsFailureMessage = value;
         subresults = value;
         success = value;
         threadCounts = value;
-        sampleCount = value;
         threadName = value;
         time = value;
         timestamp = value;
@@ -790,8 +852,7 @@ public class SampleSaveConfiguration implements Cloneable, Serializable {
     ///////////////// End of standard field accessors /////////////////////
 
     /**
-     * Only intended for use by OldSaveService (and test cases)
-     * 
+     * Intended for use by CsvSaveService (and test cases)
      * @param fmt
      *            format of the date to be saved. If <code>null</code>
      *            milliseconds since epoch will be printed

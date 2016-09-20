@@ -53,7 +53,7 @@ public class URLRewritingModifierGui extends AbstractPreProcessorGui {
         init();
     }
 
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         setLayout(new BorderLayout(0, 5));
         setBorder(makeBorder());
 
@@ -101,7 +101,7 @@ public class URLRewritingModifierGui extends AbstractPreProcessorGui {
      */
     @Override
     public void modifyTestElement(TestElement modifier) {
-        this.configureTestElement(modifier);
+        super.configureTestElement(modifier);
         URLRewritingModifier rewritingModifier = ((URLRewritingModifier) modifier);
         rewritingModifier.setArgumentName(argumentName.getText());
         rewritingModifier.setPathExtension(pathExt.isSelected());

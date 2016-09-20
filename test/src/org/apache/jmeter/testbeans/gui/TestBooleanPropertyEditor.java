@@ -16,8 +16,13 @@
  */
 package org.apache.jmeter.testbeans.gui;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.beans.PropertyEditor;
 import java.beans.PropertyEditorManager;
+
+import org.junit.Test;
 
 /**
  * Test class to check that the JVM provides sensible behaviour for the boolean PropertyEditor, i.e.
@@ -25,7 +30,7 @@ import java.beans.PropertyEditorManager;
  *
  * Also checks that BooleanPropertyEditor behaves in the same way.
  */
-public class TestBooleanPropertyEditor extends junit.framework.TestCase {
+public class TestBooleanPropertyEditor {
  
     /*
      * N.B.
@@ -36,15 +41,14 @@ public class TestBooleanPropertyEditor extends junit.framework.TestCase {
     private static final String FALSE = "False"; // $NON-NLS-1$
     private static final String TRUE  = "True";  // $NON-NLS-1$
 
-    public TestBooleanPropertyEditor(String name) {
-        super(name);
-    }
 
+    @Test
     public void testBooleanEditor(){
         PropertyEditor propertyEditor = PropertyEditorManager.findEditor(boolean.class);
         testBooleanEditor(propertyEditor);
     }
 
+    @Test
     public void testBooleanPropertyEditor() {
         PropertyEditor propertyEditor = new BooleanPropertyEditor();
         testBooleanEditor(propertyEditor);

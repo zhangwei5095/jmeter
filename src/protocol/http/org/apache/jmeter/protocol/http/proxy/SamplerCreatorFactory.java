@@ -37,7 +37,7 @@ public class SamplerCreatorFactory {
 
     private static final SamplerCreator DEFAULT_SAMPLER_CREATOR = new DefaultSamplerCreator();
 
-    private final Map<String, SamplerCreator> samplerCreatorMap = new HashMap<String, SamplerCreator>();
+    private final Map<String, SamplerCreator> samplerCreatorMap = new HashMap<>();
 
     /**
      * 
@@ -49,7 +49,7 @@ public class SamplerCreatorFactory {
     /**
      * Initialize factory from classpath
      */
-    private void init() {
+    private void init() { // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
         try {
             List<String> listClasses = ClassFinder.findClassesThatExtend(
                     JMeterUtils.getSearchPaths(), 

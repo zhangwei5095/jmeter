@@ -40,7 +40,7 @@ public class Paste extends AbstractAction {
 
     private static final Logger log = LoggingManager.getLoggerForClass();
 
-    private static final Set<String> commands = new HashSet<String>();
+    private static final Set<String> commands = new HashSet<>();
 
     static {
         commands.add(ActionNames.PASTE);
@@ -59,7 +59,7 @@ public class Paste extends AbstractAction {
      */
     @Override
     public void doAction(ActionEvent e) {
-        JMeterTreeNode draggedNodes[] = Copy.getCopiedNodes();
+        JMeterTreeNode[] draggedNodes = Copy.getCopiedNodes();
         if (draggedNodes == null) {
             Toolkit.getDefaultToolkit().beep();
             return;

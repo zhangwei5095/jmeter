@@ -87,7 +87,7 @@ public class Proxy extends Thread {
         JMeterUtils.getPropDefault("proxy.ssl.protocol", "TLS"); // $NON-NLS-1$ $NON-NLS-2$
 
     // HashMap to save ssl connection between Jmeter proxy and browser
-    private static final HashMap<String, SSLSocketFactory> HOST2SSL_SOCK_FAC = new HashMap<String, SSLSocketFactory>();
+    private static final HashMap<String, SSLSocketFactory> HOST2SSL_SOCK_FAC = new HashMap<>();
 
     private static final SamplerCreatorFactory SAMPLERFACTORY = new SamplerCreatorFactory();
 
@@ -109,9 +109,9 @@ public class Proxy extends Thread {
     /** Whether or not to capture the HTTP headers. */
     private boolean captureHttpHeaders;
 
-    /** Reference to Deamon's Map of url string to page character encoding of that page */
+    /** Reference to Daemon's Map of url string to page character encoding of that page */
     private Map<String, String> pageEncodings;
-    /** Reference to Deamon's Map of url string to character encoding for the form */
+    /** Reference to Daemon's Map of url string to character encoding for the form */
     private Map<String, String> formEncodings;
 
     private String port; // For identifying log messages
@@ -271,7 +271,7 @@ public class Proxy extends Thread {
              */
             if (headers != null) {
                 headers.removeHeaderNamed(HTTPConstants.HEADER_COOKIE);// Always remove cookies
-                // See https://issues.apache.org/bugzilla/show_bug.cgi?id=25430
+                // See https://bz.apache.org/bugzilla/show_bug.cgi?id=25430
                 // HEADER_AUTHORIZATION won't be removed, it will be used
                 // for creating Authorization Manager
                 // Remove additional headers
@@ -281,7 +281,7 @@ public class Proxy extends Thread {
             }
             if(result != null) // deliverSampler allows sampler to be null, but result must not be null
             {
-                List<TestElement> children = new ArrayList<TestElement>();
+                List<TestElement> children = new ArrayList<>();
                 if(captureHttpHeaders) {
                     children.add(headers);
                 }
@@ -289,7 +289,7 @@ public class Proxy extends Thread {
                     children.addAll(samplerCreator.createChildren(sampler, result));
                 } 
                 target.deliverSampler(sampler,
-                        children.isEmpty() ? null : (TestElement[]) children
+                         children
                                 .toArray(new TestElement[children.size()]),
                         result);
             }
@@ -309,7 +309,6 @@ public class Proxy extends Thread {
      *
      * @param host
      * @return a ssl socket factory, or null if keystore could not be opened/processed
-     * @throws IOException
      */
     private SSLSocketFactory getSSLSocketFactory(String host) {
         if (keyStore == null) {
@@ -392,7 +391,7 @@ public class Proxy extends Thread {
         if (keyStore.containsAlias(host)) {
             return host;
         }
-        String parts[] = host.split("\\."); // get the component parts
+        String[] parts = host.split("\\."); // get the component parts
         // Assume domains must have at least 2 parts, e.g. apache.org
         // Replace the first part with "*" 
         StringBuilder sb = new StringBuilder("*"); // $NON-NLS-1$
@@ -433,7 +432,7 @@ public class Proxy extends Thread {
      * @param sock socket in
      * @param host
      * @return a new client socket over ssl
-     * @throws Exception if negotiation failed
+     * @throws IOException if negotiation failed
      */
     private Socket startSSL(Socket sock, String host) throws IOException {
         SSLSocketFactory sslFactory = getSSLSocketFactory(host);
@@ -478,11 +477,10 @@ public class Proxy extends Thread {
     /**
      * Write output to the output stream, then flush and close the stream.
      *
-     * @param inBytes
-     *            the bytes to write
+     * @param res
+     *            the SampleResult to write
      * @param out
      *            the output stream to write to
-     * @param forcedHTTPS if we changed the protocol to https
      * @throws IOException
      *             if an IOException occurs while writing
      */
@@ -520,38 +518,37 @@ public class Proxy extends Thread {
      */
     private String messageResponseHeaders(SampleResult res) {
         String headers = res.getResponseHeaders();
-        String [] headerLines=headers.split(NEW_LINE, 0); // drop empty trailing content
-        int contentLengthIndex=-1;
+        String[] headerLines = headers.split(NEW_LINE, 0); // drop empty trailing content
+        int contentLengthIndex = -1;
         boolean fixContentLength = false;
-        for (int i=0;i<headerLines.length;i++){
-            String line=headerLines[i];
-            String[] parts=line.split(":\\s+",2); // $NON-NLS-1$
-            if (parts.length==2){
-                if (HTTPConstants.TRANSFER_ENCODING.equalsIgnoreCase(parts[0])){
-                    headerLines[i]=null; // We don't want this passed on to browser
+        for (int i = 0; i < headerLines.length; i++) {
+            String line = headerLines[i];
+            String[] parts = line.split(":\\s+", 2); // $NON-NLS-1$
+            if (parts.length == 2) {
+                if (HTTPConstants.TRANSFER_ENCODING.equalsIgnoreCase(parts[0])) {
+                    headerLines[i] = null; // We don't want this passed on to browser
                     continue;
                 }
                 if (HTTPConstants.HEADER_CONTENT_ENCODING.equalsIgnoreCase(parts[0])
                     &&
                     HTTPConstants.ENCODING_GZIP.equalsIgnoreCase(parts[1])
                 ){
-                    headerLines[i]=null; // We don't want this passed on to browser
+                    headerLines[i] = null; // We don't want this passed on to browser
                     fixContentLength = true;
                     continue;
                 }
                 if (HTTPConstants.HEADER_CONTENT_LENGTH.equalsIgnoreCase(parts[0])){
-                    contentLengthIndex=i;
-                    continue;
+                    contentLengthIndex = i;
                 }
             }
         }
         if (fixContentLength && contentLengthIndex>=0){// Fix the content length
-            headerLines[contentLengthIndex]=HTTPConstants.HEADER_CONTENT_LENGTH+": "+res.getResponseData().length;
+            headerLines[contentLengthIndex] =
+                    HTTPConstants.HEADER_CONTENT_LENGTH + ": " + res.getResponseData().length;
         }
         StringBuilder sb = new StringBuilder(headers.length());
-        for (int i=0;i<headerLines.length;i++){
-            String line=headerLines[i];
-            if (line != null){
+        for (String line : headerLines) {
+            if (line != null) {
                 sb.append(line).append(CRLF_STRING);
             }
         }
@@ -589,7 +586,7 @@ public class Proxy extends Thread {
         } catch(IllegalCharsetNameException ex) {
             log.warn("Unsupported charset detected in contentType:'"+result.getContentType()+"', will continue processing with default charset", ex);
         }
-        if(pageEncoding != null) {
+        if (pageEncoding != null) {
             String urlWithoutQuery = getUrlWithoutQuery(result.getURL());
             synchronized(pageEncodings) {
                 pageEncodings.put(urlWithoutQuery, pageEncoding);

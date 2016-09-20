@@ -16,13 +16,11 @@
  * 
  */
 
-/*
- * Created on Jul 16, 2003
- *
- */
 package org.apache.jmeter.testelement;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.config.ConfigTestElement;
@@ -34,14 +32,15 @@ import org.apache.jmeter.testelement.property.CollectionProperty;
 import org.apache.jmeter.testelement.property.NullProperty;
 import org.apache.jmeter.testelement.property.StringProperty;
 import org.apache.jmeter.testelement.property.TestElementProperty;
+import org.junit.Ignore;
+import org.junit.Test;
 
-public class PackageTest extends TestCase {
-    public PackageTest(String arg0) {
-        super(arg0);
-    }
+public class PackageTest {
 
-    // Test needs to run in this package in order to give access to AbstractTestElement.addProperty() 
-    public void DISABLEDtestBug50799() throws Exception {
+    // Test needs to run in this package in order to give access to AbstractTestElement.addProperty()
+    @Test
+    @Ignore // should be OK now the bug is fixed, but it fails
+    public void testBug50799() throws Exception {
         HeaderManager headerManager = new HeaderManager();
         headerManager.add(new Header("1stLevelTestHeader", "testValue1"));
         HeaderManager headerManager2 = new HeaderManager();
@@ -63,13 +62,14 @@ public class PackageTest extends TestCase {
         headerManager2.recoverRunningVersion();
         debugSampler.recoverRunningVersion();
 
-        assertEquals(1, headerManager.size());
+        assertEquals(1, headerManager.size()); // Test fails here - size is 0 - but why?
         assertEquals(1, headerManager2.size());
         assertEquals(0, ((CollectionProperty)debugSampler.getProperty("HeaderManager.headers")).size());
-        assertEquals(new Header("1stLevelTestHeader", "testValue1"), headerManager.get(0));
+        assertEquals(new Header("1stLevelTestHeader", "testValue1"), headerManager.get(0)); // This also fails because the size is zero
         assertEquals(new Header("2ndLevelTestHeader", "testValue2"), headerManager2.get(0));
     }
 
+    @Test
     public void testRecovery() throws Exception {
         ConfigTestElement config = new ConfigTestElement();
         config.addProperty(new StringProperty("name", "config"));
@@ -87,6 +87,7 @@ public class PackageTest extends TestCase {
         assertEquals(new NullProperty("login"), config.getProperty("login"));
     }
 
+    @Test
     public void testArguments() throws Exception {
         Arguments args = new Arguments();
         args.addArgument("arg1", "val1", "=");

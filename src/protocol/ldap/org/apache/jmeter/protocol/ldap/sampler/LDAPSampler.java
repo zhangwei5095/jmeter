@@ -37,6 +37,7 @@ import org.apache.jmeter.samplers.Entry;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.testelement.property.BooleanProperty;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.apache.jmeter.testelement.property.PropertyIterator;
 import org.apache.jmeter.testelement.property.StringProperty;
 import org.apache.jmeter.testelement.property.TestElementProperty;
@@ -53,11 +54,12 @@ public class LDAPSampler extends AbstractSampler {
 
     private static final long serialVersionUID = 240L;
 
-    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<String>(
-            Arrays.asList(new String[]{
+    private static final Set<String> APPLIABLE_CONFIG_CLASSES = new HashSet<>(
+            Arrays.asList(
                     "org.apache.jmeter.config.gui.LoginConfigGui",
                     "org.apache.jmeter.protocol.ldap.config.gui.LdapConfigGui",
-                    "org.apache.jmeter.config.gui.SimpleConfigGui"}));
+                    "org.apache.jmeter.config.gui.SimpleConfigGui"
+            ));
     
     public static final String SERVERNAME = "servername"; //$NON-NLS-1$
 
@@ -261,10 +263,9 @@ public class LDAPSampler extends AbstractSampler {
         BasicAttributes attrs = new BasicAttributes(true);
         attrs.put(basicattribute);
         BasicAttribute attr;
-        PropertyIterator iter = getArguments().iterator();
 
-        while (iter.hasNext()) {
-            Argument item = (Argument) iter.next().getObjectValue();
+        for (JMeterProperty jMeterProperty : getArguments()) {
+            Argument item = (Argument) jMeterProperty.getObjectValue();
             attr = getBasicAttribute(item.getName(), item.getValue());
             attrs.put(attr);
         }

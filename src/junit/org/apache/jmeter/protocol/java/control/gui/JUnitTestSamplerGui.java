@@ -74,10 +74,10 @@ implements ChangeListener, ActionListener, ItemListener
     private static final String[] SPATHS;
 
     static {
-        String paths[];
+        String[] paths;
         String ucp = JMeterUtils.getProperty("user.classpath");
         if (ucp!=null){
-            String parts[] = ucp.split(File.pathSeparator);
+            String[] parts = ucp.split(File.pathSeparator);
             paths = new String[parts.length+1];
             paths[0] = JMeterUtils.getJMeterHome() + "/lib/junit/"; //$NON-NLS-1$
             System.arraycopy(parts, 0, paths, 1, parts.length);
@@ -132,8 +132,8 @@ implements ChangeListener, ActionListener, ItemListener
     private JCheckBox createInstancePerSample = new JCheckBox(JMeterUtils.getResString("junit_create_instance_per_sample")); //$NON-NLS-1$
 
     /** A combo box allowing the user to choose a test class. */
-    private JComboBox classnameCombo;
-    private JComboBox methodName;
+    private JComboBox<String> classnameCombo;
+    private JComboBox<String> methodName;
 
     private final transient ClassLoader contextClassLoader =
         Thread.currentThread().getContextClassLoader(); // Potentially expensive; do it once
@@ -156,7 +156,7 @@ implements ChangeListener, ActionListener, ItemListener
     /**
      * Initialize the GUI components and layout.
      */
-    private void init()
+    private void init() // WARNING: called from ctor so must not be overridden (i.e. must be private or final)
     {
         setLayout(new BorderLayout(0, 5));
         setBorder(makeBorder());
@@ -184,9 +184,9 @@ implements ChangeListener, ActionListener, ItemListener
             ClassFilter filter = new ClassFilter();
             filter.setPackges(JOrphanUtils.split(filterpkg.getText(),",")); //$NON-NLS-1$
             // change the classname drop down
-            Object[] clist = filter.filterArray(classList);
-            for (int idx=0; idx < clist.length; idx++) {
-                classnameCombo.addItem(clist[idx]);
+            String[] clist = filter.filterArray(classList);
+            for (String classStr : clist) {
+                classnameCombo.addItem(classStr);
             }
         }
         catch (IOException e)
@@ -200,12 +200,12 @@ implements ChangeListener, ActionListener, ItemListener
         JLabel label =
             new JLabel(JMeterUtils.getResString("protocol_java_classname")); //$NON-NLS-1$
 
-        classnameCombo = new JComboBox();
+        classnameCombo = new JComboBox<>();
         classnameCombo.addActionListener(this);
         classnameCombo.setEditable(false);
         label.setLabelFor(classnameCombo);
 
-        methodName = new JComboBox();
+        methodName = new JComboBox<>();
         methodName.addActionListener(this);
         methodLabel.setLabelFor(methodName);
 
@@ -360,8 +360,8 @@ implements ChangeListener, ActionListener, ItemListener
                 // Don't instantiate class
                 Class<?> testClass = Class.forName(className, false, contextClassLoader);
                 String [] names = getMethodNames(testClass);
-                for (int idx=0; idx < names.length; idx++){
-                    methodName.addItem(names[idx]);
+                for (String name : names) {
+                    methodName.addItem(name);
                 }
                 methodName.repaint();
             } catch (ClassNotFoundException e) {
@@ -372,22 +372,21 @@ implements ChangeListener, ActionListener, ItemListener
     private String[] getMethodNames(Class<?> clazz)
     {
         Method[] meths = clazz.getMethods();
-        List<String> list = new ArrayList<String>();
-        for (int idx=0; idx < meths.length; idx++){
-            final Method method = meths[idx];
+        List<String> list = new ArrayList<>();
+        for (final Method method : meths) {
             final String name = method.getName();
-            if (junit4.isSelected()){
+            if (junit4.isSelected()) {
                 if (method.isAnnotationPresent(Test.class) ||
-                    method.isAnnotationPresent(BeforeClass.class) ||
-                    method.isAnnotationPresent(AfterClass.class)) {
-                        list.add(name);
+                        method.isAnnotationPresent(BeforeClass.class) ||
+                        method.isAnnotationPresent(AfterClass.class)) {
+                    list.add(name);
                 }
             } else {
                 if (name.startsWith(TESTMETHOD_PREFIX) ||
-                    name.equals(ONETIMESETUP) ||
-                    name.equals(ONETIMETEARDOWN) ||
-                    name.equals(SUITE)) {
-                        list.add(name);
+                        name.equals(ONETIMESETUP) ||
+                        name.equals(ONETIMETEARDOWN) ||
+                        name.equals(SUITE)) {
+                    list.add(name);
                 }
             }
         }

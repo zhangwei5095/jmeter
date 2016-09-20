@@ -18,6 +18,8 @@
 
 package org.apache.jmeter.protocol.http.control;
 
+import static org.junit.Assert.fail;
+
 import java.net.UnknownHostException;
 
 import org.apache.jmeter.junit.JMeterTestCase;
@@ -31,6 +33,7 @@ public class TestDNSCacheManager extends JMeterTestCase {
         original.setCustomResolver(true);
         original.addServer("127.0.0.99");
         DNSCacheManager clone = (DNSCacheManager) original.clone();
+        clone.setTimeoutMs(100);
         try {
             clone.resolve("jmeter.apache.org");
             fail();
